@@ -8,4 +8,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="CameraSuite_NET">
+      <HintPath>bin\Release\net6.0-windows\CameraSuite_NET.dll</HintPath>
+    </Reference>
+    <Reference Include="GigEVisionSDK_NET">
+      <HintPath>..\..\..\..\..\..\Users\k2xmo\Downloads\AcquisitionSmartek\AcquisitionSmartek\GigEVisionSDK_NET.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
