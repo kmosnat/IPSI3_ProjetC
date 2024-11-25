@@ -4,6 +4,7 @@ using System.Drawing.Imaging;
 
 using System.Windows.Forms;
 using System.Threading;
+using static System.Net.Mime.MediaTypeNames;
 
 
 namespace Couleur
@@ -19,6 +20,7 @@ namespace Couleur
         public Form1()
         {
             InitializeComponent();
+            initCamera();
         }
 
         private void initCamera()
@@ -31,7 +33,7 @@ namespace Couleur
 
             if (!smcsVisionApi.IsUsingKernelDriver())
             {
-                MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
+                //MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
             }
 
             // discover all devices on network
@@ -103,9 +105,19 @@ namespace Couleur
                     if (imageInfo != null)
                     {
                         Bitmap bitmap = (Bitmap)this.pbImage.Image;
+                        Bitmap bmpGt = (Bitmap)this.pbImage.Image;
+                        ClImage Img = new ClImage();
+                        ClImage ImgGT = new ClImage();
                         BitmapData bd = null;
 
                         ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
+
+                        var bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+                        var bmpDataGt = bmpGt.LockBits(new Rectangle(0, 0, bmpGt.Width, bmpGt.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);    // blocage des pixels de l'image 
+
+                        Img.objetLibDataImgPtr(2, bmpData.Scan0, bmpData.Stride, bitmap.Height, bitmap.Width);
+                        Img.processPtr(ImgGT.objetLibDataImgPtr(0, bmpDataGt.Scan0, bmpDataGt.Stride, bmpGt.Height, bmpGt.Width));
+
                         //-------------------------------------------------------------------
                         //if (m_pixelFormat == PixelFormat.Format8bppIndexed)
                         //{
@@ -137,6 +149,21 @@ namespace Couleur
                     m_device.ClearImageBuffer();
                 }
             }
+        }
+
+        private void Form1_FormClosing(object sender, EventArgs e)
+        {
+            timAcq.Stop();
+            if (m_device != null && m_device.IsConnected())
+            {
+                m_device.CommandNodeExecute("AcquisitionStop");
+                m_device.SetIntegerNodeValue("TLParamsLocked", 0);
+                m_device.Disconnect();
+            }
+
+            smcs.CameraSuite.ExitCameraAPI();
+
+            this.Close();
         }
     }
 }
