@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.Windows.Forms;
 using System.Threading;
 using static System.Net.Mime.MediaTypeNames;
+using System.IO.Ports;
 
 
 namespace Couleur
@@ -21,6 +22,7 @@ namespace Couleur
         {
             InitializeComponent();
             initCamera();
+            SerialPort port = new SerialPort("COM3", 9600);
         }
 
         private void initCamera()
@@ -105,49 +107,79 @@ namespace Couleur
                     if (imageInfo != null)
                     {
                         Bitmap bitmap = (Bitmap)this.pbImage.Image;
-                        Bitmap bmpGt = (Bitmap)this.pbImage.Image;
-                        ClImage Img = new ClImage();
-                        ClImage ImgGT = new ClImage();
                         BitmapData bd = null;
-
                         ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
 
-                        var bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
-                        var bmpDataGt = bmpGt.LockBits(new Rectangle(0, 0, bmpGt.Width, bmpGt.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);    // blocage des pixels de l'image 
-
-                        Img.objetLibDataImgPtr(2, bmpData.Scan0, bmpData.Stride, bitmap.Height, bitmap.Width);
-                        Img.processPtr(ImgGT.objetLibDataImgPtr(0, bmpDataGt.Scan0, bmpDataGt.Stride, bmpGt.Height, bmpGt.Width));
-
-                        //-------------------------------------------------------------------
-                        //if (m_pixelFormat == PixelFormat.Format8bppIndexed)
-                        //{
-                        //    // set palette
-                        //    ColorPalette palette = bitmap.Palette;
-                        //    for (int i = 0; i < 256; i++)
-                        //    {
-                        //        palette.Entries[i] = Color.FromArgb(255 - i, 255 - i, 255 - i);
-                        //    }
-                        //    bitmap.Palette = palette;
-                        //}
-                        //-------------------------------------------------------------------
                         if (bitmap != null)
                         {
-                            //this.pbImage.Height = bitmap.Height;
-                            //this.pbImage.Width = bitmap.Width;
                             this.pbImage.Image = bitmap;
                         }
 
-                        // display image
-                        if (bd != null)
-                            bitmap.UnlockBits(bd);
+                        try
+                        {
+                            // Préparer les paramètres pour la bibliothèque
+                            int nbChamps = GetNumberOfChannels(m_pixelFormat);
+                            int stride = bd.Stride;
+                            int nbLig = bitmap.Height;
+                            int nbCol = bitmap.Width;
+
+                            // Obtenir un pointeur vers les données de l'image
+                            IntPtr ptrData = bd.Scan0;
+
+                            // Instancier la classe ClImage
+                            using (ClImage img = new ClImage())
+                            {
+                                // Appeler la fonction de la bibliothèque pour initialiser ClPtr
+                                IntPtr clibPtr = img.ObjetLibDataImgPtr(nbChamps, ptrData, stride, nbLig, nbCol);
+
+                                if (clibPtr == IntPtr.Zero)
+                                {
+                                    throw new Exception("Échec de l'initialisation de l'objet ClibIHM.");
+                                }
+
+                                // Appliquer un filtre
+                                //img.FilterPtr(
+
+                                // Optionnel : récupérer une valeur de champ pour vérification
+                                double valeur = img.ObjetLibValeurChamp(0);
+                                Console.WriteLine($"Valeur du champ 0: {valeur}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Gérer les exceptions et afficher un message d'erreur
+                            MessageBox.Show($"Erreur lors de l'appel à la bibliothèque : {ex.Message}");
+                        }
+                        finally
+                        {
+                            // Déverrouiller les bits de l'image
+                            if (bd != null)
+                                bitmap.UnlockBits(bd);
+                        }
 
                         this.pbImage.Invalidate();
                     }
-                    // remove (pop) image from image buffer
+                    // Retirer l'image du buffer
                     m_device.PopImage(imageInfo);
-                    // empty buffer
+                    // Vider le buffer
                     m_device.ClearImageBuffer();
                 }
+            }
+        }
+
+
+        private int GetNumberOfChannels(PixelFormat format)
+        {
+            switch (format)
+            {
+                case PixelFormat.Format8bppIndexed:
+                    return 1;
+                case PixelFormat.Format24bppRgb:
+                    return 3;
+                case PixelFormat.Format32bppArgb:
+                    return 4;
+                default:
+                    throw new NotSupportedException("Format de pixel non supporté");
             }
         }
 
