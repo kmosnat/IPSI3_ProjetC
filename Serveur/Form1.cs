@@ -29,8 +29,8 @@ namespace Serveur
         {
             InitializeComponent();
 
-            m_ipAdrLocal = IPAddress.Parse("192.168.1.100");  // Adresse locale
-            m_ipAdrDistante = IPAddress.Parse("192.168.1.200");   // Adresse distante
+            m_ipAdrLocal = IPAddress.Parse("161.3.46.211");  // Adresse locale
+            m_ipAdrDistante = IPAddress.Parse("161.3.50.235");   // Adresse distante
             m_numPort = 8001;
 
             initCamera();
