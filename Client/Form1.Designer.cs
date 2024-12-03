@@ -38,15 +38,16 @@
             this.pbImage.Location = new System.Drawing.Point(594, 62);
             this.pbImage.Name = "pbImage";
             this.pbImage.Size = new System.Drawing.Size(680, 571);
+            this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 0;
             this.pbImage.TabStop = false;
             // 
             // tbCom
             // 
-            this.tbCom.Location = new System.Drawing.Point(59, 62);
+            this.tbCom.Location = new System.Drawing.Point(58, 295);
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
-            this.tbCom.Size = new System.Drawing.Size(502, 571);
+            this.tbCom.Size = new System.Drawing.Size(502, 338);
             this.tbCom.TabIndex = 1;
             // 
             // Form1

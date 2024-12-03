@@ -12,16 +12,19 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Threading;
+using System.Net.NetworkInformation;
 
 namespace Serveur
 {
-    public partial class Form1 : Form
+    public partial class Main : Form
     {
+        // Variables pour la caméra
         smcs.IDevice m_device;
         Rectangle m_rect;
         PixelFormat m_pixelFormat;
         UInt32 m_pixelType;
 
+        // Variables pour le serveur
         private IPAddress m_ipAdrLocal;
         private int m_numPort;
         private bool isTCPRunning = false;
@@ -29,90 +32,122 @@ namespace Serveur
 
         private CancellationTokenSource tcpCancellationTokenSource;
 
-        public Form1()
+        public Main()
         {
             InitializeComponent();
 
-            m_ipAdrLocal = IPAddress.Parse("192.168.1.54");
             m_numPort = 8001;
 
+            // États initiaux des boutons/menu
             btnStartAcquisition.Enabled = true;
             btnStopAcquisition.Enabled = false;
-            btnStopTCP.Enabled = false;
-            btnStartTCP.Enabled = true; 
+
+            // Options du serveur TCP au démarrage
+            démarrerLeServeurToolStripMenuItem.Enabled = true;
+            arrêterLeServeurToolStripMenuItem.Enabled = false;
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            // Ouvrir la boîte de dialogue de sélection des interfaces réseau
+            SélectionnerCarteRéseau();
+        }
+
+        private void SélectionnerCarteRéseau()
+        {
+            using (NetworkInterfaceSelectionDialog dialog = new NetworkInterfaceSelectionDialog())
+            {
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    m_ipAdrLocal = dialog.SelectedIPAddress;
+                    string interfaceName = dialog.SelectedInterfaceName;
+
+                    afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {m_ipAdrLocal.ToString()}";
+                }
+                else
+                {
+                    // Si l'utilisateur annule, utiliser IPAddress.Any
+                    m_ipAdrLocal = IPAddress.Any;
+                    afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {m_ipAdrLocal.ToString()}";
+                    MessageBox.Show("Aucune interface réseau sélectionnée. Le serveur utilisera toutes les interfaces.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        // Méthode pour initialiser la caméra
         private void initCamera()
         {
-            try
+            bool cameraConnected = false;
+
+            // initialize GigEVision API
+            smcs.CameraSuite.InitCameraAPI();
+            smcs.ICameraAPI smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
+
+            if (!smcsVisionApi.IsUsingKernelDriver())
             {
-                bool cameraConnected = false;
+                MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
+            }
 
-                smcs.CameraSuite.InitCameraAPI();
-                smcs.ICameraAPI smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
+            // discover all devices on network
+            smcsVisionApi.FindAllDevices(3.0);
+            smcs.IDevice[] devices = smcsVisionApi.GetAllDevices();
+            //MessageBox.Show(devices.Length.ToString());
+            if (devices.Length > 0)
+            {
+                // take first device in list
+                m_device = devices[0];
 
-                if (!smcsVisionApi.IsUsingKernelDriver())
+                // uncomment to use specific model
+                //for (int i = 0; i < devices.Length; i++)
+                //{
+                //    if (devices[i].GetModelName() == "GC652M")
+                //    {
+                //        m_device = devices[i];
+                //    }
+                //}
+
+                // to change number of images in image buffer from default 10 images 
+                // call SetImageBufferFrameCount() method before Connect() method
+                //m_device.SetImageBufferFrameCount(20);
+
+                if (m_device != null && m_device.Connect())
                 {
-                    MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
-                }
+                    this.lblConnection.BackColor = Color.LimeGreen;
+                    this.lblConnection.Text = "Connection établie";
+                    this.lblAdrIP.BackColor = Color.LimeGreen;
+                    this.lblAdrIP.Text = "Adresse IP : " + Common.IpAddrToString(m_device.GetIpAddress());
+                    this.lblNomCamera.Text = m_device.GetManufacturerName() + " : " + m_device.GetModelName();
 
-                smcsVisionApi.FindAllDevices(3.0);
-                smcs.IDevice[] devices = smcsVisionApi.GetAllDevices();
-
-                if (devices.Length > 0)
-                {
-                    m_device = devices[0];
-
-                    if (m_device != null && m_device.Connect())
-                    {
-                        this.Invoke((MethodInvoker)(() =>
-                        {
-                            lblConnection.BackColor = Color.LimeGreen;
-                            lblConnection.Text = "Connexion établie";
-                            lblAdrIP.BackColor = Color.LimeGreen;
-                            lblAdrIP.Text = "Adresse IP : " + Common.IpAddrToString(m_device.GetIpAddress());
-                            lblNomCamera.Text = m_device.GetManufacturerName() + " : " + m_device.GetModelName();
-                        }));
-
-                        bool status = m_device.SetStringNodeValue("TriggerMode", "Off");
-                        status = m_device.SetStringNodeValue("AcquisitionMode", "Continuous");
-                        status = m_device.SetIntegerNodeValue("TLParamsLocked", 1);
-                        status = m_device.CommandNodeExecute("AcquisitionStart");
-                        cameraConnected = true;
-
-                        this.Invoke((MethodInvoker)(() =>
-                        {
-                            btnStartAcquisition.Enabled = true;
-                            btnStartTCP.Enabled = true;
-                        }));
-                    }
-                }
-
-                if (!cameraConnected)
-                {
-                    MessageBox.Show("Aucune caméra détectée. L'acquisition se fera avec une image de test.");
-                    this.Invoke((MethodInvoker)(() =>
-                    {
-                        lblAdrIP.BackColor = Color.Red;
-                        lblAdrIP.Text = "Aucune caméra connectée";
-                        lblConnection.Text = "Utilisation de l'image de test";
-                        btnStartAcquisition.Enabled = true;
-                        btnStartTCP.Enabled = true;
-                    }));
+                    // disable trigger mode
+                    bool status = m_device.SetStringNodeValue("TriggerMode", "Off");
+                    // set continuous acquisition mode
+                    status = m_device.SetStringNodeValue("AcquisitionMode", "Continuous");
+                    // start acquisition
+                    status = m_device.SetIntegerNodeValue("TLParamsLocked", 1);
+                    status = m_device.CommandNodeExecute("AcquisitionStart");
+                    cameraConnected = true;
                 }
             }
-            catch (Exception ex)
+
+            if (!cameraConnected)
             {
-                MessageBox.Show("Échec de l'initialisation de la caméra : " + ex.Message);
+                this.lblAdrIP.BackColor = Color.Red;
+                this.lblAdrIP.Text = "Erreur de connection!";
             }
         }
 
+        // Méthode pour initialiser le serveur TCP
         private void initServerTCP()
         {
             if (isTCPRunning)
             {
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur TCP est déjà en cours d'exécution.\r\n")));
                 return;
+            }
+
+            if (m_ipAdrLocal == null)
+            {
+                m_ipAdrLocal = IPAddress.Any;
             }
 
             isTCPRunning = true;
@@ -157,18 +192,20 @@ namespace Serveur
                 isTCPRunning = false;
                 this.Invoke((MethodInvoker)(() =>
                 {
-                    btnStartTCP.Enabled = true;
-                    btnStopTCP.Enabled = false;
+                    démarrerLeServeurToolStripMenuItem.Enabled = true;
+                    arrêterLeServeurToolStripMenuItem.Enabled = false;
                 }));
             }
         }
 
+        // Méthode pour gérer la communication avec le client
         private void HandleClient(Socket clientSocket)
         {
             try
             {
                 using (NetworkStream networkStream = new NetworkStream(clientSocket))
                 {
+                    // Recevoir la requête du client
                     byte[] buffer = new byte[1024];
                     int bytesReceived = networkStream.Read(buffer, 0, buffer.Length);
                     string request = Encoding.ASCII.GetString(buffer, 0, bytesReceived).Trim();
@@ -177,6 +214,7 @@ namespace Serveur
 
                     if (request.Equals("START_STREAM", StringComparison.OrdinalIgnoreCase))
                     {
+                        // Envoyer les images en continu
                         while (clientSocket.Connected)
                         {
                             try
@@ -184,6 +222,7 @@ namespace Serveur
                                 Bitmap bitmap = null;
                                 if (m_device != null && m_device.IsConnected())
                                 {
+                                    // Capture de l'image depuis la caméra
                                     if (!m_device.IsBufferEmpty())
                                     {
                                         smcs.IImageInfo imageInfo = null;
@@ -203,17 +242,21 @@ namespace Serveur
                                 }
                                 else
                                 {
+                                    // Si la caméra n'est pas connectée, utiliser l'image de test
                                     bitmap = GenerateTestImage();
                                 }
 
                                 if (bitmap != null)
                                 {
+                                    // Convertir l'image en tableau d'octets (JPEG)
                                     byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
 
+                                    // Envoyer la taille de l'image (4 octets, Big Endian)
                                     byte[] sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(imageBytes.Length));
                                     networkStream.Write(sizeBytes, 0, sizeBytes.Length);
                                     this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image envoyée : " + imageBytes.Length + " octets.\r\n")));
 
+                                    // Envoyer les octets de l'image
                                     networkStream.Write(imageBytes, 0, imageBytes.Length);
                                     this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
                                 }
@@ -252,6 +295,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour convertir une Image en tableau d'octets
         private byte[] ImageToByteArray(Image image, ImageFormat format)
         {
             using (MemoryStream ms = new MemoryStream())
@@ -261,6 +305,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour générer une image de test
         private Bitmap GenerateTestImage()
         {
             try
@@ -281,11 +326,11 @@ namespace Serveur
             }
         }
 
+        // Événement clic sur le bouton Démarrer l'Acquisition
         private void btnStartAcquisition_Click(object sender, EventArgs e)
         {
             if (!isAcquisitionRunning)
             {
-                
                 isAcquisitionRunning = true;
                 timAcq.Start();
                 btnStartAcquisition.Enabled = false;
@@ -293,6 +338,7 @@ namespace Serveur
             }
         }
 
+        // Événement clic sur le bouton Arrêter l'Acquisition
         private void btnStopAcquisition_Click(object sender, EventArgs e)
         {
             if (isAcquisitionRunning)
@@ -304,32 +350,48 @@ namespace Serveur
             }
         }
 
-        private void btnSearchCameras_Click(object sender, EventArgs e)
+        // Événement clic sur le bouton Rechercher des Caméras
+        private void btnSearchCamera_Click(object sender, EventArgs e)
         {
             Task.Run(() => initCamera());
         }
 
-        private void btnStartTCP_Click(object sender, EventArgs e)
+        // Événement clic sur le menu Démarrer le Serveur TCP
+        private void démarrerLeServeurToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (!isTCPRunning)
             {
                 Task.Run(() => initServerTCP());
-                btnStartTCP.Enabled = false;
-                btnStopTCP.Enabled = true;
+                démarrerLeServeurToolStripMenuItem.Enabled = false;
+                arrêterLeServeurToolStripMenuItem.Enabled = true;
             }
         }
 
-        private void btnStopTCP_Click(object sender, EventArgs e)
+        // Événement clic sur le menu Arrêter le Serveur TCP
+        private void arrêterLeServeurToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (isTCPRunning)
             {
                 tcpCancellationTokenSource.Cancel();
                 isTCPRunning = false;
-                btnStartTCP.Enabled = true;
-                btnStopTCP.Enabled = false;
+                démarrerLeServeurToolStripMenuItem.Enabled = true;
+                arrêterLeServeurToolStripMenuItem.Enabled = false;
             }
         }
 
+        // Événement clic sur le menu Sélectionner une Carte Réseau
+        private void sélectionnerUneCarteRéseauToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SélectionnerCarteRéseau();
+        }
+
+        // Événement clic sur le menu Quitter
+        private void quitterToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        // Événement du timer pour l'acquisition
         private void timAcq_Tick(object sender, EventArgs e)
         {
             try
@@ -371,7 +433,6 @@ namespace Serveur
                 }
                 else
                 {
-                    // Si la caméra n'est pas connectée, afficher une image de test
                     Bitmap bitmap = GenerateTestImage();
                     if (bitmap != null)
                     {
@@ -397,6 +458,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour fermer les connexions de la caméra
         private void closeCamera()
         {
             timAcq.Stop();
@@ -414,6 +476,7 @@ namespace Serveur
             smcs.CameraSuite.ExitCameraAPI();
         }
 
+        // Événement de fermeture du formulaire
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             closeCamera();
@@ -423,9 +486,5 @@ namespace Serveur
             }
         }
 
-        private void quitBtn_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
     }
 }
