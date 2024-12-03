@@ -37,14 +37,13 @@ namespace Serveur
             this.lblAdrIP = new System.Windows.Forms.Label();
             this.lblConnection = new System.Windows.Forms.Label();
             this.pbImage = new System.Windows.Forms.PictureBox();
-            this.boutAcquisition = new System.Windows.Forms.Button();
-            this.boutStop = new System.Windows.Forms.Button();
+            this.btnStartAcquisition = new System.Windows.Forms.Button();
             this.timAcq = new System.Windows.Forms.Timer(this.components);
             this.Arduino = new System.IO.Ports.SerialPort(this.components);
             this.tbCom = new System.Windows.Forms.TextBox();
-            this.btninit = new System.Windows.Forms.Button();
-            this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
-            this.quitBtn = new System.Windows.Forms.Button();
+            this.btnStartTCP = new System.Windows.Forms.Button();
+            this.btnStopTCP = new System.Windows.Forms.Button();
+            this.btnStopAcquisition = new System.Windows.Forms.Button();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.SuspendLayout();
@@ -97,34 +96,25 @@ namespace Serveur
             this.pbImage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.pbImage.Name = "pbImage";
             this.pbImage.Size = new System.Drawing.Size(1101, 682);
+            this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 1;
             this.pbImage.TabStop = false;
             // 
-            // boutAcquisition
+            // btnStartAcquisition
             // 
-            this.boutAcquisition.Location = new System.Drawing.Point(52, 250);
-            this.boutAcquisition.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.boutAcquisition.Name = "boutAcquisition";
-            this.boutAcquisition.Size = new System.Drawing.Size(138, 36);
-            this.boutAcquisition.TabIndex = 2;
-            this.boutAcquisition.Text = "Acquisition";
-            this.boutAcquisition.UseVisualStyleBackColor = true;
-            this.boutAcquisition.Click += new System.EventHandler(this.boutAcquisition_Click);
-            // 
-            // boutStop
-            // 
-            this.boutStop.Location = new System.Drawing.Point(291, 197);
-            this.boutStop.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.boutStop.Name = "boutStop";
-            this.boutStop.Size = new System.Drawing.Size(138, 36);
-            this.boutStop.TabIndex = 3;
-            this.boutStop.Text = "Arret";
-            this.boutStop.UseVisualStyleBackColor = true;
+            this.btnStartAcquisition.Location = new System.Drawing.Point(21, 197);
+            this.btnStartAcquisition.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnStartAcquisition.Name = "btnStartAcquisition";
+            this.btnStartAcquisition.Size = new System.Drawing.Size(138, 36);
+            this.btnStartAcquisition.TabIndex = 2;
+            this.btnStartAcquisition.Text = "Start Acquisition";
+            this.btnStartAcquisition.UseVisualStyleBackColor = true;
+            this.btnStartAcquisition.Click += new System.EventHandler(this.btnStartAcquisition_Click);
             // 
             // timAcq
             // 
             this.timAcq.Interval = 20;
-            this.timAcq.Tick += new System.EventHandler(this.timAcq_Tick_1);
+            this.timAcq.Tick += new System.EventHandler(this.timAcq_Tick);
             // 
             // tbCom
             // 
@@ -137,39 +127,49 @@ namespace Serveur
             this.tbCom.TabIndex = 0;
             this.tbCom.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
-            // btninit
+            // btnStartTCP
             // 
-            this.btninit.Location = new System.Drawing.Point(52, 197);
-            this.btninit.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.btninit.Name = "btninit";
-            this.btninit.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.btninit.Size = new System.Drawing.Size(138, 36);
-            this.btninit.TabIndex = 4;
-            this.btninit.Text = "Init";
-            this.btninit.UseVisualStyleBackColor = true;
-            this.btninit.Click += new System.EventHandler(this.btninit_Click);
+            this.btnStartTCP.Location = new System.Drawing.Point(21, 250);
+            this.btnStartTCP.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnStartTCP.Name = "btnStartTCP";
+            this.btnStartTCP.Size = new System.Drawing.Size(138, 36);
+            this.btnStartTCP.TabIndex = 6;
+            this.btnStartTCP.Text = "Start TCP";
+            this.btnStartTCP.UseVisualStyleBackColor = true;
+            this.btnStartTCP.Click += new System.EventHandler(this.btnStartTCP_Click);
             // 
-            // quitBtn
+            // btnStopTCP
             // 
-            this.quitBtn.Location = new System.Drawing.Point(291, 250);
-            this.quitBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.quitBtn.Name = "quitBtn";
-            this.quitBtn.Size = new System.Drawing.Size(138, 36);
-            this.quitBtn.TabIndex = 5;
-            this.quitBtn.Text = "Quitter";
-            this.quitBtn.UseVisualStyleBackColor = true;
-            this.quitBtn.Click += new System.EventHandler(this.quitBtn_Click);
+            this.btnStopTCP.Location = new System.Drawing.Point(223, 250);
+            this.btnStopTCP.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnStopTCP.Name = "btnStopTCP";
+            this.btnStopTCP.Size = new System.Drawing.Size(138, 36);
+            this.btnStopTCP.TabIndex = 7;
+            this.btnStopTCP.Text = "Stop TCP";
+            this.btnStopTCP.UseVisualStyleBackColor = true;
+            this.btnStopTCP.Click += new System.EventHandler(this.btnStopTCP_Click);
+            // 
+            // btnStopAcquisition
+            // 
+            this.btnStopAcquisition.Location = new System.Drawing.Point(208, 197);
+            this.btnStopAcquisition.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btnStopAcquisition.Name = "btnStopAcquisition";
+            this.btnStopAcquisition.Size = new System.Drawing.Size(138, 36);
+            this.btnStopAcquisition.TabIndex = 8;
+            this.btnStopAcquisition.Text = "Stop";
+            this.btnStopAcquisition.UseVisualStyleBackColor = true;
+            this.btnStopAcquisition.Click += new System.EventHandler(this.btnStopAcquisition_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1683, 738);
-            this.Controls.Add(this.quitBtn);
-            this.Controls.Add(this.btninit);
+            this.Controls.Add(this.btnStopAcquisition);
+            this.Controls.Add(this.btnStopTCP);
+            this.Controls.Add(this.btnStartTCP);
             this.Controls.Add(this.tbCom);
-            this.Controls.Add(this.boutStop);
-            this.Controls.Add(this.boutAcquisition);
+            this.Controls.Add(this.btnStartAcquisition);
             this.Controls.Add(this.pbImage);
             this.Controls.Add(this.gbCamera);
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
@@ -187,17 +187,16 @@ namespace Serveur
 
         private GroupBox gbCamera;
         private PictureBox pbImage;
-        private Button boutAcquisition;
-        private Button boutStop;
+        private Button btnStartAcquisition;
         private Label lblAdrIP;
         private Label lblConnection;
         private Label lblNomCamera;
         private System.Windows.Forms.Timer timAcq;
         private System.IO.Ports.SerialPort Arduino;
         private TextBox tbCom;
-        private Button btninit;
-        private System.IO.Ports.SerialPort serialPort1;
-        private Button quitBtn;
+        private Button btnStartTCP;
+        private Button btnStopTCP;
+        private Button btnStopAcquisition;
     }
 }
 

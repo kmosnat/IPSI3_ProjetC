@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading;
 
 namespace Serveur
 {
@@ -22,99 +23,124 @@ namespace Serveur
         UInt32 m_pixelType;
 
         private IPAddress m_ipAdrLocal;
-        private IPAddress m_ipAdrDistante;
         private int m_numPort;
+        private bool isTCPRunning = false;
+        private bool isAcquisitionRunning = false;
+
+        private CancellationTokenSource tcpCancellationTokenSource;
 
         public Form1()
         {
             InitializeComponent();
 
-            m_ipAdrLocal = IPAddress.Parse("192.168.1.54");  // Adresse locale
-            m_ipAdrDistante = IPAddress.Parse("192.168.1.155");   // Adresse distante
+            m_ipAdrLocal = IPAddress.Parse("192.168.1.54");
             m_numPort = 8001;
 
+            btnStartAcquisition.Enabled = true;
+            btnStopAcquisition.Enabled = false;
+            btnStopTCP.Enabled = false;
+            btnStartTCP.Enabled = true; 
         }
 
         private void initCamera()
         {
-            bool cameraConnected = false;
-
-            // initialize GigEVision API
-            smcs.CameraSuite.InitCameraAPI();
-            smcs.ICameraAPI smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
-
-            if (!smcsVisionApi.IsUsingKernelDriver())
+            try
             {
-                MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
-            }
+                bool cameraConnected = false;
 
-            // discover all devices on network
-            smcsVisionApi.FindAllDevices(3.0);
-            smcs.IDevice[] devices = smcsVisionApi.GetAllDevices();
-            //MessageBox.Show(devices.Length.ToString());
-            if (devices.Length > 0)
-            {
-                // take first device in list
-                m_device = devices[0];
+                smcs.CameraSuite.InitCameraAPI();
+                smcs.ICameraAPI smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
 
-                // uncomment to use specific model
-                //for (int i = 0; i < devices.Length; i++)
-                //{
-                //    if (devices[i].GetModelName() == "GC652M")
-                //    {
-                //        m_device = devices[i];
-                //    }
-                //}
-
-                // to change number of images in image buffer from default 10 images 
-                // call SetImageBufferFrameCount() method before Connect() method
-                //m_device.SetImageBufferFrameCount(20);
-
-                if (m_device != null && m_device.Connect())
+                if (!smcsVisionApi.IsUsingKernelDriver())
                 {
-                    this.lblConnection.BackColor = Color.LimeGreen;
-                    this.lblConnection.Text = "Connection établie";
-                    this.lblAdrIP.BackColor = Color.LimeGreen;
-                    this.lblAdrIP.Text = "Adresse IP : " + Common.IpAddrToString(m_device.GetIpAddress());
-                    this.lblNomCamera.Text = m_device.GetManufacturerName() + " : " + m_device.GetModelName();
+                    MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
+                }
 
-                    // disable trigger mode
-                    bool status = m_device.SetStringNodeValue("TriggerMode", "Off");
-                    // set continuous acquisition mode
-                    status = m_device.SetStringNodeValue("AcquisitionMode", "Continuous");
-                    // start acquisition
-                    status = m_device.SetIntegerNodeValue("TLParamsLocked", 1);
-                    status = m_device.CommandNodeExecute("AcquisitionStart");
-                    cameraConnected = true;
+                smcsVisionApi.FindAllDevices(3.0);
+                smcs.IDevice[] devices = smcsVisionApi.GetAllDevices();
+
+                if (devices.Length > 0)
+                {
+                    m_device = devices[0];
+
+                    if (m_device != null && m_device.Connect())
+                    {
+                        this.Invoke((MethodInvoker)(() =>
+                        {
+                            lblConnection.BackColor = Color.LimeGreen;
+                            lblConnection.Text = "Connexion établie";
+                            lblAdrIP.BackColor = Color.LimeGreen;
+                            lblAdrIP.Text = "Adresse IP : " + Common.IpAddrToString(m_device.GetIpAddress());
+                            lblNomCamera.Text = m_device.GetManufacturerName() + " : " + m_device.GetModelName();
+                        }));
+
+                        bool status = m_device.SetStringNodeValue("TriggerMode", "Off");
+                        status = m_device.SetStringNodeValue("AcquisitionMode", "Continuous");
+                        status = m_device.SetIntegerNodeValue("TLParamsLocked", 1);
+                        status = m_device.CommandNodeExecute("AcquisitionStart");
+                        cameraConnected = true;
+
+                        this.Invoke((MethodInvoker)(() =>
+                        {
+                            btnStartAcquisition.Enabled = true;
+                            btnStartTCP.Enabled = true;
+                        }));
+                    }
+                }
+
+                if (!cameraConnected)
+                {
+                    MessageBox.Show("Aucune caméra détectée. L'acquisition se fera avec une image de test.");
+                    this.Invoke((MethodInvoker)(() =>
+                    {
+                        lblAdrIP.BackColor = Color.Red;
+                        lblAdrIP.Text = "Aucune caméra connectée";
+                        lblConnection.Text = "Utilisation de l'image de test";
+                        btnStartAcquisition.Enabled = true;
+                        btnStartTCP.Enabled = true;
+                    }));
                 }
             }
-
-            if (!cameraConnected)
+            catch (Exception ex)
             {
-                this.lblAdrIP.BackColor = Color.Red;
-                this.lblAdrIP.Text = "Erreur de connection!";
+                MessageBox.Show("Échec de l'initialisation de la caméra : " + ex.Message);
             }
         }
 
         private void initServerTCP()
         {
+            if (isTCPRunning)
+            {
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur TCP est déjà en cours d'exécution.\r\n")));
+                return;
+            }
+
+            isTCPRunning = true;
             TcpListener tcpListener = null;
+            tcpCancellationTokenSource = new CancellationTokenSource();
+            CancellationToken token = tcpCancellationTokenSource.Token;
+
             try
             {
                 tcpListener = new TcpListener(m_ipAdrLocal, m_numPort);
                 tcpListener.Start();
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur est en cours d'exécution...\r\n")));
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Point de terminaison local : " + tcpListener.LocalEndpoint.ToString() + "\r\n")));
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("En attente de connexion...\r\n")));
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("En attente de connexions...\r\n")));
 
-                while (true)
+                while (!token.IsCancellationRequested)
                 {
-                    // Accepter une connexion entrante
-                    Socket clientSocket = tcpListener.AcceptSocket();
-                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion acceptée de " + clientSocket.RemoteEndPoint.ToString() + "\r\n")));
+                    if (tcpListener.Pending())
+                    {
+                        Socket clientSocket = tcpListener.AcceptSocket();
+                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion acceptée de " + clientSocket.RemoteEndPoint.ToString() + "\r\n")));
 
-                    // Gérer la connexion dans un thread séparé
-                    Task.Run(() => HandleClient(clientSocket));
+                        Task.Run(() => HandleClient(clientSocket));
+                    }
+                    else
+                    {
+                        Thread.Sleep(100);
+                    }
                 }
             }
             catch (Exception ex)
@@ -128,6 +154,12 @@ namespace Serveur
                     tcpListener.Stop();
                     this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Serveur arrêté.\r\n")));
                 }
+                isTCPRunning = false;
+                this.Invoke((MethodInvoker)(() =>
+                {
+                    btnStartTCP.Enabled = true;
+                    btnStopTCP.Enabled = false;
+                }));
             }
         }
 
@@ -135,64 +167,82 @@ namespace Serveur
         {
             try
             {
-                NetworkStream networkStream = new NetworkStream(clientSocket);
-
-                // Recevoir la requête du client
-                byte[] buffer = new byte[1024];
-                int bytesReceived = networkStream.Read(buffer, 0, buffer.Length);
-                string request = Encoding.ASCII.GetString(buffer, 0, bytesReceived).Trim();
-
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête reçue : " + request + "\r\n")));
-
-                if (request.Equals("START_STREAM", StringComparison.OrdinalIgnoreCase))
+                using (NetworkStream networkStream = new NetworkStream(clientSocket))
                 {
-                    // Envoyer les images en continu
-                    while (true)
+                    byte[] buffer = new byte[1024];
+                    int bytesReceived = networkStream.Read(buffer, 0, buffer.Length);
+                    string request = Encoding.ASCII.GetString(buffer, 0, bytesReceived).Trim();
+
+                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête reçue : " + request + "\r\n")));
+
+                    if (request.Equals("START_STREAM", StringComparison.OrdinalIgnoreCase))
                     {
-                        try
+                        while (clientSocket.Connected)
                         {
-                            // Capture de l'image depuis la caméra
-                            Bitmap bitmap = (Bitmap)this.pbImage.Image;
-                            if (bitmap != null)
+                            try
                             {
-                                // Convertir l'image en octets (JPEG)
-                                byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
+                                Bitmap bitmap = null;
+                                if (m_device != null && m_device.IsConnected())
+                                {
+                                    if (!m_device.IsBufferEmpty())
+                                    {
+                                        smcs.IImageInfo imageInfo = null;
+                                        m_device.GetImageInfo(ref imageInfo);
+                                        if (imageInfo != null)
+                                        {
+                                            BitmapData bd = null;
 
-                                // Envoyer la taille de l'image (4 octets, Big Endian)
-                                byte[] sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(imageBytes.Length));
-                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image envoyée : " + imageBytes.Length + " octets.\r\n")));
+                                            ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
 
-                                // Envoyer les octets de l'image
-                                networkStream.Write(imageBytes, 0, imageBytes.Length);
-                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
+                                            if (bd != null)
+                                                bitmap.UnlockBits(bd);
+
+                                            m_device.PopImage(imageInfo);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    bitmap = GenerateTestImage();
+                                }
+
+                                if (bitmap != null)
+                                {
+                                    byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
+
+                                    byte[] sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(imageBytes.Length));
+                                    networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+                                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image envoyée : " + imageBytes.Length + " octets.\r\n")));
+
+                                    networkStream.Write(imageBytes, 0, imageBytes.Length);
+                                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
+                                }
+                                else
+                                {
+                                    string errorMsg = "Erreur de capture d'image.";
+                                    byte[] errorBytes = Encoding.ASCII.GetBytes(errorMsg);
+                                    networkStream.Write(errorBytes, 0, errorBytes.Length);
+                                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
+                                }
+
+                                Thread.Sleep(100);
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                string errorMsg = "Erreur de capture d'image.";
-                                byte[] errorBytes = Encoding.ASCII.GetBytes(errorMsg);
-                                networkStream.Write(errorBytes, 0, errorBytes.Length);
-                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
+                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'envoi de l'image : " + ex.Message + "\r\n")));
+                                break;
                             }
-
-                           
-                        }
-                        catch (Exception ex)
-                        {
-                            this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'envoi de l'image : " + ex.Message + "\r\n")));
-                            break; // Sortir de la boucle si une erreur survient (ex: client déconnecté)
                         }
                     }
-                }
-                else
-                {
-                    string invalidRequest = "Requête invalide.";
-                    byte[] invalidBytes = Encoding.ASCII.GetBytes(invalidRequest);
-                    networkStream.Write(invalidBytes, 0, invalidBytes.Length);
-                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête invalide reçue et réponse envoyée.\r\n")));
+                    else
+                    {
+                        string invalidRequest = "Requête invalide.";
+                        byte[] invalidBytes = Encoding.ASCII.GetBytes(invalidRequest);
+                        networkStream.Write(invalidBytes, 0, invalidBytes.Length);
+                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête invalide reçue et réponse envoyée.\r\n")));
+                    }
                 }
 
-                networkStream.Close();
                 clientSocket.Close();
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion fermée avec le client.\r\n")));
             }
@@ -211,20 +261,149 @@ namespace Serveur
             }
         }
 
-        private void boutAcquisition_Click(object sender, EventArgs e)
+        private Bitmap GenerateTestImage()
         {
-            timAcq.Start();
+            try
+            {
+                Bitmap bitmap = new Bitmap(640, 480, PixelFormat.Format24bppRgb);
+                using (Graphics g = Graphics.FromImage(bitmap))
+                {
+                    g.Clear(Color.Gray);
+                    g.DrawString("Image de test", new Font("Arial", 24), Brushes.Black, new PointF(10, 10));
+                    g.DrawRectangle(Pens.Red, 5, 5, bitmap.Width - 10, bitmap.Height - 10);
+                }
+                return bitmap;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur lors de la génération de l'image de test : " + ex.Message);
+                return null;
+            }
         }
 
-        private void boutStop_Click(object sender, EventArgs e)
+        private void btnStartAcquisition_Click(object sender, EventArgs e)
         {
-            timAcq.Stop();
+            if (!isAcquisitionRunning)
+            {
+                
+                isAcquisitionRunning = true;
+                timAcq.Start();
+                btnStartAcquisition.Enabled = false;
+                btnStopAcquisition.Enabled = true;
+            }
         }
 
+        private void btnStopAcquisition_Click(object sender, EventArgs e)
+        {
+            if (isAcquisitionRunning)
+            {
+                timAcq.Stop();
+                isAcquisitionRunning = false;
+                btnStartAcquisition.Enabled = true;
+                btnStopAcquisition.Enabled = false;
+            }
+        }
+
+        private void btnSearchCameras_Click(object sender, EventArgs e)
+        {
+            Task.Run(() => initCamera());
+        }
+
+        private void btnStartTCP_Click(object sender, EventArgs e)
+        {
+            if (!isTCPRunning)
+            {
+                Task.Run(() => initServerTCP());
+                btnStartTCP.Enabled = false;
+                btnStopTCP.Enabled = true;
+            }
+        }
+
+        private void btnStopTCP_Click(object sender, EventArgs e)
+        {
+            if (isTCPRunning)
+            {
+                tcpCancellationTokenSource.Cancel();
+                isTCPRunning = false;
+                btnStartTCP.Enabled = true;
+                btnStopTCP.Enabled = false;
+            }
+        }
+
+        private void timAcq_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                if (m_device != null && m_device.IsConnected())
+                {
+                    if (!m_device.IsBufferEmpty())
+                    {
+                        smcs.IImageInfo imageInfo = null;
+                        m_device.GetImageInfo(ref imageInfo);
+                        if (imageInfo != null)
+                        {
+                            Bitmap bitmap = null;
+                            BitmapData bd = null;
+
+                            ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
+
+                            if (bitmap != null)
+                            {
+                                if (pbImage.InvokeRequired)
+                                {
+                                    pbImage.Invoke(new MethodInvoker(delegate
+                                    {
+                                        pbImage.Image = bitmap;
+                                    }));
+                                }
+                                else
+                                {
+                                    pbImage.Image = bitmap;
+                                }
+                            }
+
+                            if (bd != null)
+                                bitmap.UnlockBits(bd);
+
+                            m_device.PopImage(imageInfo);
+                        }
+                    }
+                }
+                else
+                {
+                    // Si la caméra n'est pas connectée, afficher une image de test
+                    Bitmap bitmap = GenerateTestImage();
+                    if (bitmap != null)
+                    {
+                        if (pbImage.InvokeRequired)
+                        {
+                            pbImage.Invoke(new MethodInvoker(delegate
+                            {
+                                pbImage.Image = bitmap;
+                                pbImage.Refresh();
+                            }));
+                        }
+                        else
+                        {
+                            pbImage.Image = bitmap;
+                            pbImage.Refresh();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur dans timAcq_Tick : " + ex.Message);
+            }
+        }
 
         private void closeCamera()
         {
             timAcq.Stop();
+            isAcquisitionRunning = false;
+            btnStartAcquisition.Enabled = true;
+            btnStopAcquisition.Enabled = false;
+
             if (m_device != null && m_device.IsConnected())
             {
                 m_device.CommandNodeExecute("AcquisitionStop");
@@ -233,74 +412,20 @@ namespace Serveur
             }
 
             smcs.CameraSuite.ExitCameraAPI();
-            
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             closeCamera();
-            this.Close();
-        }
-
-        private void btninit_Click(object sender, EventArgs e)
-        {
-
-            Task.Run(() => initCamera());
-            Task.Run(() => initServerTCP());
-
+            if (isTCPRunning)
+            {
+                tcpCancellationTokenSource.Cancel();
+            }
         }
 
         private void quitBtn_Click(object sender, EventArgs e)
         {
-            closeCamera();
-        }
-
-        private void timAcq_Tick_1(object sender, EventArgs e)
-        {
-            if (m_device != null && m_device.IsConnected())
-            {
-                if (!m_device.IsBufferEmpty())
-                {
-                    smcs.IImageInfo imageInfo = null;
-                    m_device.GetImageInfo(ref imageInfo);
-                    if (imageInfo != null)
-                    {
-                        Bitmap bitmap = (Bitmap)this.pbImage.Image;
-                        BitmapData bd = null;
-
-                        ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
-                        //-------------------------------------------------------------------
-                        //if (m_pixelFormat == PixelFormat.Format8bppIndexed)
-                        //{
-                        //    // set palette
-                        //    ColorPalette palette = bitmap.Palette;
-                        //    for (int i = 0; i < 256; i++)
-                        //    {
-                        //        palette.Entries[i] = Color.FromArgb(255 - i, 255 - i, 255 - i);
-                        //    }
-                        //    bitmap.Palette = palette;
-                        //}
-                        //-------------------------------------------------------------------
-                        if (bitmap != null)
-                        {
-                            //this.pbImage.Height = bitmap.Height;
-                            //this.pbImage.Width = bitmap.Width;
-                            this.pbImage.Image = bitmap;
-                        }
-
-                        // display image
-                        if (bd != null)
-                            bitmap.UnlockBits(bd);
-
-                        this.pbImage.Invalidate();
-                    }
-                    // remove (pop) image from image buffer
-                    m_device.PopImage(imageInfo);
-                    // empty buffer
-                    m_device.ClearImageBuffer();
-                }
-            }
-
+            this.Close();
         }
     }
 }
