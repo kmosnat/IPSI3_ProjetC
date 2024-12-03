@@ -74,6 +74,8 @@ public:
 	_declspec(dllexport) void filter(std::string methode, int kernel, std::string str);
 	_declspec(dllexport) void runProcess(ClibIHM* pImgGt);
 
+	_declspec(dllexport) void runProcessCap();
+
 	_declspec(dllexport) void compare(ClibIHM* pImgGt);
 	_declspec(dllexport) void score(ClibIHM* pImgGt);
 
@@ -97,8 +99,11 @@ extern "C" _declspec(dllexport) ClibIHM* objetLibDataImg(int nbChamps, byte* dat
 }
 
 // Pour filtrer une image
-extern "C" _declspec(dllexport) ClibIHM * filter(ClibIHM* pImg, int kernel, char* methode, char* str)
+extern "C" _declspec(dllexport) ClibIHM* filter(ClibIHM* pImg, int kernel, char* methode, char* str)
 {
+	if (pImg == nullptr)
+		return nullptr;
+
 	pImg->filter(methode, kernel, str);
 	return pImg;
 }
@@ -106,12 +111,36 @@ extern "C" _declspec(dllexport) ClibIHM * filter(ClibIHM* pImg, int kernel, char
 // Pour traiter une image
 extern "C" _declspec(dllexport) ClibIHM* process(ClibIHM* pImg, ClibIHM* pImgGt)
 {
+	if (pImg == nullptr || pImgGt == nullptr)
+		return nullptr;
+
 	pImg->runProcess(pImgGt);
 	return pImgGt;
+}
+
+extern "C" _declspec(dllexport) ClibIHM * processCap(ClibIHM * pImg)
+{
+	if (pImg == nullptr)
+		return nullptr;
+
+	pImg->runProcessCap();
+	return pImg;
 }
 
 // Pour accéder à la valeur d'un champ
 extern "C" _declspec(dllexport) double valeurChamp(ClibIHM* pImg, int i)
 {
+	if (pImg == nullptr)
+		return 0.0;
+
 	return pImg->lireChamp(i);
+}
+
+//vider la mémoire 
+extern "C" _declspec(dllexport) void destroyClibIHM(ClibIHM * pImg)
+{
+	if (pImg != nullptr)
+	{
+		delete pImg;
+	}
 }
