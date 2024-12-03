@@ -29,8 +29,8 @@ namespace Serveur
         {
             InitializeComponent();
 
-            m_ipAdrLocal = IPAddress.Parse("169.254.66.41");  // Adresse locale
-            m_ipAdrDistante = IPAddress.Parse("169.254.41.198");   // Adresse distante
+            m_ipAdrLocal = IPAddress.Parse("192.168.1.54");  // Adresse locale
+            m_ipAdrDistante = IPAddress.Parse("192.168.1.155");   // Adresse distante
             m_numPort = 8001;
 
         }
