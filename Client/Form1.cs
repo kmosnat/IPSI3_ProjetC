@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -15,16 +11,16 @@ namespace Client
 {
     public partial class Form1 : Form
     {
+        private readonly object imageLock = new object();
         private IPAddress m_ipAdrLocal;
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
 
-
         public Form1()
         {
             InitializeComponent();
-            m_ipAdrLocal = IPAddress.Parse("169.254.41.198");  // Adresse locale
-            m_ipAdrDistante = IPAddress.Parse("169.254.68.148");   // Adresse distante
+            m_ipAdrLocal = IPAddress.Parse("169.254.41.198"); // Adresse locale
+            m_ipAdrDistante = IPAddress.Parse("169.254.68.148"); // Adresse distante
             m_numPort = 8001;
 
             Task.Run(() => initClientTCP());
@@ -86,7 +82,19 @@ namespace Client
                     using (MemoryStream ms = new MemoryStream(imageBytes))
                     {
                         Image receivedImage = Image.FromStream(ms);
-                        this.pbImage.Invoke((MethodInvoker)(() => this.pbImage.Image = receivedImage));
+
+                        lock (imageLock) // Verrouiller l'accès à l'image pour éviter les conflits
+                        {
+                            this.pbImage.Invoke((MethodInvoker)(() =>
+                            {
+                                if (this.pbImage.Image != null)
+                                {
+                                    this.pbImage.Image.Dispose(); // Libérer les ressources de l'image précédente
+                                }
+                                this.pbImage.Image = (Image)receivedImage.Clone(); // Cloner l'image avant de l'afficher
+                            }));
+                        }
+
                         this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image affichée.\r\n")));
                     }
                 }
@@ -104,6 +112,5 @@ namespace Client
                 }
             }
         }
-
     }
 }

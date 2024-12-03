@@ -45,7 +45,7 @@ namespace Serveur
 
             if (!smcsVisionApi.IsUsingKernelDriver())
             {
-                //MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
+                MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
             }
 
             // discover all devices on network
@@ -152,7 +152,7 @@ namespace Serveur
                         try
                         {
                             // Capture de l'image depuis la caméra
-                            Bitmap bitmap = CaptureImageFromCamera();
+                            Bitmap bitmap = (Bitmap)this.pbImage.Image;
                             if (bitmap != null)
                             {
                                 // Convertir l'image en octets (JPEG)
@@ -175,8 +175,7 @@ namespace Serveur
                                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
                             }
 
-                            // Optionnel : Ajouter un délai entre les envois
-                            // Thread.Sleep(100); // Ajuster selon vos besoins
+                           
                         }
                         catch (Exception ex)
                         {
@@ -203,40 +202,6 @@ namespace Serveur
             }
         }
 
-
-        private Bitmap CaptureImageFromCamera()
-        {
-            if (m_device != null && m_device.IsConnected())
-            {
-                if (!m_device.IsBufferEmpty())
-                {
-                    smcs.IImageInfo imageInfo = null;
-                    m_device.GetImageInfo(ref imageInfo);
-                    if (imageInfo != null)
-                    {
-                        Bitmap bitmap = new Bitmap(1, 1);
-                        BitmapData bd = null;
-
-                        ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
-
-                        if (bd != null)
-                        {
-                            bitmap.UnlockBits(bd);
-                        }
-
-                        this.pbImage.Invoke((MethodInvoker)(() => this.pbImage.Image = bitmap));
-                        this.pbImage.Invalidate();
-
-                        m_device.PopImage(imageInfo);
-                        m_device.ClearImageBuffer();
-
-                        return bitmap;
-                    }
-                }
-            }
-            return null;
-        }
-
         private byte[] ImageToByteArray(Image image, ImageFormat format)
         {
             using (MemoryStream ms = new MemoryStream())
@@ -256,7 +221,41 @@ namespace Serveur
             timAcq.Stop();
         }
 
-        private void timAcq_Tick(object sender, EventArgs e)
+
+        private void closeCamera()
+        {
+            timAcq.Stop();
+            if (m_device != null && m_device.IsConnected())
+            {
+                m_device.CommandNodeExecute("AcquisitionStop");
+                m_device.SetIntegerNodeValue("TLParamsLocked", 0);
+                m_device.Disconnect();
+            }
+
+            smcs.CameraSuite.ExitCameraAPI();
+            
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            closeCamera();
+            this.Close();
+        }
+
+        private void btninit_Click(object sender, EventArgs e)
+        {
+
+            Task.Run(() => initCamera());
+            Task.Run(() => initServerTCP());
+
+        }
+
+        private void quitBtn_Click(object sender, EventArgs e)
+        {
+            closeCamera();
+        }
+
+        private void timAcq_Tick_1(object sender, EventArgs e)
         {
             if (m_device != null && m_device.IsConnected())
             {
@@ -270,9 +269,22 @@ namespace Serveur
                         BitmapData bd = null;
 
                         ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
-
+                        //-------------------------------------------------------------------
+                        //if (m_pixelFormat == PixelFormat.Format8bppIndexed)
+                        //{
+                        //    // set palette
+                        //    ColorPalette palette = bitmap.Palette;
+                        //    for (int i = 0; i < 256; i++)
+                        //    {
+                        //        palette.Entries[i] = Color.FromArgb(255 - i, 255 - i, 255 - i);
+                        //    }
+                        //    bitmap.Palette = palette;
+                        //}
+                        //-------------------------------------------------------------------
                         if (bitmap != null)
                         {
+                            //this.pbImage.Height = bitmap.Height;
+                            //this.pbImage.Width = bitmap.Width;
                             this.pbImage.Image = bitmap;
                         }
 
@@ -288,28 +300,6 @@ namespace Serveur
                     m_device.ClearImageBuffer();
                 }
             }
-        }
-
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            timAcq.Stop();
-            if (m_device != null && m_device.IsConnected())
-            {
-                m_device.CommandNodeExecute("AcquisitionStop");
-                m_device.SetIntegerNodeValue("TLParamsLocked", 0);
-                m_device.Disconnect();
-            }
-
-            smcs.CameraSuite.ExitCameraAPI();
-
-            this.Close();
-        }
-
-        private void btninit_Click(object sender, EventArgs e)
-        {
-
-            initCamera();
-            Task.Run(() => initServerTCP());
 
         }
     }

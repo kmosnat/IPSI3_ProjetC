@@ -43,6 +43,8 @@ namespace Serveur
             this.Arduino = new System.IO.Ports.SerialPort(this.components);
             this.tbCom = new System.Windows.Forms.TextBox();
             this.btninit = new System.Windows.Forms.Button();
+            this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
+            this.quitBtn = new System.Windows.Forms.Button();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.SuspendLayout();
@@ -122,6 +124,7 @@ namespace Serveur
             // timAcq
             // 
             this.timAcq.Interval = 20;
+            this.timAcq.Tick += new System.EventHandler(this.timAcq_Tick_1);
             // 
             // tbCom
             // 
@@ -146,11 +149,23 @@ namespace Serveur
             this.btninit.UseVisualStyleBackColor = true;
             this.btninit.Click += new System.EventHandler(this.btninit_Click);
             // 
+            // quitBtn
+            // 
+            this.quitBtn.Location = new System.Drawing.Point(291, 250);
+            this.quitBtn.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.quitBtn.Name = "quitBtn";
+            this.quitBtn.Size = new System.Drawing.Size(138, 36);
+            this.quitBtn.TabIndex = 5;
+            this.quitBtn.Text = "Quitter";
+            this.quitBtn.UseVisualStyleBackColor = true;
+            this.quitBtn.Click += new System.EventHandler(this.quitBtn_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1683, 738);
+            this.Controls.Add(this.quitBtn);
             this.Controls.Add(this.btninit);
             this.Controls.Add(this.tbCom);
             this.Controls.Add(this.boutStop);
@@ -181,6 +196,8 @@ namespace Serveur
         private System.IO.Ports.SerialPort Arduino;
         private TextBox tbCom;
         private Button btninit;
+        private System.IO.Ports.SerialPort serialPort1;
+        private Button quitBtn;
     }
 }
 
