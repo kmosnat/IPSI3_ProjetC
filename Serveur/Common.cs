@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Client
+namespace Serveur
 {
     internal class Common
     {
@@ -16,8 +16,6 @@ namespace Client
 
             return ip.ToString();
         }
-
-
 
         public static string MacAddrToString(UInt64 macAddress)
         {

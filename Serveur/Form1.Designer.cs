@@ -40,8 +40,9 @@ namespace Serveur
             this.boutAcquisition = new System.Windows.Forms.Button();
             this.boutStop = new System.Windows.Forms.Button();
             this.timAcq = new System.Windows.Forms.Timer(this.components);
-            this.serialPort1 = new System.IO.Ports.SerialPort(this.components);
+            this.Arduino = new System.IO.Ports.SerialPort(this.components);
             this.tbCom = new System.Windows.Forms.TextBox();
+            this.btninit = new System.Windows.Forms.Button();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.SuspendLayout();
@@ -99,7 +100,7 @@ namespace Serveur
             // 
             // boutAcquisition
             // 
-            this.boutAcquisition.Location = new System.Drawing.Point(47, 229);
+            this.boutAcquisition.Location = new System.Drawing.Point(52, 250);
             this.boutAcquisition.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.boutAcquisition.Name = "boutAcquisition";
             this.boutAcquisition.Size = new System.Drawing.Size(138, 36);
@@ -110,7 +111,7 @@ namespace Serveur
             // 
             // boutStop
             // 
-            this.boutStop.Location = new System.Drawing.Point(292, 229);
+            this.boutStop.Location = new System.Drawing.Point(291, 197);
             this.boutStop.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.boutStop.Name = "boutStop";
             this.boutStop.Size = new System.Drawing.Size(138, 36);
@@ -124,17 +125,33 @@ namespace Serveur
             // 
             // tbCom
             // 
-            this.tbCom.Location = new System.Drawing.Point(-24, 508);
+            this.tbCom.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.tbCom.Location = new System.Drawing.Point(21, 303);
+            this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(520, 31);
+            this.tbCom.Size = new System.Drawing.Size(491, 397);
             this.tbCom.TabIndex = 0;
+            this.tbCom.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            // 
+            // btninit
+            // 
+            this.btninit.Location = new System.Drawing.Point(52, 197);
+            this.btninit.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.btninit.Name = "btninit";
+            this.btninit.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            this.btninit.Size = new System.Drawing.Size(138, 36);
+            this.btninit.TabIndex = 4;
+            this.btninit.Text = "Init";
+            this.btninit.UseVisualStyleBackColor = true;
+            this.btninit.Click += new System.EventHandler(this.btninit_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1683, 738);
+            this.Controls.Add(this.btninit);
             this.Controls.Add(this.tbCom);
             this.Controls.Add(this.boutStop);
             this.Controls.Add(this.boutAcquisition);
@@ -161,8 +178,9 @@ namespace Serveur
         private Label lblConnection;
         private Label lblNomCamera;
         private System.Windows.Forms.Timer timAcq;
-        private System.IO.Ports.SerialPort serialPort1;
+        private System.IO.Ports.SerialPort Arduino;
         private TextBox tbCom;
+        private Button btninit;
     }
 }
 

@@ -29,12 +29,10 @@ namespace Serveur
         {
             InitializeComponent();
 
-            m_ipAdrLocal = IPAddress.Parse("161.3.46.211");  // Adresse locale
-            m_ipAdrDistante = IPAddress.Parse("161.3.50.235");   // Adresse distante
+            m_ipAdrLocal = IPAddress.Parse("169.254.66.41");  // Adresse locale
+            m_ipAdrDistante = IPAddress.Parse("169.254.41.198");   // Adresse distante
             m_numPort = 8001;
 
-            initCamera();
-            Task.Run(() => initServerTCP()); // Exécuter le serveur dans un thread séparé
         }
 
         private void initCamera()
@@ -146,30 +144,45 @@ namespace Serveur
 
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête reçue : " + request + "\r\n")));
 
-                if (request.Equals("SEND_IMAGE", StringComparison.OrdinalIgnoreCase))
+                if (request.Equals("START_STREAM", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Capture de l'image depuis la caméra
-                    Bitmap bitmap = CaptureImageFromCamera();
-                    if (bitmap != null)
+                    // Envoyer les images en continu
+                    while (true)
                     {
-                        // Convertir l'image en octets (JPEG)
-                        byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
+                        try
+                        {
+                            // Capture de l'image depuis la caméra
+                            Bitmap bitmap = CaptureImageFromCamera();
+                            if (bitmap != null)
+                            {
+                                // Convertir l'image en octets (JPEG)
+                                byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
 
-                        // Envoyer la taille de l'image (4 octets, Big Endian)
-                        byte[] sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(imageBytes.Length));
-                        networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image envoyée : " + imageBytes.Length + " octets.\r\n")));
+                                // Envoyer la taille de l'image (4 octets, Big Endian)
+                                byte[] sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(imageBytes.Length));
+                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image envoyée : " + imageBytes.Length + " octets.\r\n")));
 
-                        // Envoyer les octets de l'image
-                        networkStream.Write(imageBytes, 0, imageBytes.Length);
-                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
-                    }
-                    else
-                    {
-                        string errorMsg = "Erreur de capture d'image.";
-                        byte[] errorBytes = Encoding.ASCII.GetBytes(errorMsg);
-                        networkStream.Write(errorBytes, 0, errorBytes.Length);
-                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
+                                // Envoyer les octets de l'image
+                                networkStream.Write(imageBytes, 0, imageBytes.Length);
+                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
+                            }
+                            else
+                            {
+                                string errorMsg = "Erreur de capture d'image.";
+                                byte[] errorBytes = Encoding.ASCII.GetBytes(errorMsg);
+                                networkStream.Write(errorBytes, 0, errorBytes.Length);
+                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
+                            }
+
+                            // Optionnel : Ajouter un délai entre les envois
+                            // Thread.Sleep(100); // Ajuster selon vos besoins
+                        }
+                        catch (Exception ex)
+                        {
+                            this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'envoi de l'image : " + ex.Message + "\r\n")));
+                            break; // Sortir de la boucle si une erreur survient (ex: client déconnecté)
+                        }
                     }
                 }
                 else
@@ -190,6 +203,7 @@ namespace Serveur
             }
         }
 
+
         private Bitmap CaptureImageFromCamera()
         {
             if (m_device != null && m_device.IsConnected())
@@ -200,22 +214,19 @@ namespace Serveur
                     m_device.GetImageInfo(ref imageInfo);
                     if (imageInfo != null)
                     {
-                        Bitmap bitmap = new Bitmap(1, 1); // Initialisation temporaire
+                        Bitmap bitmap = new Bitmap(1, 1);
                         BitmapData bd = null;
 
                         ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
 
-                        // Débloquer les bits si nécessaire
                         if (bd != null)
                         {
                             bitmap.UnlockBits(bd);
                         }
 
-                        // Mettre à jour le PictureBox
                         this.pbImage.Invoke((MethodInvoker)(() => this.pbImage.Image = bitmap));
                         this.pbImage.Invalidate();
 
-                        // Retirer l'image du buffer
                         m_device.PopImage(imageInfo);
                         m_device.ClearImageBuffer();
 
@@ -292,6 +303,14 @@ namespace Serveur
             smcs.CameraSuite.ExitCameraAPI();
 
             this.Close();
+        }
+
+        private void btninit_Click(object sender, EventArgs e)
+        {
+
+            initCamera();
+            Task.Run(() => initServerTCP());
+
         }
     }
 }

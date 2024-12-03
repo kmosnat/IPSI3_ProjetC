@@ -35,24 +35,25 @@
             // 
             // pbImage
             // 
-            this.pbImage.Location = new System.Drawing.Point(209, 82);
+            this.pbImage.Location = new System.Drawing.Point(594, 62);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(831, 621);
+            this.pbImage.Size = new System.Drawing.Size(680, 571);
             this.pbImage.TabIndex = 0;
             this.pbImage.TabStop = false;
             // 
             // tbCom
             // 
-            this.tbCom.Location = new System.Drawing.Point(44, 697);
+            this.tbCom.Location = new System.Drawing.Point(59, 62);
+            this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
-            this.tbCom.Size = new System.Drawing.Size(100, 31);
+            this.tbCom.Size = new System.Drawing.Size(502, 571);
             this.tbCom.TabIndex = 1;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1305, 849);
+            this.ClientSize = new System.Drawing.Size(1305, 685);
             this.Controls.Add(this.tbCom);
             this.Controls.Add(this.pbImage);
             this.Name = "Form1";
