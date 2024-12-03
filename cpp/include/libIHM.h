@@ -74,6 +74,8 @@ public:
 	_declspec(dllexport) void filter(std::string methode, int kernel, std::string str);
 	_declspec(dllexport) void runProcess(ClibIHM* pImgGt);
 
+	_declspec(dllexport) void runProcessCap();
+
 	_declspec(dllexport) void compare(ClibIHM* pImgGt);
 	_declspec(dllexport) void score(ClibIHM* pImgGt);
 
@@ -114,6 +116,15 @@ extern "C" _declspec(dllexport) ClibIHM* process(ClibIHM* pImg, ClibIHM* pImgGt)
 
 	pImg->runProcess(pImgGt);
 	return pImgGt;
+}
+
+extern "C" _declspec(dllexport) ClibIHM * processCap(ClibIHM * pImg)
+{
+	if (pImg == nullptr)
+		return nullptr;
+
+	pImg->runProcessCap();
+	return pImg;
 }
 
 // Pour accéder à la valeur d'un champ

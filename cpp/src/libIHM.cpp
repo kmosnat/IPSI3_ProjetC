@@ -212,6 +212,21 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
+void ClibIHM::runProcessCap()
+{
+	//Seuillage
+	int seuilBas = 0;
+	int seuilHaut = 255;
+
+	CImageNdg imgSeuil = this->imgNdgPt->seuillage("otsu", seuilBas, seuilHaut);
+
+	this->ecrireChamp(0, seuilBas);
+	this->ecrireChamp(1, seuilHaut);
+
+	this->writeBinaryImage(imgSeuil);
+	this->persitData(this->imgNdgPt, COULEUR::RVB);
+}
+
 // Compare l'image traitee et la ground truth pour afficher les ressemblances et differences
 void ClibIHM::compare(ClibIHM* pImgGt)
 {

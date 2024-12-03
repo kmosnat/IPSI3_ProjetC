@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Client
 {
@@ -34,6 +30,9 @@ namespace Client
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr process(IntPtr pImg, IntPtr pImgGt);
 
+        [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern IntPtr processCap(IntPtr pImg);
+
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern double valeurChamp(IntPtr pImg, int i);
 
@@ -53,26 +52,34 @@ namespace Client
             return ClPtr;
         }
 
-        public IntPtr FilterPtr(int size, string methode, string str)
+        public IntPtr FilterPtr(int kernel, string methode, string str)
         {
             if (ClPtr == IntPtr.Zero)
-                throw new InvalidOperationException("ClibIHM object is not initialized.");
+                throw new InvalidOperationException("L'objet ClibIHM n'est pas initialisé.");
 
-            return filter(ClPtr, size, methode, str);
+            return filter(ClPtr, kernel, methode, str);
         }
 
         public IntPtr ProcessPtr(IntPtr pImgGt)
         {
             if (ClPtr == IntPtr.Zero)
-                throw new InvalidOperationException("ClibIHM object is not initialized.");
+                throw new InvalidOperationException("L'objet ClibIHM n'est pas initialisé.");
 
             return process(ClPtr, pImgGt);
+        }
+
+        public IntPtr ProcessCapPtr()
+        {
+            if (ClPtr == IntPtr.Zero)
+                throw new InvalidOperationException("L'objet ClibIHM n'est pas initialisé.");
+
+            return processCap(ClPtr);
         }
 
         public double ObjetLibValeurChamp(int i)
         {
             if (ClPtr == IntPtr.Zero)
-                throw new InvalidOperationException("ClibIHM object is not initialized.");
+                throw new InvalidOperationException("L'objet ClibIHM n'est pas initialisé.");
 
             return valeurChamp(ClPtr, i);
         }
