@@ -43,10 +43,9 @@ namespace Serveur
                 }
             }
 
-            // Si aucune interface n'est ajoutée, ajouter le loopback
             if (listViewInterfaces.Items.Count == 0)
             {
-                string interfaceName = "Loopback (127.0.0.1)";
+                string interfaceName = "Local (127.0.0.1)";
                 ListViewItem item = new ListViewItem(interfaceName);
                 item.Tag = new Tuple<IPAddress, string>(IPAddress.Loopback, "Loopback");
                 listViewInterfaces.Items.Add(item);

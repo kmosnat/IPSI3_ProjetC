@@ -42,12 +42,12 @@ namespace Serveur
             this.tbCom = new System.Windows.Forms.TextBox();
             this.navBar = new System.Windows.Forms.MenuStrip();
             this.serveurTCPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.démarrerLeServeurToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.arrêterLeServeurToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.startTCP = new System.Windows.Forms.ToolStripMenuItem();
+            this.stopTCP = new System.Windows.Forms.ToolStripMenuItem();
             this.réseauToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.sélectionnerUneCarteRéseauToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.NetworkInterfaceSelection = new System.Windows.Forms.ToolStripMenuItem();
             this.afficherLAdresseIPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.quitterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.exitApp = new System.Windows.Forms.ToolStripMenuItem();
             this.btnSearchCamera = new System.Windows.Forms.PictureBox();
             this.btnStartAcquisition = new System.Windows.Forms.PictureBox();
             this.btnStopAcquisition = new System.Windows.Forms.PictureBox();
@@ -134,7 +134,7 @@ namespace Serveur
             this.navBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.serveurTCPToolStripMenuItem,
             this.réseauToolStripMenuItem,
-            this.quitterToolStripMenuItem});
+            this.exitApp});
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
             this.navBar.Size = new System.Drawing.Size(1683, 40);
@@ -144,41 +144,41 @@ namespace Serveur
             // serveurTCPToolStripMenuItem
             // 
             this.serveurTCPToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.démarrerLeServeurToolStripMenuItem,
-            this.arrêterLeServeurToolStripMenuItem});
+            this.startTCP,
+            this.stopTCP});
             this.serveurTCPToolStripMenuItem.Name = "serveurTCPToolStripMenuItem";
-            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(162, 36);
+            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(162, 38);
             this.serveurTCPToolStripMenuItem.Text = "Serveur TCP";
             // 
-            // démarrerLeServeurToolStripMenuItem
+            // startTCP
             // 
-            this.démarrerLeServeurToolStripMenuItem.Name = "démarrerLeServeurToolStripMenuItem";
-            this.démarrerLeServeurToolStripMenuItem.Size = new System.Drawing.Size(361, 44);
-            this.démarrerLeServeurToolStripMenuItem.Text = "Démarrer le Serveur";
-            this.démarrerLeServeurToolStripMenuItem.Click += new System.EventHandler(this.démarrerLeServeurToolStripMenuItem_Click);
+            this.startTCP.Name = "startTCP";
+            this.startTCP.Size = new System.Drawing.Size(361, 44);
+            this.startTCP.Text = "Démarrer le Serveur";
+            this.startTCP.Click += new System.EventHandler(this.démarrerLeServeurToolStripMenuItem_Click);
             // 
-            // arrêterLeServeurToolStripMenuItem
+            // stopTCP
             // 
-            this.arrêterLeServeurToolStripMenuItem.Name = "arrêterLeServeurToolStripMenuItem";
-            this.arrêterLeServeurToolStripMenuItem.Size = new System.Drawing.Size(361, 44);
-            this.arrêterLeServeurToolStripMenuItem.Text = "Arrêter le Serveur";
-            this.arrêterLeServeurToolStripMenuItem.Click += new System.EventHandler(this.arrêterLeServeurToolStripMenuItem_Click);
+            this.stopTCP.Name = "stopTCP";
+            this.stopTCP.Size = new System.Drawing.Size(361, 44);
+            this.stopTCP.Text = "Arrêter le Serveur";
+            this.stopTCP.Click += new System.EventHandler(this.arrêterLeServeurToolStripMenuItem_Click);
             // 
             // réseauToolStripMenuItem
             // 
             this.réseauToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.sélectionnerUneCarteRéseauToolStripMenuItem,
+            this.NetworkInterfaceSelection,
             this.afficherLAdresseIPToolStripMenuItem});
             this.réseauToolStripMenuItem.Name = "réseauToolStripMenuItem";
-            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 36);
+            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 38);
             this.réseauToolStripMenuItem.Text = "Réseau";
             // 
-            // sélectionnerUneCarteRéseauToolStripMenuItem
+            // NetworkInterfaceSelection
             // 
-            this.sélectionnerUneCarteRéseauToolStripMenuItem.Name = "sélectionnerUneCarteRéseauToolStripMenuItem";
-            this.sélectionnerUneCarteRéseauToolStripMenuItem.Size = new System.Drawing.Size(473, 44);
-            this.sélectionnerUneCarteRéseauToolStripMenuItem.Text = "Sélectionner une Carte Réseau";
-            this.sélectionnerUneCarteRéseauToolStripMenuItem.Click += new System.EventHandler(this.sélectionnerUneCarteRéseauToolStripMenuItem_Click);
+            this.NetworkInterfaceSelection.Name = "NetworkInterfaceSelection";
+            this.NetworkInterfaceSelection.Size = new System.Drawing.Size(473, 44);
+            this.NetworkInterfaceSelection.Text = "Sélectionner une Carte Réseau";
+            this.NetworkInterfaceSelection.Click += new System.EventHandler(this.sélectionnerUneCarteRéseauToolStripMenuItem_Click);
             // 
             // afficherLAdresseIPToolStripMenuItem
             // 
@@ -187,12 +187,12 @@ namespace Serveur
             this.afficherLAdresseIPToolStripMenuItem.Size = new System.Drawing.Size(473, 44);
             this.afficherLAdresseIPToolStripMenuItem.Text = "Adresse IP :";
             // 
-            // quitterToolStripMenuItem
+            // exitApp
             // 
-            this.quitterToolStripMenuItem.Name = "quitterToolStripMenuItem";
-            this.quitterToolStripMenuItem.Size = new System.Drawing.Size(109, 36);
-            this.quitterToolStripMenuItem.Text = "Quitter";
-            this.quitterToolStripMenuItem.Click += new System.EventHandler(this.quitterToolStripMenuItem_Click);
+            this.exitApp.Name = "exitApp";
+            this.exitApp.Size = new System.Drawing.Size(109, 38);
+            this.exitApp.Text = "Quitter";
+            this.exitApp.Click += new System.EventHandler(this.quitterToolStripMenuItem_Click);
             // 
             // btnSearchCamera
             // 
@@ -243,6 +243,7 @@ namespace Serveur
             this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "Main";
             this.Text = "Couleur - Serveur";
+            this.Load += new System.EventHandler(this.Main_Load);
             this.gbCamera.ResumeLayout(false);
             this.gbCamera.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).EndInit();
@@ -268,12 +269,12 @@ namespace Serveur
         private TextBox tbCom;
         private MenuStrip navBar;
         private ToolStripMenuItem serveurTCPToolStripMenuItem;
-        private ToolStripMenuItem démarrerLeServeurToolStripMenuItem;
-        private ToolStripMenuItem arrêterLeServeurToolStripMenuItem;
+        private ToolStripMenuItem startTCP;
+        private ToolStripMenuItem stopTCP;
         private ToolStripMenuItem réseauToolStripMenuItem;
-        private ToolStripMenuItem sélectionnerUneCarteRéseauToolStripMenuItem;
+        private ToolStripMenuItem NetworkInterfaceSelection;
         private ToolStripMenuItem afficherLAdresseIPToolStripMenuItem;
-        private ToolStripMenuItem quitterToolStripMenuItem;
+        private ToolStripMenuItem exitApp;
         private PictureBox btnSearchCamera;
         private PictureBox btnStartAcquisition;
         private PictureBox btnStopAcquisition;

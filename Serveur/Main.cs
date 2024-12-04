@@ -39,21 +39,21 @@ namespace Serveur
             m_numPort = 8001;
 
             // États initiaux des boutons/menu
-            btnStartAcquisition.Enabled = true;
+            btnStartAcquisition.Enabled = false;
             btnStopAcquisition.Enabled = false;
 
             // Options du serveur TCP au démarrage
-            démarrerLeServeurToolStripMenuItem.Enabled = true;
-            arrêterLeServeurToolStripMenuItem.Enabled = false;
+            startTCP.Enabled = true;
+            stopTCP.Enabled = false;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void Main_Load(object sender, EventArgs e)
         {
             // Ouvrir la boîte de dialogue de sélection des interfaces réseau
-            SélectionnerCarteRéseau();
+            NetworkSelection();
         }
 
-        private void SélectionnerCarteRéseau()
+        private void NetworkSelection()
         {
             using (NetworkInterfaceSelectionDialog dialog = new NetworkInterfaceSelectionDialog())
             {
@@ -66,7 +66,6 @@ namespace Serveur
                 }
                 else
                 {
-                    // Si l'utilisateur annule, utiliser IPAddress.Any
                     m_ipAdrLocal = IPAddress.Any;
                     afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {m_ipAdrLocal.ToString()}";
                     MessageBox.Show("Aucune interface réseau sélectionnée. Le serveur utilisera toutes les interfaces.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -75,7 +74,7 @@ namespace Serveur
         }
 
         // Méthode pour initialiser la caméra
-        private void initCamera()
+        private void InitCamera()
         {
             bool cameraConnected = false;
 
@@ -126,6 +125,7 @@ namespace Serveur
                     status = m_device.SetIntegerNodeValue("TLParamsLocked", 1);
                     status = m_device.CommandNodeExecute("AcquisitionStart");
                     cameraConnected = true;
+                    btnStartAcquisition.Enabled = true;
                 }
             }
 
@@ -137,7 +137,7 @@ namespace Serveur
         }
 
         // Méthode pour initialiser le serveur TCP
-        private void initServerTCP()
+        private void InitServerTCP()
         {
             if (isTCPRunning)
             {
@@ -192,8 +192,8 @@ namespace Serveur
                 isTCPRunning = false;
                 this.Invoke((MethodInvoker)(() =>
                 {
-                    démarrerLeServeurToolStripMenuItem.Enabled = true;
-                    arrêterLeServeurToolStripMenuItem.Enabled = false;
+                    startTCP.Enabled = true;
+                    stopTCP.Enabled = false;
                 }));
             }
         }
@@ -212,7 +212,7 @@ namespace Serveur
 
                     this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête reçue : " + request + "\r\n")));
 
-                    if (request.Equals("START_STREAM", StringComparison.OrdinalIgnoreCase))
+                    if (request.Equals("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
                     {
                         // Envoyer les images en continu
                         while (clientSocket.Connected)
@@ -353,7 +353,7 @@ namespace Serveur
         // Événement clic sur le bouton Rechercher des Caméras
         private void btnSearchCamera_Click(object sender, EventArgs e)
         {
-            Task.Run(() => initCamera());
+            Task.Run(() => InitCamera());
         }
 
         // Événement clic sur le menu Démarrer le Serveur TCP
@@ -361,9 +361,9 @@ namespace Serveur
         {
             if (!isTCPRunning)
             {
-                Task.Run(() => initServerTCP());
-                démarrerLeServeurToolStripMenuItem.Enabled = false;
-                arrêterLeServeurToolStripMenuItem.Enabled = true;
+                Task.Run(() => InitServerTCP());
+                startTCP.Enabled = false;
+                stopTCP.Enabled = true;
             }
         }
 
@@ -374,21 +374,15 @@ namespace Serveur
             {
                 tcpCancellationTokenSource.Cancel();
                 isTCPRunning = false;
-                démarrerLeServeurToolStripMenuItem.Enabled = true;
-                arrêterLeServeurToolStripMenuItem.Enabled = false;
+                startTCP.Enabled = true;
+                stopTCP.Enabled = false;
             }
         }
 
         // Événement clic sur le menu Sélectionner une Carte Réseau
         private void sélectionnerUneCarteRéseauToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            SélectionnerCarteRéseau();
-        }
-
-        // Événement clic sur le menu Quitter
-        private void quitterToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            this.Close();
+            NetworkSelection();
         }
 
         // Événement du timer pour l'acquisition
@@ -459,7 +453,7 @@ namespace Serveur
         }
 
         // Méthode pour fermer les connexions de la caméra
-        private void closeCamera()
+        private void CloseCamera()
         {
             timAcq.Stop();
             isAcquisitionRunning = false;
@@ -479,12 +473,24 @@ namespace Serveur
         // Événement de fermeture du formulaire
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            closeCamera();
+            CloseCamera();
             if (isTCPRunning)
             {
                 tcpCancellationTokenSource.Cancel();
             }
         }
+
+        // Événement clic sur le menu Quitter
+        private void quitterToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            CloseCamera();
+            if (isTCPRunning)
+            {
+                tcpCancellationTokenSource.Cancel();
+            }
+            this.Close();
+        }
+
 
     }
 }

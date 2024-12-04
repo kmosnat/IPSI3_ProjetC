@@ -17,7 +17,6 @@ namespace Client
             Dispose(false);
         }
 
-        // Importer les fonctions de la bibliothèque C++
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern IntPtr objetLib();
 

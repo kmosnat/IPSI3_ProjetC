@@ -42,10 +42,10 @@ namespace Client
                 return;
             }
 
-            Task.Run(() => initClientTCP());
+            Task.Run(() => InitClientTCP());
         }
 
-        private void initClientTCP()
+        private void InitClientTCP()
         {
             if (m_ipAdrDistante == null)
             {
@@ -64,7 +64,7 @@ namespace Client
 
                 NetworkStream networkStream = tcpClient.GetStream();
 
-                string request = "START_STREAM";
+                string request = "GET_IMAGE";
                 byte[] requestBytes = Encoding.ASCII.GetBytes(request);
                 networkStream.Write(requestBytes, 0, requestBytes.Length);
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête d'image envoyée : " + request + "\r\n")));
@@ -102,7 +102,7 @@ namespace Client
                 {
                     Image receivedImage = Image.FromStream(ms);
 
-                    ProcessAndDisplayImage(receivedImage);
+                    DisplayImage(receivedImage);
                 }
 
                 this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
@@ -123,11 +123,11 @@ namespace Client
             }
         }
 
-        private void ProcessAndDisplayImage(Image receivedImage)
+        private void DisplayImage(Image receivedImage)
         {
             try
             {
-                Image processedImage = ProcessImageWithClImage(receivedImage);
+                Image processedImage = ProcessImage(receivedImage);
 
                 lock (imageLock)
                 {
@@ -153,7 +153,7 @@ namespace Client
             }
         }
 
-        private Image ProcessImageWithClImage(Image inputImage)
+        private Image ProcessImage(Image inputImage)
         {
             Bitmap bitmap = new Bitmap(inputImage.Width, inputImage.Height, PixelFormat.Format24bppRgb);
             using (Graphics g = Graphics.FromImage(bitmap))
