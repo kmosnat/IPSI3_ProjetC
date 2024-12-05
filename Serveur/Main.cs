@@ -275,15 +275,12 @@ namespace Serveur
                             }
                             else
                             {
-                                // Envoyer une taille de 0 pour indiquer une erreur
                                 uint imageSize = 0;
                                 byte[] sizeBytes = GetBigEndianBytes(imageSize);
                                 networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-                                // Ne pas envoyer d'image ou de message supplémentaire
                                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
                             }
 
-                            // Attendre un peu avant d'envoyer la prochaine image
                             Thread.Sleep(100);
                         }
                     }

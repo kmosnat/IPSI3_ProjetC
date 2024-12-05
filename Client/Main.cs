@@ -65,11 +65,10 @@ namespace Client
                 networkStream.Flush();
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête d'image envoyée : " + request + "\r\n")));
 
-                const uint maxExpectedSize = 10_000_000; // 10 MB maximum
+                const uint maxExpectedSize = 10_000_000;
 
                 while (tcpClient.Connected)
                 {
-                    // Lire la taille de l'image
                     byte[] sizeBytes = new byte[4];
                     int totalRead = 0;
                     while (totalRead < 4)
@@ -87,9 +86,7 @@ namespace Client
 
                     if (imageSize == 0)
                     {
-                        // Taille d'image zéro, le serveur a signalé une erreur
                         this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur a signalé une erreur lors de la capture de l'image.\r\n")));
-                        // Vous pouvez choisir d'attendre ou de continuer à la prochaine itération
                         continue;
                     }
 
@@ -98,7 +95,6 @@ namespace Client
                         throw new Exception($"Taille d'image invalide reçue : {imageSize}");
                     }
 
-                    // Lire les données de l'image
                     byte[] imageBytes = new byte[imageSize];
                     totalRead = 0;
                     while (totalRead < imageSize)
@@ -224,7 +220,6 @@ namespace Client
                     }
                 }
 
-                // Déverrouiller les bits
                 bitmap.UnlockBits(bitmapData);
                 bitmapData = null;
 
