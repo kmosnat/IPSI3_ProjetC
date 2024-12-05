@@ -29,6 +29,8 @@ namespace Serveur
         private int m_numPort;
         private bool isTCPRunning = false;
         private bool isAcquisitionRunning = false;
+        private readonly object deviceLock = new object();
+
 
         private CancellationTokenSource tcpCancellationTokenSource;
 
@@ -198,7 +200,6 @@ namespace Serveur
             }
         }
 
-        // Méthode pour gérer la communication avec le client
         private void HandleClient(Socket clientSocket)
         {
             try
@@ -206,10 +207,19 @@ namespace Serveur
                 using (NetworkStream networkStream = new NetworkStream(clientSocket))
                 {
                     // Recevoir la requête du client
-                    byte[] buffer = new byte[1024];
-                    int bytesReceived = networkStream.Read(buffer, 0, buffer.Length);
-                    string request = Encoding.ASCII.GetString(buffer, 0, bytesReceived).Trim();
+                    StringBuilder requestBuilder = new StringBuilder();
+                    int readByte;
+                    while ((readByte = networkStream.ReadByte()) != -1)
+                    {
+                        char ch = (char)readByte;
+                        if (ch == '\n')
+                        {
+                            break;
+                        }
+                        requestBuilder.Append(ch);
+                    }
 
+                    string request = requestBuilder.ToString().Trim();
                     this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête reçue : " + request + "\r\n")));
 
                     if (request.Equals("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
@@ -217,9 +227,10 @@ namespace Serveur
                         // Envoyer les images en continu
                         while (clientSocket.Connected)
                         {
-                            try
+                            Bitmap bitmap = null;
+
+                            lock (deviceLock)
                             {
-                                Bitmap bitmap = null;
                                 if (m_device != null && m_device.IsConnected())
                                 {
                                     // Capture de l'image depuis la caméra
@@ -245,36 +256,35 @@ namespace Serveur
                                     // Si la caméra n'est pas connectée, utiliser l'image de test
                                     bitmap = GenerateTestImage();
                                 }
-
-                                if (bitmap != null)
-                                {
-                                    // Convertir l'image en tableau d'octets (JPEG)
-                                    byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
-
-                                    // Envoyer la taille de l'image (4 octets, Big Endian)
-                                    byte[] sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(imageBytes.Length));
-                                    networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-                                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image envoyée : " + imageBytes.Length + " octets.\r\n")));
-
-                                    // Envoyer les octets de l'image
-                                    networkStream.Write(imageBytes, 0, imageBytes.Length);
-                                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
-                                }
-                                else
-                                {
-                                    string errorMsg = "Erreur de capture d'image.";
-                                    byte[] errorBytes = Encoding.ASCII.GetBytes(errorMsg);
-                                    networkStream.Write(errorBytes, 0, errorBytes.Length);
-                                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
-                                }
-
-                                Thread.Sleep(100);
                             }
-                            catch (Exception ex)
+
+                            if (bitmap != null)
                             {
-                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'envoi de l'image : " + ex.Message + "\r\n")));
-                                break;
+                                // Convertir l'image en tableau d'octets (JPEG)
+                                byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
+
+                                // Envoyer la taille de l'image (4 octets, Big Endian)
+                                uint imageSize = (uint)imageBytes.Length;
+                                byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+
+                                // Envoyer les octets de l'image
+                                networkStream.Write(imageBytes, 0, imageBytes.Length);
+
+                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
                             }
+                            else
+                            {
+                                // Envoyer une taille de 0 pour indiquer une erreur
+                                uint imageSize = 0;
+                                byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+                                // Ne pas envoyer d'image ou de message supplémentaire
+                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
+                            }
+
+                            // Attendre un peu avant d'envoyer la prochaine image
+                            Thread.Sleep(100);
                         }
                     }
                     else
@@ -293,6 +303,16 @@ namespace Serveur
             {
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la gestion du client : " + ex.Message + "\r\n")));
             }
+        }
+
+        private byte[] GetBigEndianBytes(uint value)
+        {
+            byte[] bytes = BitConverter.GetBytes(value);
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(bytes);
+            }
+            return bytes;
         }
 
         // Méthode pour convertir une Image en tableau d'octets
@@ -390,58 +410,62 @@ namespace Serveur
         {
             try
             {
-                if (m_device != null && m_device.IsConnected())
+                Bitmap bitmap = null;
+
+                lock (deviceLock)
                 {
-                    if (!m_device.IsBufferEmpty())
+                    if (m_device != null && m_device.IsConnected())
                     {
-                        smcs.IImageInfo imageInfo = null;
-                        m_device.GetImageInfo(ref imageInfo);
-                        if (imageInfo != null)
+                        if (!m_device.IsBufferEmpty())
                         {
-                            Bitmap bitmap = null;
-                            BitmapData bd = null;
-
-                            ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
-
-                            if (bitmap != null)
+                            smcs.IImageInfo imageInfo = null;
+                            m_device.GetImageInfo(ref imageInfo);
+                            if (imageInfo != null)
                             {
-                                if (pbImage.InvokeRequired)
+                                BitmapData bd = null;
+
+                                ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
+
+                                if (bitmap != null)
                                 {
-                                    pbImage.Invoke(new MethodInvoker(delegate
+                                    if (pbImage.InvokeRequired)
+                                    {
+                                        pbImage.Invoke(new MethodInvoker(delegate
+                                        {
+                                            pbImage.Image = bitmap;
+                                        }));
+                                    }
+                                    else
                                     {
                                         pbImage.Image = bitmap;
-                                    }));
+                                    }
                                 }
-                                else
-                                {
-                                    pbImage.Image = bitmap;
-                                }
+
+                                if (bd != null)
+                                    bitmap.UnlockBits(bd);
+
+                                m_device.PopImage(imageInfo);
                             }
-
-                            if (bd != null)
-                                bitmap.UnlockBits(bd);
-
-                            m_device.PopImage(imageInfo);
                         }
                     }
-                }
-                else
-                {
-                    Bitmap bitmap = GenerateTestImage();
-                    if (bitmap != null)
+                    else
                     {
-                        if (pbImage.InvokeRequired)
+                        bitmap = GenerateTestImage();
+                        if (bitmap != null)
                         {
-                            pbImage.Invoke(new MethodInvoker(delegate
+                            if (pbImage.InvokeRequired)
+                            {
+                                pbImage.Invoke(new MethodInvoker(delegate
+                                {
+                                    pbImage.Image = bitmap;
+                                    pbImage.Refresh();
+                                }));
+                            }
+                            else
                             {
                                 pbImage.Image = bitmap;
                                 pbImage.Refresh();
-                            }));
-                        }
-                        else
-                        {
-                            pbImage.Image = bitmap;
-                            pbImage.Refresh();
+                            }
                         }
                     }
                 }
@@ -451,6 +475,7 @@ namespace Serveur
                 MessageBox.Show("Erreur dans timAcq_Tick : " + ex.Message);
             }
         }
+
 
         // Méthode pour fermer les connexions de la caméra
         private void CloseCamera()

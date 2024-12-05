@@ -22,10 +22,6 @@ namespace Client
         {
             InitializeComponent();
             m_numPort = 8001;
-
-            imageTimer = new System.Windows.Forms.Timer();
-            imageTimer.Interval = 2000;
-            imageTimer.Tick += ImageTimer_Tick;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -34,16 +30,15 @@ namespace Client
             serveurToolStripMenuItem_Click(this, EventArgs.Empty);
         }
 
-        private void ImageTimer_Tick(object sender, EventArgs e)
+        private uint FromBigEndianBytes(byte[] bytes)
         {
-            if (m_ipAdrDistante == null)
+            if (BitConverter.IsLittleEndian)
             {
-                this.tbCom.AppendText("Adresse IP non définie. Timer en attente.\r\n");
-                return;
+                Array.Reverse(bytes);
             }
-
-            Task.Run(() => InitClientTCP());
+            return BitConverter.ToUInt32(bytes, 0);
         }
+
 
         private void InitClientTCP()
         {
@@ -64,48 +59,69 @@ namespace Client
 
                 NetworkStream networkStream = tcpClient.GetStream();
 
-                string request = "GET_IMAGE";
+                string request = "GET_IMAGE\n";
                 byte[] requestBytes = Encoding.ASCII.GetBytes(request);
                 networkStream.Write(requestBytes, 0, requestBytes.Length);
+                networkStream.Flush();
                 this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête d'image envoyée : " + request + "\r\n")));
 
-                byte[] sizeBytes = new byte[4];
-                int totalRead = 0;
-                while (totalRead < 4)
+                const uint maxExpectedSize = 10_000_000; // 10 MB maximum
+
+                while (tcpClient.Connected)
                 {
-                    int bytesRead = networkStream.Read(sizeBytes, totalRead, 4 - totalRead);
-                    if (bytesRead == 0)
+                    // Lire la taille de l'image
+                    byte[] sizeBytes = new byte[4];
+                    int totalRead = 0;
+                    while (totalRead < 4)
                     {
-                        throw new Exception("Connexion fermée avant de recevoir la taille de l'image.");
+                        int bytesRead = networkStream.Read(sizeBytes, totalRead, 4 - totalRead);
+                        if (bytesRead == 0)
+                        {
+                            throw new Exception("Connexion fermée avant de recevoir la taille de l'image.");
+                        }
+                        totalRead += bytesRead;
                     }
-                    totalRead += bytesRead;
-                }
 
-                int imageSize = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(sizeBytes, 0));
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image à recevoir : " + imageSize + " octets.\r\n")));
+                    uint imageSize = FromBigEndianBytes(sizeBytes);
+                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image à recevoir : " + imageSize + " octets.\r\n")));
 
-                byte[] imageBytes = new byte[imageSize];
-                totalRead = 0;
-                while (totalRead < imageSize)
-                {
-                    int bytesRead = networkStream.Read(imageBytes, totalRead, imageSize - totalRead);
-                    if (bytesRead == 0)
+                    if (imageSize == 0)
                     {
-                        throw new Exception("Connexion fermée avant de recevoir toute l'image.");
+                        // Taille d'image zéro, le serveur a signalé une erreur
+                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur a signalé une erreur lors de la capture de l'image.\r\n")));
+                        // Vous pouvez choisir d'attendre ou de continuer à la prochaine itération
+                        continue;
                     }
-                    totalRead += bytesRead;
+
+                    if (imageSize > maxExpectedSize)
+                    {
+                        throw new Exception($"Taille d'image invalide reçue : {imageSize}");
+                    }
+
+                    // Lire les données de l'image
+                    byte[] imageBytes = new byte[imageSize];
+                    totalRead = 0;
+                    while (totalRead < imageSize)
+                    {
+                        int bytesRead = networkStream.Read(imageBytes, totalRead, (int)(imageSize - totalRead));
+                        if (bytesRead == 0)
+                        {
+                            throw new Exception("Connexion fermée avant de recevoir toute l'image.");
+                        }
+                        totalRead += bytesRead;
+                    }
+
+                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image reçue en " + totalRead + " octets.\r\n")));
+
+                    using (MemoryStream ms = new MemoryStream(imageBytes))
+                    {
+                        Image receivedImage = Image.FromStream(ms);
+
+                        DisplayImage(receivedImage);
+                    }
+
+                    this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
                 }
-
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image reçue en " + totalRead + " octets.\r\n")));
-
-                using (MemoryStream ms = new MemoryStream(imageBytes))
-                {
-                    Image receivedImage = Image.FromStream(ms);
-
-                    DisplayImage(receivedImage);
-                }
-
-                this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
             }
             catch (Exception ex)
             {
@@ -129,29 +145,27 @@ namespace Client
             {
                 Image processedImage = ProcessImage(receivedImage);
 
-                lock (imageLock)
+                this.Invoke((MethodInvoker)(() =>
                 {
-                    this.pbImage.Invoke((MethodInvoker)(() =>
+                    if (this.pbImage.Image != null)
                     {
-                        if (this.pbImage.Image != null)
-                        {
-                            this.pbImage.Image.Dispose();
-                        }
-                        this.pbImage.Image = processedImage;
-                    }));
-                }
+                        this.pbImage.Image.Dispose();
+                    }
+                    this.pbImage.Image = processedImage;
+                }));
 
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image traitée et affichée.\r\n")));
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image affichée.\r\n")));
             }
             catch (Exception ex)
             {
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors du traitement de l'image : " + ex.Message + "\r\n")));
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'affichage de l'image : " + ex.Message + "\r\n")));
             }
             finally
             {
                 receivedImage.Dispose();
             }
         }
+
 
         private Image ProcessImage(Image inputImage)
         {
@@ -236,10 +250,7 @@ namespace Client
                     m_ipAdrDistante = dialog.SelectedIPAddress;
                     this.tbCom.AppendText("Adresse IP du serveur mise à jour : " + m_ipAdrDistante.ToString() + "\r\n");
 
-                    if (!imageTimer.Enabled)
-                    {
-                        imageTimer.Start();
-                    }
+                    Task.Run(() => InitClientTCP());
                 }
                 else
                 {
@@ -247,6 +258,7 @@ namespace Client
                 }
             }
         }
+
 
         private void quitterToolStripMenuItem1_Click(object sender, EventArgs e)
         {
