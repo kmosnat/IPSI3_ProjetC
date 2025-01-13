@@ -15,7 +15,6 @@ using System.Threading;
 using System.Net.NetworkInformation;
 using System.IO.Ports;
 
-// On utilise ta bibliothèque de logs
 using Log;
 
 namespace Serveur
@@ -29,17 +28,14 @@ namespace Serveur
 
     public partial class Main : Form
     {
-        // Variables pour la caméra
         private smcs.IDevice _device;
         private Rectangle _imageRect;
         private PixelFormat _pixelFormat;
         private UInt32 _pixelType;
 
-        // Variables pour l’Arduino
         private Queue<string> objectBuffer = new Queue<string>();
         private RobotState robotState = RobotState.Wait;
 
-        // Variables pour le serveur
         private IPAddress _localIPAddress;
         private int _port;
         private bool _isTCPRunning = false;
@@ -54,31 +50,25 @@ namespace Serveur
             _port = 8001;
             InitializeUIState();
 
-            // Simulons l’ajout d’un objet à traiter
             objectBuffer.Enqueue("Objet1");
             objectBuffer.Enqueue("Objet2");
 
-            // Configuration d’un timer pour gérer la machine à états du robot
             var timerRobotState = new System.Windows.Forms.Timer();
-            timerRobotState.Interval = 500; // par exemple, toutes les 500ms
+            timerRobotState.Interval = 500;
             timerRobotState.Tick += timerRobotState_Tick;
             timerRobotState.Start();
         }
 
         private void Main_Load(object sender, EventArgs e)
         {
-            // Initialiser les variables pour la caméra
             NetworkSelection();
 
-            // Initialiser les ports série
             string[] ports = SerialPort.GetPortNames();
 
-            // Ajoute les ports au comboBox
             cbCom.Items.AddRange(ports);
 
             if (cbCom.Items.Count > 0)
             {
-                // Sélectionne le premier port par défaut s’il existe
                 cbCom.SelectedIndex = 0;
             }
             else
@@ -86,13 +76,10 @@ namespace Serveur
                 lblConnectionArduino.Text = "Aucun port série disponible.";
             }
 
-            // Ajouter l’événement DataReceived pour l’arduinoPort si vous ne l’avez pas déjà
-            // Assurez-vous que l’arduinoPort est déclaré en champ de classe.
             if (arduinoPort != null)
                 arduinoPort.DataReceived += ArduinoPort_DataReceived;
         }
 
-        // Evenement DataReceived pour Arduino
         private void ArduinoPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             try
@@ -101,14 +88,11 @@ namespace Serveur
                 AppendLog(LogSource.Arduino, LogLevel.INFO, line);
                 if (line == "DONE")
                 {
-                    // Traitement terminé côté Arduino
                     this.Invoke(new Action(() =>
                     {
-                        // Le robot a fini son process, on revient en Wait
                         robotState = RobotState.Wait;
                         AppendLog(LogSource.Serveur, LogLevel.INFO, "Reçu DONE du robot, état => Wait.");
 
-                        // Re-checker immédiatement la machine à états
                         UpdateRobotStateMachine();
                     }));
                 }
@@ -119,7 +103,6 @@ namespace Serveur
             }
         }
 
-        // Timer pour gérer la machine à états du robot côté PC
         private void timerRobotState_Tick(object sender, EventArgs e)
         {
             UpdateRobotStateMachine();
@@ -130,11 +113,9 @@ namespace Serveur
             switch (robotState)
             {
                 case RobotState.Wait:
-                    // On attend qu’un objet soit dans le buffer pour lancer le RUN
                     if (objectBuffer.Count > 0 && arduinoPort != null && arduinoPort.IsOpen)
                     {
                         var obj = objectBuffer.Dequeue();
-                        // On envoie "RUN" à l’Arduino pour lancer le process
                         arduinoPort.WriteLine("RUN");
                         AppendLog(LogSource.Serveur, LogLevel.INFO, $"Objet en cours de traitement : {obj}");
                         robotState = RobotState.OnProcess;
@@ -187,7 +168,6 @@ namespace Serveur
         {
             bool cameraConnected = false;
 
-            // Initialize GigEVision API
             smcs.CameraSuite.InitCameraAPI();
             var smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
 
@@ -196,13 +176,11 @@ namespace Serveur
                 MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
             }
 
-            // discover all devices on network
             smcsVisionApi.FindAllDevices(3.0);
             var devices = smcsVisionApi.GetAllDevices();
 
             if (devices.Length > 0)
             {
-                // On prend le premier device disponible
                 _device = devices[0];
 
                 if (_device != null && _device.Connect())
@@ -215,14 +193,12 @@ namespace Serveur
                     status = _device.CommandNodeExecute("AcquisitionStart");
                     cameraConnected = true;
 
-                    // Activer les boutons d'acquisition
                     InvokeIfNeeded(() =>
                     {
                         btnStartAcquisition.Enabled = true;
                         btnStartAcquisition.BackColor = Color.LightGreen;
                     });
 
-                    // Démarrer le serveur TCP si pas déjà lancé
                     if (!_isTCPRunning)
                     {
                         await StartServerAsync();
@@ -252,7 +228,6 @@ namespace Serveur
             });
         }
 
-        // Méthode pour initialiser le serveur TCP
         private async Task StartServerAsync()
         {
             if (_isTCPRunning) return;
@@ -277,7 +252,6 @@ namespace Serveur
                 startTCP.Enabled = false;
                 stopTCP.Enabled = true;
 
-                // Boucle d'acceptation asynchrone des clients
                 while (!token.IsCancellationRequested)
                 {
                     try
@@ -290,19 +264,16 @@ namespace Serveur
                             var clientSocket = acceptTask.Result;
                             AppendLog(LogSource.Serveur, LogLevel.INFO, $"Connexion acceptée de {clientSocket.RemoteEndPoint}");
 
-                            // Vérifiez que HandleClient est bien appelé
                             _ = Task.Run(() => HandleClient(clientSocket, token), token);
                         }
                     }
                     catch (OperationCanceledException)
                     {
-                        // L'opération a été annulée, sortir de la boucle
                         break;
                     }
                     catch (Exception ex)
                     {
                         AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Erreur lors de l'acceptation d'un client : {ex.Message}");
-                        // Continuer la boucle même en cas d'erreur
                     }
                 }
             }
@@ -379,12 +350,10 @@ namespace Serveur
                     {
                         byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
 
-                        // Envoyer la taille de l'image
                         uint imageSize = (uint)imageBytes.Length;
                         byte[] sizeBytes = GetBigEndianBytes(imageSize);
                         networkStream.Write(sizeBytes, 0, sizeBytes.Length);
 
-                        // Envoyer l'image
                         networkStream.Write(imageBytes, 0, imageBytes.Length);
                         AppendLog(LogSource.Client, LogLevel.INFO, $"Taille de l'image envoyée : {imageSize} octets.");
                     }
@@ -395,7 +364,6 @@ namespace Serveur
                 }
                 else
                 {
-                    // Envoyer taille = 0 si pas d'image
                     uint imageSize = 0;
                     byte[] sizeBytes = GetBigEndianBytes(imageSize);
                     networkStream.Write(sizeBytes, 0, sizeBytes.Length);
@@ -643,7 +611,6 @@ namespace Serveur
 
             try
             {
-                // Si un port est déjà ouvert, on le ferme avant d’en ouvrir un nouveau
                 if (arduinoPort != null && arduinoPort.IsOpen)
                 {
                     arduinoPort.Close();
@@ -656,12 +623,10 @@ namespace Serveur
                 arduinoPort.StopBits = StopBits.One;
                 arduinoPort.Handshake = Handshake.None;
 
-                // Attacher l'événement DataReceived avant l'ouverture
                 arduinoPort.DataReceived += ArduinoPort_DataReceived;
 
                 arduinoPort.Open();
 
-                // Si l’ouverture s’est bien passée
                 if (arduinoPort.IsOpen)
                 {
                     lblConnectionArduino.Text = $"Connecté sur {selectedPort}";
