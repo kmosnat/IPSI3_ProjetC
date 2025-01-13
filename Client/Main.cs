@@ -18,7 +18,6 @@ namespace Client
         private readonly object imageLock = new object();
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
-        private System.Windows.Forms.Timer imageTimer;
 
         public Client()
         {
@@ -55,7 +54,6 @@ namespace Client
                 tcpClient = new TcpClient();
 
                 AppendLog(LogSource.Client, LogLevel.INFO, "Connexion en cours...");
-
                 tcpClient.Connect(m_ipAdrDistante, m_numPort);
 
                 AppendLog(LogSource.Client, LogLevel.INFO, "Connexion établie");
@@ -73,6 +71,7 @@ namespace Client
 
                 while (tcpClient.Connected)
                 {
+                    // Lecture de la taille de l'image (4 octets)
                     byte[] sizeBytes = new byte[4];
                     int totalRead = 0;
                     while (totalRead < 4)
@@ -90,6 +89,7 @@ namespace Client
 
                     if (imageSize == 0)
                     {
+                        // Le serveur indique qu'il y a eu une erreur de capture
                         AppendLog(LogSource.Client, LogLevel.ERROR, "Le serveur a signalé une erreur lors de la capture de l'image.");
                         continue;
                     }
@@ -99,6 +99,7 @@ namespace Client
                         throw new Exception($"Taille d'image invalide reçue : {imageSize}");
                     }
 
+                    // Lecture des données de l'image
                     byte[] imageBytes = new byte[imageSize];
                     totalRead = 0;
                     while (totalRead < imageSize)
@@ -125,7 +126,6 @@ namespace Client
             catch (Exception ex)
             {
                 AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur : " + ex.Message);
-
                 this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Red));
             }
             finally
@@ -173,69 +173,7 @@ namespace Client
                 g.DrawImage(inputImage, 0, 0);
             }
 
-            BitmapData bitmapData = null;
-
-            try
-            {
-                Rectangle rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
-                bitmapData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
-
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
-                int stride = bitmapData.Stride;
-                int bytesPerPixel = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
-
-                int packedStride = width * bytesPerPixel;
-                byte[] imageData = new byte[height * packedStride];
-
-                IntPtr scan0 = bitmapData.Scan0;
-
-                unsafe
-                {
-                    byte* sourcePtr = (byte*)scan0.ToPointer();
-
-                    for (int y = 0; y < height; y++)
-                    {
-                        Marshal.Copy(new IntPtr(sourcePtr + y * stride), imageData, y * packedStride, packedStride);
-                    }
-                }
-
-                using (ClImage clImage = new ClImage())
-                {
-                    clImage.ObjetLibDataImgPtr(
-                        nbChamps: 3,
-                        data: Marshal.UnsafeAddrOfPinnedArrayElement(imageData, 0),
-                        stride: packedStride,
-                        nbLig: height,
-                        nbCol: width);
-
-                    clImage.ProcessCapPtr();
-                }
-
-                unsafe
-                {
-                    byte* destPtr = (byte*)scan0.ToPointer();
-
-                    for (int y = 0; y < height; y++)
-                    {
-                        Marshal.Copy(imageData, y * packedStride, new IntPtr(destPtr + y * stride), packedStride);
-                    }
-                }
-
-                bitmap.UnlockBits(bitmapData);
-                bitmapData = null;
-
-                return bitmap;
-            }
-            catch
-            {
-                if (bitmapData != null)
-                {
-                    bitmap.UnlockBits(bitmapData);
-                }
-                bitmap.Dispose();
-                throw;
-            }
+            return bitmap;
         }
 
         private void serveurToolStripMenuItem_Click(object sender, EventArgs e)
@@ -261,26 +199,25 @@ namespace Client
             this.Close();
         }
 
-        
         private void AppendLog(LogSource source, LogLevel level, string message)
         {
-
             Log.Log logEntry = new Log.Log(source, level, message);
-
             string content = logEntry.ToString().Replace("\n", Environment.NewLine);
 
-            string finalMessage = "--------------------------" + Environment.NewLine;
+            string finalMessage = "--------------------------" + Environment.NewLine
+                                  + content
+                                  + Environment.NewLine;
 
             if (tbCom.InvokeRequired)
             {
                 tbCom.Invoke(new Action(() =>
                 {
-                    tbCom.AppendText(finalMessage + Environment.NewLine);
+                    tbCom.AppendText(finalMessage);
                 }));
             }
             else
             {
-                tbCom.AppendText(finalMessage + Environment.NewLine);
+                tbCom.AppendText(finalMessage);
             }
         }
     }

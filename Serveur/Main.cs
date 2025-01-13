@@ -53,6 +53,7 @@ namespace Serveur
             objectBuffer.Enqueue("Objet1");
             objectBuffer.Enqueue("Objet2");
 
+            // Timer interne pour la gestion de l'état du robot
             var timerRobotState = new System.Windows.Forms.Timer();
             timerRobotState.Interval = 500;
             timerRobotState.Tick += timerRobotState_Tick;
@@ -123,9 +124,11 @@ namespace Serveur
                     break;
 
                 case RobotState.OnProcess:
+                    // On attend le "DONE" de l’Arduino
                     break;
 
                 case RobotState.RobotOnMoving:
+                    // État éventuel supplémentaire
                     break;
             }
         }
@@ -173,7 +176,7 @@ namespace Serveur
 
             if (!smcsVisionApi.IsUsingKernelDriver())
             {
-                MessageBox.Show("Warning: Smartek Filter Driver not loaded.");
+                MessageBox.Show("Warning: Smartek Filter Driver non chargé.");
             }
 
             smcsVisionApi.FindAllDevices(3.0);
@@ -221,7 +224,7 @@ namespace Serveur
             InvokeIfNeeded(() =>
             {
                 lblConnectionCamera.BackColor = Color.LimeGreen;
-                lblConnectionCamera.Text = "Connection établie";
+                lblConnectionCamera.Text = "Connexion établie";
                 lblAdrIP.BackColor = Color.LimeGreen;
                 lblAdrIP.Text = "Adresse IP : " + Common.IpAddrToString(_device.GetIpAddress());
                 lblNomCamera.Text = _device.GetManufacturerName() + " : " + _device.GetModelName();
@@ -232,9 +235,6 @@ namespace Serveur
         {
             if (_isTCPRunning) return;
 
-            if (_localIPAddress == null)
-                _localIPAddress = IPAddress.Any;
-
             _isTCPRunning = true;
             _tcpCancellationTokenSource = new CancellationTokenSource();
             var token = _tcpCancellationTokenSource.Token;
@@ -243,37 +243,19 @@ namespace Serveur
             {
                 var tcpListener = new TcpListener(_localIPAddress, _port);
                 tcpListener.Start();
-                AppendLog(LogSource.Serveur, LogLevel.INFO, "Le serveur est en cours d'exécution...");
-                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Point de terminaison local : {tcpListener.LocalEndpoint}");
-                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Adresse IP : {_localIPAddress}");
-                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Port : {_port}");
-                AppendLog(LogSource.Serveur, LogLevel.INFO, $"En attente de connexions...");
 
-                startTCP.Enabled = false;
-                stopTCP.Enabled = true;
+                AppendLog(LogSource.Serveur, LogLevel.INFO,
+                          $"Serveur démarré sur {_localIPAddress}:{_port}");
 
                 while (!token.IsCancellationRequested)
                 {
-                    try
+                    var clientSocket = await tcpListener.AcceptSocketAsync();
+                    if (clientSocket != null)
                     {
-                        var acceptTask = tcpListener.AcceptSocketAsync();
-                        var completedTask = await Task.WhenAny(acceptTask, Task.Delay(100, token));
+                        AppendLog(LogSource.Serveur, LogLevel.INFO,
+                                  $"Connexion acceptée de {clientSocket.RemoteEndPoint}");
 
-                        if (completedTask == acceptTask && acceptTask.Result != null)
-                        {
-                            var clientSocket = acceptTask.Result;
-                            AppendLog(LogSource.Serveur, LogLevel.INFO, $"Connexion acceptée de {clientSocket.RemoteEndPoint}");
-
-                            _ = Task.Run(() => HandleClient(clientSocket, token), token);
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Erreur lors de l'acceptation d'un client : {ex.Message}");
+                        _ = Task.Run(() => HandleClient(clientSocket, token), token);
                     }
                 }
             }
@@ -309,7 +291,40 @@ namespace Serveur
 
                     if (request.Equals("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
                     {
-                        SendImagesContinuously(clientSocket, networkStream, token);
+                        // *** CORRECTION *** : on envoie en continu les images
+                        while (clientSocket.Connected && !token.IsCancellationRequested)
+                        {
+                            Bitmap bitmap = GetNextFrame();
+                            if (bitmap != null)
+                            {
+                                try
+                                {
+                                    byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
+
+                                    uint imageSize = (uint)imageBytes.Length;
+                                    byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                                    networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+
+                                    networkStream.Write(imageBytes, 0, imageBytes.Length);
+                                    AppendLog(LogSource.Client, LogLevel.INFO, $"Taille de l'image envoyée : {imageSize} octets.");
+                                }
+                                catch (Exception ex)
+                                {
+                                    AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
+                                }
+                            }
+                            else
+                            {
+                                // Signaler une taille nulle
+                                uint imageSize = 0;
+                                byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+                                AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur lors de la capture de l'image");
+                            }
+
+                            // On attend un peu pour éviter de saturer le CPU
+                            Thread.Sleep(100);
+                        }
                     }
                     else
                     {
@@ -339,41 +354,6 @@ namespace Serveur
             return requestBuilder.ToString().Trim();
         }
 
-        private void SendImagesContinuously(Socket clientSocket, NetworkStream networkStream, CancellationToken token)
-        {
-            while (clientSocket.Connected && !token.IsCancellationRequested)
-            {
-                Bitmap bitmap = GetNextFrame();
-                if (bitmap != null)
-                {
-                    try
-                    {
-                        byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
-
-                        uint imageSize = (uint)imageBytes.Length;
-                        byte[] sizeBytes = GetBigEndianBytes(imageSize);
-                        networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-
-                        networkStream.Write(imageBytes, 0, imageBytes.Length);
-                        AppendLog(LogSource.Client, LogLevel.INFO, $"Taille de l'image envoyée : {imageSize} octets.");
-                    }
-                    catch (Exception ex)
-                    {
-                        AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
-                    }
-                }
-                else
-                {
-                    uint imageSize = 0;
-                    byte[] sizeBytes = GetBigEndianBytes(imageSize);
-                    networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-                    AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur lors de la capture de l'image");
-                }
-
-                Thread.Sleep(100);
-            }
-        }
-
         private void SendInvalidRequestResponse(NetworkStream networkStream)
         {
             string invalidRequest = "Requête invalide.";
@@ -398,6 +378,7 @@ namespace Serveur
             }
         }
 
+        // Génère une image de test si la caméra n'est pas connectée
         private Bitmap GenerateTestImage()
         {
             try
@@ -444,10 +425,10 @@ namespace Serveur
                 }
                 else
                 {
+                    // *** CORRECTION *** : Retour d'une image de test si la caméra n'est pas disponible
                     return GenerateTestImage();
                 }
             }
-
             return null;
         }
 
@@ -569,13 +550,16 @@ namespace Serveur
             this.Close();
         }
 
+        // *** CORRECTION *** : Ajout du message dans le log final côté Serveur
         private void AppendLog(LogSource source, LogLevel level, string message)
         {
             Log.Log logEntry = new Log.Log(source, level, message);
-
             string content = logEntry.ToString().Replace("\n", Environment.NewLine);
 
-            string finalMessage = "--------------------------" + Environment.NewLine + content + Environment.NewLine ;
+            // On inclut le message dans la chaîne finale
+            string finalMessage = "--------------------------" + Environment.NewLine
+                                  + content
+                                  + Environment.NewLine;
 
             if (tbCom.InvokeRequired)
             {
@@ -589,7 +573,6 @@ namespace Serveur
                 tbCom.AppendText(finalMessage);
             }
         }
-
 
         private void InvokeIfNeeded(Action action)
         {
@@ -624,7 +607,6 @@ namespace Serveur
                 arduinoPort.Handshake = Handshake.None;
 
                 arduinoPort.DataReceived += ArduinoPort_DataReceived;
-
                 arduinoPort.Open();
 
                 if (arduinoPort.IsOpen)
