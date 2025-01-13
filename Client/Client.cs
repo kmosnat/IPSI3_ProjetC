@@ -9,8 +9,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-using Log;
-
 namespace Client
 {
     public partial class Client : Form
@@ -41,11 +39,12 @@ namespace Client
             return BitConverter.ToUInt32(bytes, 0);
         }
 
+
         private void InitClientTCP()
         {
             if (m_ipAdrDistante == null)
             {
-                AppendLog(LogSource.Client, LogLevel.WARNING, "Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.");
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.\r\n")));
                 return;
             }
 
@@ -53,12 +52,10 @@ namespace Client
             try
             {
                 tcpClient = new TcpClient();
-
-                AppendLog(LogSource.Client, LogLevel.INFO, "Connexion en cours...");
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion en cours...\r\n")));
 
                 tcpClient.Connect(m_ipAdrDistante, m_numPort);
-
-                AppendLog(LogSource.Client, LogLevel.INFO, "Connexion établie");
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion établie\r\n")));
 
                 NetworkStream networkStream = tcpClient.GetStream();
 
@@ -66,8 +63,7 @@ namespace Client
                 byte[] requestBytes = Encoding.ASCII.GetBytes(request);
                 networkStream.Write(requestBytes, 0, requestBytes.Length);
                 networkStream.Flush();
-
-                AppendLog(LogSource.Client, LogLevel.INFO, $"Requête d'image envoyée : {request}");
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête d'image envoyée : " + request + "\r\n")));
 
                 const uint maxExpectedSize = 10_000_000;
 
@@ -86,11 +82,11 @@ namespace Client
                     }
 
                     uint imageSize = FromBigEndianBytes(sizeBytes);
-                    AppendLog(LogSource.Client, LogLevel.INFO, $"Taille de l'image à recevoir : {imageSize} octets.");
+                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image à recevoir : " + imageSize + " octets.\r\n")));
 
                     if (imageSize == 0)
                     {
-                        AppendLog(LogSource.Client, LogLevel.ERROR, "Le serveur a signalé une erreur lors de la capture de l'image.");
+                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur a signalé une erreur lors de la capture de l'image.\r\n")));
                         continue;
                     }
 
@@ -111,11 +107,12 @@ namespace Client
                         totalRead += bytesRead;
                     }
 
-                    AppendLog(LogSource.Client, LogLevel.INFO, $"Image reçue en {totalRead} octets.");
+                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image reçue en " + totalRead + " octets.\r\n")));
 
                     using (MemoryStream ms = new MemoryStream(imageBytes))
                     {
                         Image receivedImage = Image.FromStream(ms);
+
                         DisplayImage(receivedImage);
                     }
 
@@ -124,7 +121,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur : " + ex.Message);
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur : " + ex.Message + "\r\n")));
 
                 this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Red));
             }
@@ -133,7 +130,7 @@ namespace Client
                 if (tcpClient != null)
                 {
                     tcpClient.Close();
-                    AppendLog(LogSource.Client, LogLevel.INFO, "Connexion fermée.");
+                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion fermée.\r\n")));
                 }
             }
         }
@@ -153,17 +150,18 @@ namespace Client
                     this.pbImage.Image = processedImage;
                 }));
 
-                AppendLog(LogSource.Client, LogLevel.INFO, "Image affichée.");
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image affichée.\r\n")));
             }
             catch (Exception ex)
             {
-                AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur lors de l'affichage de l'image : " + ex.Message);
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'affichage de l'image : " + ex.Message + "\r\n")));
             }
             finally
             {
                 receivedImage.Dispose();
             }
         }
+
 
         private Image ProcessImage(Image inputImage)
         {
@@ -245,43 +243,21 @@ namespace Client
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     m_ipAdrDistante = dialog.SelectedIPAddress;
-                    AppendLog(LogSource.Client, LogLevel.INFO, "Adresse IP du serveur mise à jour : " + m_ipAdrDistante);
+                    this.tbCom.AppendText("Adresse IP du serveur mise à jour : " + m_ipAdrDistante.ToString() + "\r\n");
 
                     Task.Run(() => InitClientTCP());
                 }
                 else
                 {
-                    AppendLog(LogSource.Client, LogLevel.WARNING, "Aucune adresse IP n'a été entrée. L'application ne peut pas continuer.");
+                    this.tbCom.AppendText("Aucune adresse IP n'a été entrée. L'application ne peut pas continuer.\r\n");
                 }
             }
         }
 
+
         private void quitterToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             this.Close();
-        }
-
-        
-        private void AppendLog(LogSource source, LogLevel level, string message)
-        {
-
-            Log.Log logEntry = new Log.Log(source, level, message);
-
-            string content = logEntry.ToString().Replace("\n", Environment.NewLine);
-
-            string finalMessage = "--------------------------" + Environment.NewLine;
-
-            if (tbCom.InvokeRequired)
-            {
-                tbCom.Invoke(new Action(() =>
-                {
-                    tbCom.AppendText(finalMessage + Environment.NewLine);
-                }));
-            }
-            else
-            {
-                tbCom.AppendText(finalMessage + Environment.NewLine);
-            }
         }
     }
 }

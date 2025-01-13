@@ -1,6 +1,6 @@
 ﻿namespace Client
 {
-    partial class Main
+    partial class Client
     {
         /// <summary>
         /// Variable nécessaire au concepteur.

@@ -35,10 +35,10 @@ namespace Serveur
             this.gbCamera = new System.Windows.Forms.GroupBox();
             this.lblNomCamera = new System.Windows.Forms.Label();
             this.lblAdrIP = new System.Windows.Forms.Label();
-            this.lblConnection = new System.Windows.Forms.Label();
+            this.lblConnectionCamera = new System.Windows.Forms.Label();
             this.pbImage = new System.Windows.Forms.PictureBox();
             this.timAcq = new System.Windows.Forms.Timer(this.components);
-            this.Arduino = new System.IO.Ports.SerialPort(this.components);
+            this.arduinoPort = new System.IO.Ports.SerialPort(this.components);
             this.tbCom = new System.Windows.Forms.TextBox();
             this.navBar = new System.Windows.Forms.MenuStrip();
             this.serveurTCPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -51,24 +51,28 @@ namespace Serveur
             this.btnSearchCamera = new System.Windows.Forms.PictureBox();
             this.btnStartAcquisition = new System.Windows.Forms.PictureBox();
             this.btnStopAcquisition = new System.Windows.Forms.PictureBox();
+            this.cbCom = new System.Windows.Forms.ComboBox();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.lblConnectionArduino = new System.Windows.Forms.Label();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.navBar.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.btnSearchCamera)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStartAcquisition)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStopAcquisition)).BeginInit();
+            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // gbCamera
             // 
             this.gbCamera.Controls.Add(this.lblNomCamera);
             this.gbCamera.Controls.Add(this.lblAdrIP);
-            this.gbCamera.Controls.Add(this.lblConnection);
+            this.gbCamera.Controls.Add(this.lblConnectionCamera);
             this.gbCamera.Location = new System.Drawing.Point(21, 72);
             this.gbCamera.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbCamera.Name = "gbCamera";
             this.gbCamera.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.gbCamera.Size = new System.Drawing.Size(491, 211);
+            this.gbCamera.Size = new System.Drawing.Size(655, 211);
             this.gbCamera.TabIndex = 0;
             this.gbCamera.TabStop = false;
             this.gbCamera.Text = "Caméra";
@@ -91,22 +95,22 @@ namespace Serveur
             this.lblAdrIP.TabIndex = 1;
             this.lblAdrIP.Text = "Adresse IP : 0.0.0.0";
             // 
-            // lblConnection
+            // lblConnectionCamera
             // 
-            this.lblConnection.AutoSize = true;
-            this.lblConnection.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
-            this.lblConnection.Location = new System.Drawing.Point(26, 52);
-            this.lblConnection.Name = "lblConnection";
-            this.lblConnection.Size = new System.Drawing.Size(228, 25);
-            this.lblConnection.TabIndex = 0;
-            this.lblConnection.Text = "Connection en cours...";
+            this.lblConnectionCamera.AutoSize = true;
+            this.lblConnectionCamera.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
+            this.lblConnectionCamera.Location = new System.Drawing.Point(26, 52);
+            this.lblConnectionCamera.Name = "lblConnectionCamera";
+            this.lblConnectionCamera.Size = new System.Drawing.Size(228, 25);
+            this.lblConnectionCamera.TabIndex = 0;
+            this.lblConnectionCamera.Text = "Connection en cours...";
             // 
             // pbImage
             // 
-            this.pbImage.Location = new System.Drawing.Point(545, 72);
+            this.pbImage.Location = new System.Drawing.Point(713, 59);
             this.pbImage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(1101, 716);
+            this.pbImage.Size = new System.Drawing.Size(1351, 1037);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 1;
             this.pbImage.TabStop = false;
@@ -119,11 +123,11 @@ namespace Serveur
             // tbCom
             // 
             this.tbCom.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.tbCom.Location = new System.Drawing.Point(21, 381);
+            this.tbCom.Location = new System.Drawing.Point(21, 682);
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(491, 412);
+            this.tbCom.Size = new System.Drawing.Size(655, 414);
             this.tbCom.TabIndex = 0;
             this.tbCom.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
@@ -137,7 +141,7 @@ namespace Serveur
             this.exitApp});
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
-            this.navBar.Size = new System.Drawing.Size(1683, 40);
+            this.navBar.Size = new System.Drawing.Size(2121, 40);
             this.navBar.TabIndex = 9;
             this.navBar.Text = "menuStrip1";
             // 
@@ -147,7 +151,7 @@ namespace Serveur
             this.startTCP,
             this.stopTCP});
             this.serveurTCPToolStripMenuItem.Name = "serveurTCPToolStripMenuItem";
-            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(162, 38);
+            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(162, 36);
             this.serveurTCPToolStripMenuItem.Text = "Serveur TCP";
             // 
             // startTCP
@@ -170,7 +174,7 @@ namespace Serveur
             this.NetworkInterfaceSelection,
             this.afficherLAdresseIPToolStripMenuItem});
             this.réseauToolStripMenuItem.Name = "réseauToolStripMenuItem";
-            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 38);
+            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 36);
             this.réseauToolStripMenuItem.Text = "Réseau";
             // 
             // NetworkInterfaceSelection
@@ -190,14 +194,14 @@ namespace Serveur
             // exitApp
             // 
             this.exitApp.Name = "exitApp";
-            this.exitApp.Size = new System.Drawing.Size(109, 38);
+            this.exitApp.Size = new System.Drawing.Size(109, 36);
             this.exitApp.Text = "Quitter";
             this.exitApp.Click += new System.EventHandler(this.quitterToolStripMenuItem_Click);
             // 
             // btnSearchCamera
             // 
             this.btnSearchCamera.Image = global::Serveur.Properties.Resources.search;
-            this.btnSearchCamera.Location = new System.Drawing.Point(77, 304);
+            this.btnSearchCamera.Location = new System.Drawing.Point(86, 315);
             this.btnSearchCamera.Name = "btnSearchCamera";
             this.btnSearchCamera.Size = new System.Drawing.Size(66, 64);
             this.btnSearchCamera.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -208,7 +212,7 @@ namespace Serveur
             // btnStartAcquisition
             // 
             this.btnStartAcquisition.Image = global::Serveur.Properties.Resources.play;
-            this.btnStartAcquisition.Location = new System.Drawing.Point(228, 304);
+            this.btnStartAcquisition.Location = new System.Drawing.Point(310, 315);
             this.btnStartAcquisition.Name = "btnStartAcquisition";
             this.btnStartAcquisition.Size = new System.Drawing.Size(66, 64);
             this.btnStartAcquisition.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -219,7 +223,7 @@ namespace Serveur
             // btnStopAcquisition
             // 
             this.btnStopAcquisition.Image = global::Serveur.Properties.Resources.stop;
-            this.btnStopAcquisition.Location = new System.Drawing.Point(380, 304);
+            this.btnStopAcquisition.Location = new System.Drawing.Point(561, 315);
             this.btnStopAcquisition.Name = "btnStopAcquisition";
             this.btnStopAcquisition.Size = new System.Drawing.Size(66, 64);
             this.btnStopAcquisition.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -227,11 +231,43 @@ namespace Serveur
             this.btnStopAcquisition.TabStop = false;
             this.btnStopAcquisition.Click += new System.EventHandler(this.btnStopAcquisition_Click);
             // 
+            // cbCom
+            // 
+            this.cbCom.FormattingEnabled = true;
+            this.cbCom.Location = new System.Drawing.Point(38, 65);
+            this.cbCom.Name = "cbCom";
+            this.cbCom.Size = new System.Drawing.Size(223, 33);
+            this.cbCom.TabIndex = 14;
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.lblConnectionArduino);
+            this.groupBox1.Controls.Add(this.cbCom);
+            this.groupBox1.Location = new System.Drawing.Point(21, 438);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.groupBox1.Size = new System.Drawing.Size(655, 211);
+            this.groupBox1.TabIndex = 3;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Arduino";
+            // 
+            // lblConnectionArduino
+            // 
+            this.lblConnectionArduino.AutoSize = true;
+            this.lblConnectionArduino.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
+            this.lblConnectionArduino.Location = new System.Drawing.Point(33, 139);
+            this.lblConnectionArduino.Name = "lblConnectionArduino";
+            this.lblConnectionArduino.Size = new System.Drawing.Size(228, 25);
+            this.lblConnectionArduino.TabIndex = 0;
+            this.lblConnectionArduino.Text = "Connection en cours...";
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1683, 827);
+            this.ClientSize = new System.Drawing.Size(2121, 1156);
+            this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.btnStopAcquisition);
             this.Controls.Add(this.btnStartAcquisition);
             this.Controls.Add(this.btnSearchCamera);
@@ -252,6 +288,8 @@ namespace Serveur
             ((System.ComponentModel.ISupportInitialize)(this.btnSearchCamera)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStartAcquisition)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStopAcquisition)).EndInit();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -262,10 +300,10 @@ namespace Serveur
         private GroupBox gbCamera;
         private PictureBox pbImage;
         private Label lblAdrIP;
-        private Label lblConnection;
+        private Label lblConnectionCamera;
         private Label lblNomCamera;
         private System.Windows.Forms.Timer timAcq;
-        private System.IO.Ports.SerialPort Arduino;
+        private System.IO.Ports.SerialPort arduinoPort;
         private TextBox tbCom;
         private MenuStrip navBar;
         private ToolStripMenuItem serveurTCPToolStripMenuItem;
@@ -278,6 +316,9 @@ namespace Serveur
         private PictureBox btnSearchCamera;
         private PictureBox btnStartAcquisition;
         private PictureBox btnStopAcquisition;
+        private ComboBox cbCom;
+        private GroupBox groupBox1;
+        private Label lblConnectionArduino;
     }
 }
 

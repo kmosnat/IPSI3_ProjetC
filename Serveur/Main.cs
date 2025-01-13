@@ -13,76 +13,183 @@ using System.Windows.Forms;
 using System.IO;
 using System.Threading;
 using System.Net.NetworkInformation;
+using System.IO.Ports;
+
+// On utilise ta bibliothèque de logs
+using Log;
 
 namespace Serveur
 {
+    public enum RobotState
+    {
+        Wait,
+        OnProcess,
+        RobotOnMoving
+    }
+
     public partial class Main : Form
     {
         // Variables pour la caméra
-        smcs.IDevice m_device;
-        Rectangle m_rect;
-        PixelFormat m_pixelFormat;
-        UInt32 m_pixelType;
+        private smcs.IDevice _device;
+        private Rectangle _imageRect;
+        private PixelFormat _pixelFormat;
+        private UInt32 _pixelType;
+
+        // Variables pour l’Arduino
+        private Queue<string> objectBuffer = new Queue<string>();
+        private RobotState robotState = RobotState.Wait;
 
         // Variables pour le serveur
-        private IPAddress m_ipAdrLocal;
-        private int m_numPort;
-        private bool isTCPRunning = false;
-        private bool isAcquisitionRunning = false;
-        private readonly object deviceLock = new object();
+        private IPAddress _localIPAddress;
+        private int _port;
+        private bool _isTCPRunning = false;
+        private bool _isAcquisitionRunning = false;
+        private readonly object _deviceLock = new object();
 
-
-        private CancellationTokenSource tcpCancellationTokenSource;
+        private CancellationTokenSource _tcpCancellationTokenSource;
 
         public Main()
         {
             InitializeComponent();
+            _port = 8001;
+            InitializeUIState();
 
-            m_numPort = 8001;
+            // Simulons l’ajout d’un objet à traiter
+            objectBuffer.Enqueue("Objet1");
+            objectBuffer.Enqueue("Objet2");
 
-            // États initiaux des boutons/menu
-            btnStartAcquisition.Enabled = false;
-            btnStopAcquisition.Enabled = false;
-
-            // Options du serveur TCP au démarrage
-            startTCP.Enabled = true;
-            stopTCP.Enabled = false;
+            // Configuration d’un timer pour gérer la machine à états du robot
+            var timerRobotState = new System.Windows.Forms.Timer();
+            timerRobotState.Interval = 500; // par exemple, toutes les 500ms
+            timerRobotState.Tick += timerRobotState_Tick;
+            timerRobotState.Start();
         }
 
         private void Main_Load(object sender, EventArgs e)
         {
-            // Ouvrir la boîte de dialogue de sélection des interfaces réseau
+            // Initialiser les variables pour la caméra
             NetworkSelection();
+
+            // Initialiser les ports série
+            string[] ports = SerialPort.GetPortNames();
+
+            // Ajoute les ports au comboBox
+            cbCom.Items.AddRange(ports);
+
+            if (cbCom.Items.Count > 0)
+            {
+                // Sélectionne le premier port par défaut s’il existe
+                cbCom.SelectedIndex = 0;
+            }
+            else
+            {
+                lblConnectionArduino.Text = "Aucun port série disponible.";
+            }
+
+            // Ajouter l’événement DataReceived pour l’arduinoPort si vous ne l’avez pas déjà
+            // Assurez-vous que l’arduinoPort est déclaré en champ de classe.
+            if (arduinoPort != null)
+                arduinoPort.DataReceived += ArduinoPort_DataReceived;
+        }
+
+        // Evenement DataReceived pour Arduino
+        private void ArduinoPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            try
+            {
+                string line = arduinoPort.ReadLine().Trim();
+                AppendLog(LogSource.Arduino, LogLevel.INFO, line);
+                if (line == "DONE")
+                {
+                    // Traitement terminé côté Arduino
+                    this.Invoke(new Action(() =>
+                    {
+                        // Le robot a fini son process, on revient en Wait
+                        robotState = RobotState.Wait;
+                        AppendLog(LogSource.Serveur, LogLevel.INFO, "Reçu DONE du robot, état => Wait.");
+
+                        // Re-checker immédiatement la machine à états
+                        UpdateRobotStateMachine();
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendLog(LogSource.Arduino, LogLevel.ERROR, ex.Message);
+            }
+        }
+
+        // Timer pour gérer la machine à états du robot côté PC
+        private void timerRobotState_Tick(object sender, EventArgs e)
+        {
+            UpdateRobotStateMachine();
+        }
+
+        private void UpdateRobotStateMachine()
+        {
+            switch (robotState)
+            {
+                case RobotState.Wait:
+                    // On attend qu’un objet soit dans le buffer pour lancer le RUN
+                    if (objectBuffer.Count > 0 && arduinoPort != null && arduinoPort.IsOpen)
+                    {
+                        var obj = objectBuffer.Dequeue();
+                        // On envoie "RUN" à l’Arduino pour lancer le process
+                        arduinoPort.WriteLine("RUN");
+                        AppendLog(LogSource.Serveur, LogLevel.INFO, $"Objet en cours de traitement : {obj}");
+                        robotState = RobotState.OnProcess;
+                    }
+                    break;
+
+                case RobotState.OnProcess:
+                    break;
+
+                case RobotState.RobotOnMoving:
+                    break;
+            }
+        }
+
+        private void InitializeUIState()
+        {
+            btnStartAcquisition.Enabled = false;
+            btnStopAcquisition.Enabled = false;
+
+            startTCP.Enabled = true;
+            stopTCP.Enabled = false;
         }
 
         private void NetworkSelection()
         {
-            using (NetworkInterfaceSelectionDialog dialog = new NetworkInterfaceSelectionDialog())
+            using (var dialog = new NetworkInterfaceSelectionDialog())
             {
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
-                    m_ipAdrLocal = dialog.SelectedIPAddress;
-                    string interfaceName = dialog.SelectedInterfaceName;
+                    _localIPAddress = dialog.SelectedIPAddress;
+                    afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {_localIPAddress}";
 
-                    afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {m_ipAdrLocal.ToString()}";
+                    if (_isTCPRunning)
+                    {
+                        StopTCPServer();
+                        Task.Run(() => StartServerAsync());
+                    }
                 }
                 else
                 {
-                    m_ipAdrLocal = IPAddress.Any;
-                    afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {m_ipAdrLocal.ToString()}";
-                    MessageBox.Show("Aucune interface réseau sélectionnée. Le serveur utilisera toutes les interfaces.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    _localIPAddress = IPAddress.Any;
+                    afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {_localIPAddress}";
+                    MessageBox.Show("Aucune interface réseau sélectionnée. Le serveur utilisera toutes les interfaces.",
+                                    "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }
 
-        // Méthode pour initialiser la caméra
-        private void InitCamera()
+        private async void InitCamera()
         {
             bool cameraConnected = false;
 
-            // initialize GigEVision API
+            // Initialize GigEVision API
             smcs.CameraSuite.InitCameraAPI();
-            smcs.ICameraAPI smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
+            var smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
 
             if (!smcsVisionApi.IsUsingKernelDriver())
             {
@@ -91,243 +198,243 @@ namespace Serveur
 
             // discover all devices on network
             smcsVisionApi.FindAllDevices(3.0);
-            smcs.IDevice[] devices = smcsVisionApi.GetAllDevices();
-            //MessageBox.Show(devices.Length.ToString());
+            var devices = smcsVisionApi.GetAllDevices();
+
             if (devices.Length > 0)
             {
-                // take first device in list
-                m_device = devices[0];
+                // On prend le premier device disponible
+                _device = devices[0];
 
-                // uncomment to use specific model
-                //for (int i = 0; i < devices.Length; i++)
-                //{
-                //    if (devices[i].GetModelName() == "GC652M")
-                //    {
-                //        m_device = devices[i];
-                //    }
-                //}
-
-                // to change number of images in image buffer from default 10 images 
-                // call SetImageBufferFrameCount() method before Connect() method
-                //m_device.SetImageBufferFrameCount(20);
-
-                if (m_device != null && m_device.Connect())
+                if (_device != null && _device.Connect())
                 {
-                    this.lblConnection.BackColor = Color.LimeGreen;
-                    this.lblConnection.Text = "Connection établie";
-                    this.lblAdrIP.BackColor = Color.LimeGreen;
-                    this.lblAdrIP.Text = "Adresse IP : " + Common.IpAddrToString(m_device.GetIpAddress());
-                    this.lblNomCamera.Text = m_device.GetManufacturerName() + " : " + m_device.GetModelName();
+                    UpdateUIOnCameraConnected();
 
-                    // disable trigger mode
-                    bool status = m_device.SetStringNodeValue("TriggerMode", "Off");
-                    // set continuous acquisition mode
-                    status = m_device.SetStringNodeValue("AcquisitionMode", "Continuous");
-                    // start acquisition
-                    status = m_device.SetIntegerNodeValue("TLParamsLocked", 1);
-                    status = m_device.CommandNodeExecute("AcquisitionStart");
+                    bool status = _device.SetStringNodeValue("TriggerMode", "Off");
+                    status = _device.SetStringNodeValue("AcquisitionMode", "Continuous");
+                    status = _device.SetIntegerNodeValue("TLParamsLocked", 1);
+                    status = _device.CommandNodeExecute("AcquisitionStart");
                     cameraConnected = true;
-                    btnStartAcquisition.Enabled = true;
+
+                    // Activer les boutons d'acquisition
+                    InvokeIfNeeded(() =>
+                    {
+                        btnStartAcquisition.Enabled = true;
+                        btnStartAcquisition.BackColor = Color.LightGreen;
+                    });
+
+                    // Démarrer le serveur TCP si pas déjà lancé
+                    if (!_isTCPRunning)
+                    {
+                        await StartServerAsync();
+                    }
                 }
             }
 
             if (!cameraConnected)
             {
-                this.lblAdrIP.BackColor = Color.Red;
-                this.lblAdrIP.Text = "Erreur de connection!";
+                InvokeIfNeeded(() =>
+                {
+                    lblAdrIP.BackColor = Color.Red;
+                    lblAdrIP.Text = "Erreur de connexion!";
+                });
             }
         }
 
-        // Méthode pour initialiser le serveur TCP
-        private void InitServerTCP()
+        private void UpdateUIOnCameraConnected()
         {
-            if (isTCPRunning)
+            InvokeIfNeeded(() =>
             {
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur TCP est déjà en cours d'exécution.\r\n")));
-                return;
-            }
+                lblConnectionCamera.BackColor = Color.LimeGreen;
+                lblConnectionCamera.Text = "Connection établie";
+                lblAdrIP.BackColor = Color.LimeGreen;
+                lblAdrIP.Text = "Adresse IP : " + Common.IpAddrToString(_device.GetIpAddress());
+                lblNomCamera.Text = _device.GetManufacturerName() + " : " + _device.GetModelName();
+            });
+        }
 
-            if (m_ipAdrLocal == null)
-            {
-                m_ipAdrLocal = IPAddress.Any;
-            }
+        // Méthode pour initialiser le serveur TCP
+        private async Task StartServerAsync()
+        {
+            if (_isTCPRunning) return;
 
-            isTCPRunning = true;
-            TcpListener tcpListener = null;
-            tcpCancellationTokenSource = new CancellationTokenSource();
-            CancellationToken token = tcpCancellationTokenSource.Token;
+            if (_localIPAddress == null)
+                _localIPAddress = IPAddress.Any;
+
+            _isTCPRunning = true;
+            _tcpCancellationTokenSource = new CancellationTokenSource();
+            var token = _tcpCancellationTokenSource.Token;
 
             try
             {
-                tcpListener = new TcpListener(m_ipAdrLocal, m_numPort);
+                var tcpListener = new TcpListener(_localIPAddress, _port);
                 tcpListener.Start();
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur est en cours d'exécution...\r\n")));
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Point de terminaison local : " + tcpListener.LocalEndpoint.ToString() + "\r\n")));
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("En attente de connexions...\r\n")));
+                AppendLog(LogSource.Serveur, LogLevel.INFO, "Le serveur est en cours d'exécution...");
+                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Point de terminaison local : {tcpListener.LocalEndpoint}");
+                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Adresse IP : {_localIPAddress}");
+                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Port : {_port}");
+                AppendLog(LogSource.Serveur, LogLevel.INFO, $"En attente de connexions...");
 
+                startTCP.Enabled = false;
+                stopTCP.Enabled = true;
+
+                // Boucle d'acceptation asynchrone des clients
                 while (!token.IsCancellationRequested)
                 {
-                    if (tcpListener.Pending())
+                    try
                     {
-                        Socket clientSocket = tcpListener.AcceptSocket();
-                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion acceptée de " + clientSocket.RemoteEndPoint.ToString() + "\r\n")));
+                        var acceptTask = tcpListener.AcceptSocketAsync();
+                        var completedTask = await Task.WhenAny(acceptTask, Task.Delay(100, token));
 
-                        Task.Run(() => HandleClient(clientSocket));
+                        if (completedTask == acceptTask && acceptTask.Result != null)
+                        {
+                            var clientSocket = acceptTask.Result;
+                            AppendLog(LogSource.Serveur, LogLevel.INFO, $"Connexion acceptée de {clientSocket.RemoteEndPoint}");
+
+                            // Vérifiez que HandleClient est bien appelé
+                            _ = Task.Run(() => HandleClient(clientSocket, token), token);
+                        }
                     }
-                    else
+                    catch (OperationCanceledException)
                     {
-                        Thread.Sleep(100);
+                        // L'opération a été annulée, sortir de la boucle
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Erreur lors de l'acceptation d'un client : {ex.Message}");
+                        // Continuer la boucle même en cas d'erreur
                     }
                 }
             }
             catch (Exception ex)
             {
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur serveur : " + ex.Message + "\r\n")));
+                AppendLog(LogSource.Serveur, LogLevel.ERROR, ex.Message);
             }
             finally
             {
-                if (tcpListener != null)
-                {
-                    tcpListener.Stop();
-                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Serveur arrêté.\r\n")));
-                }
-                isTCPRunning = false;
-                this.Invoke((MethodInvoker)(() =>
-                {
-                    startTCP.Enabled = true;
-                    stopTCP.Enabled = false;
-                }));
+                StopServer();
             }
         }
 
-        private void HandleClient(Socket clientSocket)
+        private void StopServer()
+        {
+            _isTCPRunning = false;
+            InvokeIfNeeded(() =>
+            {
+                startTCP.Enabled = true;
+                stopTCP.Enabled = false;
+                AppendLog(LogSource.Serveur, LogLevel.INFO, "Le serveur a été arrêté.");
+            });
+        }
+
+        private void HandleClient(Socket clientSocket, CancellationToken token)
         {
             try
             {
-                using (NetworkStream networkStream = new NetworkStream(clientSocket))
+                using (var networkStream = new NetworkStream(clientSocket))
                 {
-                    // Recevoir la requête du client
-                    StringBuilder requestBuilder = new StringBuilder();
-                    int readByte;
-                    while ((readByte = networkStream.ReadByte()) != -1)
-                    {
-                        char ch = (char)readByte;
-                        if (ch == '\n')
-                        {
-                            break;
-                        }
-                        requestBuilder.Append(ch);
-                    }
-
-                    string request = requestBuilder.ToString().Trim();
-                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête reçue : " + request + "\r\n")));
+                    string request = ReadClientRequest(networkStream);
+                    AppendLog(LogSource.Client, LogLevel.INFO, $"Requête reçue : {request}");
 
                     if (request.Equals("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Envoyer les images en continu
-                        while (clientSocket.Connected)
-                        {
-                            Bitmap bitmap = null;
-
-                            lock (deviceLock)
-                            {
-                                if (m_device != null && m_device.IsConnected())
-                                {
-                                    // Capture de l'image depuis la caméra
-                                    if (!m_device.IsBufferEmpty())
-                                    {
-                                        smcs.IImageInfo imageInfo = null;
-                                        m_device.GetImageInfo(ref imageInfo);
-                                        if (imageInfo != null)
-                                        {
-                                            BitmapData bd = null;
-
-                                            ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
-
-                                            if (bd != null)
-                                                bitmap.UnlockBits(bd);
-
-                                            m_device.PopImage(imageInfo);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    // Si la caméra n'est pas connectée, utiliser l'image de test
-                                    bitmap = GenerateTestImage();
-                                }
-                            }
-
-                            if (bitmap != null)
-                            {
-                                // Convertir l'image en tableau d'octets (JPEG)
-                                byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
-
-                                // Envoyer la taille de l'image (4 octets, Big Endian)
-                                uint imageSize = (uint)imageBytes.Length;
-                                byte[] sizeBytes = GetBigEndianBytes(imageSize);
-                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-
-                                // Envoyer les octets de l'image
-                                networkStream.Write(imageBytes, 0, imageBytes.Length);
-
-                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image envoyée au client.\r\n")));
-                            }
-                            else
-                            {
-                                uint imageSize = 0;
-                                byte[] sizeBytes = GetBigEndianBytes(imageSize);
-                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-                                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la capture de l'image.\r\n")));
-                            }
-
-                            Thread.Sleep(100);
-                        }
+                        SendImagesContinuously(clientSocket, networkStream, token);
                     }
                     else
                     {
-                        string invalidRequest = "Requête invalide.";
-                        byte[] invalidBytes = Encoding.ASCII.GetBytes(invalidRequest);
-                        networkStream.Write(invalidBytes, 0, invalidBytes.Length);
-                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête invalide reçue et réponse envoyée.\r\n")));
+                        SendInvalidRequestResponse(networkStream);
                     }
                 }
 
                 clientSocket.Close();
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion fermée avec le client.\r\n")));
+                AppendLog(LogSource.Client, LogLevel.INFO, "Connexion fermée avec le client.");
             }
             catch (Exception ex)
             {
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de la gestion du client : " + ex.Message + "\r\n")));
+                AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
             }
+        }
+
+        private string ReadClientRequest(NetworkStream networkStream)
+        {
+            var requestBuilder = new StringBuilder();
+            int readByte;
+            while ((readByte = networkStream.ReadByte()) != -1)
+            {
+                char ch = (char)readByte;
+                if (ch == '\n') break;
+                requestBuilder.Append(ch);
+            }
+            return requestBuilder.ToString().Trim();
+        }
+
+        private void SendImagesContinuously(Socket clientSocket, NetworkStream networkStream, CancellationToken token)
+        {
+            while (clientSocket.Connected && !token.IsCancellationRequested)
+            {
+                Bitmap bitmap = GetNextFrame();
+                if (bitmap != null)
+                {
+                    try
+                    {
+                        byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
+
+                        // Envoyer la taille de l'image
+                        uint imageSize = (uint)imageBytes.Length;
+                        byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                        networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+
+                        // Envoyer l'image
+                        networkStream.Write(imageBytes, 0, imageBytes.Length);
+                        AppendLog(LogSource.Client, LogLevel.INFO, $"Taille de l'image envoyée : {imageSize} octets.");
+                    }
+                    catch (Exception ex)
+                    {
+                        AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
+                    }
+                }
+                else
+                {
+                    // Envoyer taille = 0 si pas d'image
+                    uint imageSize = 0;
+                    byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                    networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+                    AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur lors de la capture de l'image");
+                }
+
+                Thread.Sleep(100);
+            }
+        }
+
+        private void SendInvalidRequestResponse(NetworkStream networkStream)
+        {
+            string invalidRequest = "Requête invalide.";
+            byte[] invalidBytes = Encoding.ASCII.GetBytes(invalidRequest);
+            networkStream.Write(invalidBytes, 0, invalidBytes.Length);
+            AppendLog(LogSource.Client, LogLevel.INFO, "Requête invalide reçue et réponse envoyée.");
         }
 
         private byte[] GetBigEndianBytes(uint value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
+            if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
             return bytes;
         }
 
-        // Méthode pour convertir une Image en tableau d'octets
         private byte[] ImageToByteArray(Image image, ImageFormat format)
         {
-            using (MemoryStream ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 image.Save(ms, format);
                 return ms.ToArray();
             }
         }
 
-        // Méthode pour générer une image de test
         private Bitmap GenerateTestImage()
         {
             try
             {
-                Bitmap bitmap = new Bitmap(640, 480, PixelFormat.Format24bppRgb);
+                var bitmap = new Bitmap(640, 480, PixelFormat.Format24bppRgb);
                 using (Graphics g = Graphics.FromImage(bitmap))
                 {
                     g.Clear(Color.Gray);
@@ -343,128 +450,107 @@ namespace Serveur
             }
         }
 
-        // Événement clic sur le bouton Démarrer l'Acquisition
+        private Bitmap GetNextFrame()
+        {
+            lock (_deviceLock)
+            {
+                if (_device != null && _device.IsConnected())
+                {
+                    if (!_device.IsBufferEmpty())
+                    {
+                        smcs.IImageInfo imageInfo = null;
+                        _device.GetImageInfo(ref imageInfo);
+                        if (imageInfo != null)
+                        {
+                            Bitmap bitmap = null;
+                            BitmapData bd = null;
+                            ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref _pixelFormat, ref _imageRect, ref _pixelType);
+
+                            if (bd != null)
+                                bitmap.UnlockBits(bd);
+
+                            _device.PopImage(imageInfo);
+                            return bitmap;
+                        }
+                    }
+                }
+                else
+                {
+                    return GenerateTestImage();
+                }
+            }
+
+            return null;
+        }
+
         private void btnStartAcquisition_Click(object sender, EventArgs e)
         {
-            if (!isAcquisitionRunning)
+            if (!_isAcquisitionRunning)
             {
-                isAcquisitionRunning = true;
+                _isAcquisitionRunning = true;
                 timAcq.Start();
                 btnStartAcquisition.Enabled = false;
+                btnStartAcquisition.BackColor = Color.Green;
+                btnStopAcquisition.BackColor = Color.LightGray;
                 btnStopAcquisition.Enabled = true;
             }
         }
 
-        // Événement clic sur le bouton Arrêter l'Acquisition
         private void btnStopAcquisition_Click(object sender, EventArgs e)
         {
-            if (isAcquisitionRunning)
+            if (_isAcquisitionRunning)
             {
                 timAcq.Stop();
-                isAcquisitionRunning = false;
+                _isAcquisitionRunning = false;
                 btnStartAcquisition.Enabled = true;
+                btnStartAcquisition.BackColor = Color.LightGreen;
                 btnStopAcquisition.Enabled = false;
+                btnStopAcquisition.BackColor = SystemColors.Control;
             }
         }
 
-        // Événement clic sur le bouton Rechercher des Caméras
-        private void btnSearchCamera_Click(object sender, EventArgs e)
+        private async void btnSearchCamera_Click(object sender, EventArgs e)
         {
-            Task.Run(() => InitCamera());
+            await Task.Run(() => InitCamera());
         }
 
-        // Événement clic sur le menu Démarrer le Serveur TCP
-        private void démarrerLeServeurToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void démarrerLeServeurToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!isTCPRunning)
+            if (!_isTCPRunning)
             {
-                Task.Run(() => InitServerTCP());
-                startTCP.Enabled = false;
-                stopTCP.Enabled = true;
+                await StartServerAsync();
             }
         }
 
-        // Événement clic sur le menu Arrêter le Serveur TCP
         private void arrêterLeServeurToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (isTCPRunning)
+            StopTCPServer();
+        }
+
+        private void StopTCPServer()
+        {
+            if (_isTCPRunning && _tcpCancellationTokenSource != null)
             {
-                tcpCancellationTokenSource.Cancel();
-                isTCPRunning = false;
+                _tcpCancellationTokenSource.Cancel();
+                _isTCPRunning = false;
                 startTCP.Enabled = true;
                 stopTCP.Enabled = false;
             }
         }
 
-        // Événement clic sur le menu Sélectionner une Carte Réseau
         private void sélectionnerUneCarteRéseauToolStripMenuItem_Click(object sender, EventArgs e)
         {
             NetworkSelection();
         }
 
-        // Événement du timer pour l'acquisition
         private void timAcq_Tick(object sender, EventArgs e)
         {
             try
             {
-                Bitmap bitmap = null;
-
-                lock (deviceLock)
+                Bitmap bitmap = GetNextFrame();
+                if (bitmap != null)
                 {
-                    if (m_device != null && m_device.IsConnected())
-                    {
-                        if (!m_device.IsBufferEmpty())
-                        {
-                            smcs.IImageInfo imageInfo = null;
-                            m_device.GetImageInfo(ref imageInfo);
-                            if (imageInfo != null)
-                            {
-                                BitmapData bd = null;
-
-                                ImageUtils.CopyToBitmap(imageInfo, ref bitmap, ref bd, ref m_pixelFormat, ref m_rect, ref m_pixelType);
-
-                                if (bitmap != null)
-                                {
-                                    if (pbImage.InvokeRequired)
-                                    {
-                                        pbImage.Invoke(new MethodInvoker(delegate
-                                        {
-                                            pbImage.Image = bitmap;
-                                        }));
-                                    }
-                                    else
-                                    {
-                                        pbImage.Image = bitmap;
-                                    }
-                                }
-
-                                if (bd != null)
-                                    bitmap.UnlockBits(bd);
-
-                                m_device.PopImage(imageInfo);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        bitmap = GenerateTestImage();
-                        if (bitmap != null)
-                        {
-                            if (pbImage.InvokeRequired)
-                            {
-                                pbImage.Invoke(new MethodInvoker(delegate
-                                {
-                                    pbImage.Image = bitmap;
-                                    pbImage.Refresh();
-                                }));
-                            }
-                            else
-                            {
-                                pbImage.Image = bitmap;
-                                pbImage.Refresh();
-                            }
-                        }
-                    }
+                    SetPictureBoxImage(bitmap);
                 }
             }
             catch (Exception ex)
@@ -473,46 +559,133 @@ namespace Serveur
             }
         }
 
+        private void SetPictureBoxImage(Bitmap bitmap)
+        {
+            if (pbImage.InvokeRequired)
+            {
+                pbImage.Invoke(new MethodInvoker(() => pbImage.Image = bitmap));
+            }
+            else
+            {
+                pbImage.Image = bitmap;
+            }
+        }
 
-        // Méthode pour fermer les connexions de la caméra
         private void CloseCamera()
         {
             timAcq.Stop();
-            isAcquisitionRunning = false;
+            _isAcquisitionRunning = false;
             btnStartAcquisition.Enabled = true;
             btnStopAcquisition.Enabled = false;
 
-            if (m_device != null && m_device.IsConnected())
+            if (_device != null && _device.IsConnected())
             {
-                m_device.CommandNodeExecute("AcquisitionStop");
-                m_device.SetIntegerNodeValue("TLParamsLocked", 0);
-                m_device.Disconnect();
+                _device.CommandNodeExecute("AcquisitionStop");
+                _device.SetIntegerNodeValue("TLParamsLocked", 0);
+                _device.Disconnect();
             }
 
             smcs.CameraSuite.ExitCameraAPI();
         }
 
-        // Événement de fermeture du formulaire
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             CloseCamera();
-            if (isTCPRunning)
-            {
-                tcpCancellationTokenSource.Cancel();
-            }
+            StopTCPServer();
         }
 
-        // Événement clic sur le menu Quitter
         private void quitterToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CloseCamera();
-            if (isTCPRunning)
-            {
-                tcpCancellationTokenSource.Cancel();
-            }
+            StopTCPServer();
             this.Close();
         }
 
+        private void AppendLog(LogSource source, LogLevel level, string message)
+        {
+            Log.Log logEntry = new Log.Log(source, level, message);
 
+            string content = logEntry.ToString().Replace("\n", Environment.NewLine);
+
+            string finalMessage = "--------------------------" + Environment.NewLine + content + Environment.NewLine ;
+
+            if (tbCom.InvokeRequired)
+            {
+                tbCom.Invoke(new Action(() =>
+                {
+                    tbCom.AppendText(finalMessage);
+                }));
+            }
+            else
+            {
+                tbCom.AppendText(finalMessage);
+            }
+        }
+
+
+        private void InvokeIfNeeded(Action action)
+        {
+            if (InvokeRequired)
+                Invoke(action);
+            else
+                action();
+        }
+
+        private void btnArduinoConnect_Click(object sender, EventArgs e)
+        {
+            if (cbCom.SelectedItem == null)
+            {
+                MessageBox.Show("Veuillez sélectionner un port série avant de vous connecter.");
+                return;
+            }
+
+            string selectedPort = cbCom.SelectedItem.ToString();
+
+            try
+            {
+                // Si un port est déjà ouvert, on le ferme avant d’en ouvrir un nouveau
+                if (arduinoPort != null && arduinoPort.IsOpen)
+                {
+                    arduinoPort.Close();
+                }
+
+                arduinoPort = new SerialPort(selectedPort, 9600);
+                arduinoPort.NewLine = "\r\n";
+                arduinoPort.DataBits = 8;
+                arduinoPort.Parity = Parity.None;
+                arduinoPort.StopBits = StopBits.One;
+                arduinoPort.Handshake = Handshake.None;
+
+                // Attacher l'événement DataReceived avant l'ouverture
+                arduinoPort.DataReceived += ArduinoPort_DataReceived;
+
+                arduinoPort.Open();
+
+                // Si l’ouverture s’est bien passée
+                if (arduinoPort.IsOpen)
+                {
+                    lblConnectionArduino.Text = $"Connecté sur {selectedPort}";
+                    lblConnectionArduino.BackColor = Color.LimeGreen;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblConnectionArduino.Text = "Erreur de connexion";
+                MessageBox.Show("Impossible de se connecter au port sélectionné.\n" + ex.Message,
+                                "Erreur",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnArduinoDeconnect_Click(object sender, EventArgs e)
+        {
+            if (arduinoPort != null && arduinoPort.IsOpen)
+            {
+                arduinoPort.Close();
+                lblConnectionArduino.Text = "Déconnecté";
+                lblConnectionArduino.BackColor = Color.Red;
+            }
+        }
     }
 }
