@@ -41,8 +41,10 @@ namespace Serveur
         private bool _isTCPRunning = false;
         private bool _isAcquisitionRunning = false;
         private readonly object _deviceLock = new object();
-
         private CancellationTokenSource _tcpCancellationTokenSource;
+        private TcpListener _tcpListener;
+
+        private readonly object _tcpLock = new object();
 
         public Main()
         {
@@ -50,10 +52,9 @@ namespace Serveur
             _port = 8001;
             InitializeUIState();
 
-            objectBuffer.Enqueue("Objet1");
-            objectBuffer.Enqueue("Objet2");
+            objectBuffer.Enqueue("Rouge, Triangle, 200, 30");
+            objectBuffer.Enqueue("Bleu, Carre, 130, 70");
 
-            // Timer interne pour la gestion de l'état du robot
             var timerRobotState = new System.Windows.Forms.Timer();
             timerRobotState.Interval = 500;
             timerRobotState.Tick += timerRobotState_Tick;
@@ -117,18 +118,25 @@ namespace Serveur
                     if (objectBuffer.Count > 0 && arduinoPort != null && arduinoPort.IsOpen)
                     {
                         var obj = objectBuffer.Dequeue();
-                        arduinoPort.WriteLine("RUN");
-                        AppendLog(LogSource.Serveur, LogLevel.INFO, $"Objet en cours de traitement : {obj}");
-                        robotState = RobotState.OnProcess;
+                        var parameters = obj.Split(',');
+
+                        if (parameters.Length == 4)
+                        {
+                            arduinoPort.WriteLine($"RUN,{obj}");
+                            AppendLog(LogSource.Serveur, LogLevel.INFO, $"Objet en cours de traitement : {obj}");
+                            robotState = RobotState.OnProcess;
+                        }
+                        else
+                        {
+                            AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Format de l'objet invalide : {obj}");
+                        }
                     }
                     break;
 
                 case RobotState.OnProcess:
-                    // On attend le "DONE" de l’Arduino
                     break;
 
                 case RobotState.RobotOnMoving:
-                    // État éventuel supplémentaire
                     break;
             }
         }
@@ -167,7 +175,7 @@ namespace Serveur
             }
         }
 
-        private async void InitCamera()
+        private async Task InitCamera()
         {
             bool cameraConnected = false;
 
@@ -204,7 +212,7 @@ namespace Serveur
 
                     if (!_isTCPRunning)
                     {
-                        await StartServerAsync();
+                        _ = StartServerAsync();
                     }
                 }
             }
@@ -233,45 +241,114 @@ namespace Serveur
 
         private async Task StartServerAsync()
         {
-            if (_isTCPRunning) return;
+            lock (_tcpLock)
+            {
+                if (_isTCPRunning) return;
+                _isTCPRunning = true;
+            }
 
-            _isTCPRunning = true;
             _tcpCancellationTokenSource = new CancellationTokenSource();
             var token = _tcpCancellationTokenSource.Token;
 
             try
             {
-                var tcpListener = new TcpListener(_localIPAddress, _port);
-                tcpListener.Start();
+                _tcpListener = new TcpListener(_localIPAddress, _port);
+                _tcpListener.Start();
 
                 AppendLog(LogSource.Serveur, LogLevel.INFO,
                           $"Serveur démarré sur {_localIPAddress}:{_port}");
 
+                // Mettre à jour l'état des boutons
+                InvokeIfNeeded(() =>
+                {
+                    startTCP.Enabled = false;
+                    stopTCP.Enabled = true;
+                });
+
                 while (!token.IsCancellationRequested)
                 {
-                    var clientSocket = await tcpListener.AcceptSocketAsync();
-                    if (clientSocket != null)
-                    {
-                        AppendLog(LogSource.Serveur, LogLevel.INFO,
-                                  $"Connexion acceptée de {clientSocket.RemoteEndPoint}");
+                    var acceptTask = _tcpListener.AcceptSocketAsync();
 
-                        _ = Task.Run(() => HandleClient(clientSocket, token), token);
+                    var completedTask = await Task.WhenAny(acceptTask, Task.Delay(Timeout.Infinite, token));
+
+                    if (completedTask == acceptTask)
+                    {
+                        var clientSocket = acceptTask.Result;
+                        if (clientSocket != null)
+                        {
+                            AppendLog(LogSource.Serveur, LogLevel.INFO,
+                                      $"Connexion acceptée de {clientSocket.RemoteEndPoint}");
+
+                            // Gérer le client dans un nouveau task
+                            _ = Task.Run(() => HandleClient(clientSocket, token), token);
+                        }
+                    }
+                    else
+                    {
+                        // Annulation demandée
+                        break;
                     }
                 }
             }
+            catch (OperationCanceledException)
+            {
+                // Exception attendue lors de l'annulation
+                AppendLog(LogSource.Serveur, LogLevel.INFO, "Serveur annulé.");
+            }
             catch (Exception ex)
             {
-                AppendLog(LogSource.Serveur, LogLevel.ERROR, ex.Message);
+                AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Erreur serveur : {ex.Message}");
             }
             finally
             {
-                StopServer();
+                if (_tcpListener != null)
+                {
+                    _tcpListener.Stop();
+                    _tcpListener = null;
+                }
+
+                StopServerInternal();
             }
         }
 
-        private void StopServer()
+        private void StopServerInternal()
         {
-            _isTCPRunning = false;
+            lock (_tcpLock)
+            {
+                if (!_isTCPRunning) return;
+                _isTCPRunning = false;
+            }
+
+            _tcpCancellationTokenSource?.Cancel();
+            _tcpCancellationTokenSource?.Dispose();
+            _tcpCancellationTokenSource = null;
+
+            _tcpListener?.Stop();
+            _tcpListener = null;
+
+            InvokeIfNeeded(() =>
+            {
+                startTCP.Enabled = true;
+                stopTCP.Enabled = false;
+                AppendLog(LogSource.Serveur, LogLevel.INFO, "Le serveur a été arrêté.");
+            });
+        }
+
+        private void StopTCPServer()
+        {
+            lock (_tcpLock)
+            {
+                if (!_isTCPRunning) return;
+                _isTCPRunning = false;
+            }
+
+            _tcpCancellationTokenSource?.Cancel();
+            _tcpCancellationTokenSource?.Dispose();
+            _tcpCancellationTokenSource = null;
+
+            _tcpListener?.Stop();
+            _tcpListener = null;
+
             InvokeIfNeeded(() =>
             {
                 startTCP.Enabled = true;
@@ -291,7 +368,6 @@ namespace Serveur
 
                     if (request.Equals("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
                     {
-                        // *** CORRECTION *** : on envoie en continu les images
                         while (clientSocket.Connected && !token.IsCancellationRequested)
                         {
                             Bitmap bitmap = GetNextFrame();
@@ -315,14 +391,11 @@ namespace Serveur
                             }
                             else
                             {
-                                // Signaler une taille nulle
                                 uint imageSize = 0;
                                 byte[] sizeBytes = GetBigEndianBytes(imageSize);
                                 networkStream.Write(sizeBytes, 0, sizeBytes.Length);
                                 AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur lors de la capture de l'image");
                             }
-
-                            // On attend un peu pour éviter de saturer le CPU
                             Thread.Sleep(100);
                         }
                     }
@@ -425,7 +498,6 @@ namespace Serveur
                 }
                 else
                 {
-                    // *** CORRECTION *** : Retour d'une image de test si la caméra n'est pas disponible
                     return GenerateTestImage();
                 }
             }
@@ -460,7 +532,14 @@ namespace Serveur
 
         private async void btnSearchCamera_Click(object sender, EventArgs e)
         {
-            await Task.Run(() => InitCamera());
+            try
+            {
+                await InitCamera();
+            }
+            catch (Exception ex)
+            {
+                AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Erreur lors de l'initialisation de la caméra : {ex.Message}");
+            }
         }
 
         private async void démarrerLeServeurToolStripMenuItem_Click(object sender, EventArgs e)
@@ -474,17 +553,6 @@ namespace Serveur
         private void arrêterLeServeurToolStripMenuItem_Click(object sender, EventArgs e)
         {
             StopTCPServer();
-        }
-
-        private void StopTCPServer()
-        {
-            if (_isTCPRunning && _tcpCancellationTokenSource != null)
-            {
-                _tcpCancellationTokenSource.Cancel();
-                _isTCPRunning = false;
-                startTCP.Enabled = true;
-                stopTCP.Enabled = false;
-            }
         }
 
         private void sélectionnerUneCarteRéseauToolStripMenuItem_Click(object sender, EventArgs e)
@@ -550,13 +618,11 @@ namespace Serveur
             this.Close();
         }
 
-        // *** CORRECTION *** : Ajout du message dans le log final côté Serveur
         private void AppendLog(LogSource source, LogLevel level, string message)
         {
             Log.Log logEntry = new Log.Log(source, level, message);
             string content = logEntry.ToString().Replace("\n", Environment.NewLine);
 
-            // On inclut le message dans la chaîne finale
             string finalMessage = "--------------------------" + Environment.NewLine
                                   + content
                                   + Environment.NewLine;

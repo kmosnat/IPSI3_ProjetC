@@ -35,11 +35,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CameraSuite_NET">
-      <HintPath>..\..\..\..\..\..\Program Files\SMARTEKvision\CameraSuite\bin\CameraSuite_NET.dll</HintPath>
+      <HintPath>C:\Program Files\SMARTEKvision\CameraSuite\bin\CameraSuite_NET.dll</HintPath>
     </Reference>
     <Reference Include="Log, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Log\bin\Release\netstandard2.0\Log.dll</HintPath>
+      <HintPath>..\Log\bin\Debug\netstandard2.0\Log.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

@@ -53,7 +53,9 @@ namespace Serveur
             this.btnStopAcquisition = new System.Windows.Forms.PictureBox();
             this.cbCom = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btnArduinoConnect = new System.Windows.Forms.PictureBox();
             this.lblConnectionArduino = new System.Windows.Forms.Label();
+            this.btnArduinoDeconnect = new System.Windows.Forms.PictureBox();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.navBar.SuspendLayout();
@@ -61,6 +63,8 @@ namespace Serveur
             ((System.ComponentModel.ISupportInitialize)(this.btnStartAcquisition)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStopAcquisition)).BeginInit();
             this.groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoConnect)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoDeconnect)).BeginInit();
             this.SuspendLayout();
             // 
             // gbCamera
@@ -98,12 +102,12 @@ namespace Serveur
             // lblConnectionCamera
             // 
             this.lblConnectionCamera.AutoSize = true;
-            this.lblConnectionCamera.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
+            this.lblConnectionCamera.BackColor = System.Drawing.Color.Red;
             this.lblConnectionCamera.Location = new System.Drawing.Point(26, 52);
             this.lblConnectionCamera.Name = "lblConnectionCamera";
-            this.lblConnectionCamera.Size = new System.Drawing.Size(228, 25);
+            this.lblConnectionCamera.Size = new System.Drawing.Size(127, 25);
             this.lblConnectionCamera.TabIndex = 0;
-            this.lblConnectionCamera.Text = "Connection en cours...";
+            this.lblConnectionCamera.Text = "Déconnecté";
             // 
             // pbImage
             // 
@@ -234,13 +238,15 @@ namespace Serveur
             // cbCom
             // 
             this.cbCom.FormattingEnabled = true;
-            this.cbCom.Location = new System.Drawing.Point(38, 65);
+            this.cbCom.Location = new System.Drawing.Point(28, 111);
             this.cbCom.Name = "cbCom";
             this.cbCom.Size = new System.Drawing.Size(223, 33);
             this.cbCom.TabIndex = 14;
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.btnArduinoDeconnect);
+            this.groupBox1.Controls.Add(this.btnArduinoConnect);
             this.groupBox1.Controls.Add(this.lblConnectionArduino);
             this.groupBox1.Controls.Add(this.cbCom);
             this.groupBox1.Location = new System.Drawing.Point(21, 438);
@@ -252,15 +258,37 @@ namespace Serveur
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Arduino";
             // 
+            // btnArduinoConnect
+            // 
+            this.btnArduinoConnect.Image = global::Serveur.Properties.Resources.play;
+            this.btnArduinoConnect.Location = new System.Drawing.Point(364, 90);
+            this.btnArduinoConnect.Name = "btnArduinoConnect";
+            this.btnArduinoConnect.Size = new System.Drawing.Size(66, 64);
+            this.btnArduinoConnect.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.btnArduinoConnect.TabIndex = 14;
+            this.btnArduinoConnect.TabStop = false;
+            this.btnArduinoConnect.Click += new System.EventHandler(this.btnArduinoConnect_Click);
+            // 
             // lblConnectionArduino
             // 
             this.lblConnectionArduino.AutoSize = true;
-            this.lblConnectionArduino.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
-            this.lblConnectionArduino.Location = new System.Drawing.Point(33, 139);
+            this.lblConnectionArduino.BackColor = System.Drawing.Color.Red;
+            this.lblConnectionArduino.Location = new System.Drawing.Point(26, 55);
             this.lblConnectionArduino.Name = "lblConnectionArduino";
-            this.lblConnectionArduino.Size = new System.Drawing.Size(228, 25);
+            this.lblConnectionArduino.Size = new System.Drawing.Size(127, 25);
             this.lblConnectionArduino.TabIndex = 0;
-            this.lblConnectionArduino.Text = "Connection en cours...";
+            this.lblConnectionArduino.Text = "Déconnecté";
+            // 
+            // btnArduinoDeconnect
+            // 
+            this.btnArduinoDeconnect.Image = global::Serveur.Properties.Resources.stop;
+            this.btnArduinoDeconnect.Location = new System.Drawing.Point(526, 90);
+            this.btnArduinoDeconnect.Name = "btnArduinoDeconnect";
+            this.btnArduinoDeconnect.Size = new System.Drawing.Size(66, 64);
+            this.btnArduinoDeconnect.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.btnArduinoDeconnect.TabIndex = 14;
+            this.btnArduinoDeconnect.TabStop = false;
+            this.btnArduinoDeconnect.Click += new System.EventHandler(this.btnArduinoDeconnect_Click);
             // 
             // Main
             // 
@@ -290,6 +318,8 @@ namespace Serveur
             ((System.ComponentModel.ISupportInitialize)(this.btnStopAcquisition)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoConnect)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoDeconnect)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -319,6 +349,8 @@ namespace Serveur
         private ComboBox cbCom;
         private GroupBox groupBox1;
         private Label lblConnectionArduino;
+        private PictureBox btnArduinoConnect;
+        private PictureBox btnArduinoDeconnect;
     }
 }
 
