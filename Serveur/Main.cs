@@ -14,18 +14,13 @@ using System.IO;
 using System.Threading;
 using System.Net.NetworkInformation;
 using System.IO.Ports;
+using System.Collections.Concurrent;
 
 using Log;
 
 namespace Serveur
 {
-    public enum RobotState
-    {
-        Wait,
-        OnProcess,
-        RobotOnMoving
-    }
-
+    
     public partial class Main : Form
     {
         private smcs.IDevice _device;
@@ -33,7 +28,7 @@ namespace Serveur
         private PixelFormat _pixelFormat;
         private UInt32 _pixelType;
 
-        private Queue<string> objectBuffer = new Queue<string>();
+        private ConcurrentQueue<RobotObject> objectBuffer = new ConcurrentQueue<RobotObject>();
         private RobotState robotState = RobotState.Wait;
 
         private IPAddress _localIPAddress;
@@ -51,9 +46,6 @@ namespace Serveur
             InitializeComponent();
             _port = 8001;
             InitializeUIState();
-
-            objectBuffer.Enqueue("Rouge, Triangle, 200, 30");
-            objectBuffer.Enqueue("Bleu, Carre, 130, 70");
 
             var timerRobotState = new System.Windows.Forms.Timer();
             timerRobotState.Interval = 500;
@@ -115,28 +107,21 @@ namespace Serveur
             switch (robotState)
             {
                 case RobotState.Wait:
-                    if (objectBuffer.Count > 0 && arduinoPort != null && arduinoPort.IsOpen)
+                    if (objectBuffer.TryDequeue(out RobotObject robotObject) && arduinoPort != null && arduinoPort.IsOpen)
                     {
-                        var obj = objectBuffer.Dequeue();
-                        var parameters = obj.Split(',');
-
-                        if (parameters.Length == 4)
-                        {
-                            arduinoPort.WriteLine($"RUN,{obj}");
-                            AppendLog(LogSource.Serveur, LogLevel.INFO, $"Objet en cours de traitement : {obj}");
-                            robotState = RobotState.OnProcess;
-                        }
-                        else
-                        {
-                            AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Format de l'objet invalide : {obj}");
-                        }
+                        string command = $"RUN,{robotObject.Color}, {robotObject.Shape}, {robotObject.X}, {robotObject.Y}";
+                        arduinoPort.WriteLine(command);
+                        AppendLog(LogSource.Serveur, LogLevel.INFO, $"Objet en cours de traitement : {robotObject}");
+                        robotState = RobotState.OnProcess;
                     }
                     break;
 
                 case RobotState.OnProcess:
+                    // Logique supplémentaire si nécessaire
                     break;
 
                 case RobotState.RobotOnMoving:
+                    // Logique supplémentaire si nécessaire
                     break;
             }
         }
@@ -278,21 +263,17 @@ namespace Serveur
                         {
                             AppendLog(LogSource.Serveur, LogLevel.INFO,
                                       $"Connexion acceptée de {clientSocket.RemoteEndPoint}");
-
-                            // Gérer le client dans un nouveau task
                             _ = Task.Run(() => HandleClient(clientSocket, token), token);
                         }
                     }
                     else
                     {
-                        // Annulation demandée
                         break;
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                // Exception attendue lors de l'annulation
                 AppendLog(LogSource.Serveur, LogLevel.INFO, "Serveur annulé.");
             }
             catch (Exception ex)
@@ -366,38 +347,13 @@ namespace Serveur
                     string request = ReadClientRequest(networkStream);
                     AppendLog(LogSource.Client, LogLevel.INFO, $"Requête reçue : {request}");
 
-                    if (request.Equals("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
+                    if (request.StartsWith("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
                     {
-                        while (clientSocket.Connected && !token.IsCancellationRequested)
-                        {
-                            Bitmap bitmap = GetNextFrame();
-                            if (bitmap != null)
-                            {
-                                try
-                                {
-                                    byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
-
-                                    uint imageSize = (uint)imageBytes.Length;
-                                    byte[] sizeBytes = GetBigEndianBytes(imageSize);
-                                    networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-
-                                    networkStream.Write(imageBytes, 0, imageBytes.Length);
-                                    AppendLog(LogSource.Client, LogLevel.INFO, $"Taille de l'image envoyée : {imageSize} octets.");
-                                }
-                                catch (Exception ex)
-                                {
-                                    AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
-                                }
-                            }
-                            else
-                            {
-                                uint imageSize = 0;
-                                byte[] sizeBytes = GetBigEndianBytes(imageSize);
-                                networkStream.Write(sizeBytes, 0, sizeBytes.Length);
-                                AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur lors de la capture de l'image");
-                            }
-                            Thread.Sleep(100);
-                        }
+                        HandleGetImage(networkStream, token, clientSocket);
+                    }
+                    else if (request.StartsWith("ADD_OBJECT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        HandleAddObject(request, networkStream);
                     }
                     else
                     {
@@ -411,6 +367,71 @@ namespace Serveur
             catch (Exception ex)
             {
                 AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
+            }
+        }
+
+        private void HandleGetImage(NetworkStream networkStream, CancellationToken token, Socket clientSocket)
+        {
+            while (clientSocket.Connected && !token.IsCancellationRequested)
+            {
+                Bitmap bitmap = GetNextFrame();
+                if (bitmap != null)
+                {
+                    try
+                    {
+                        byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
+
+                        uint imageSize = (uint)imageBytes.Length;
+                        byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                        networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+
+                        networkStream.Write(imageBytes, 0, imageBytes.Length);
+                        //AppendLog(LogSource.Client, LogLevel.INFO, $"Taille de l'image envoyée : {imageSize} octets.");
+                    }
+                    catch (Exception ex)
+                    {
+                        //AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
+                    }
+                }
+                else
+                {
+                    uint imageSize = 0;
+                    byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                    networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+                    //AppendLog(LogSource.Client, LogLevel.ERROR, "Erreur lors de la capture de l'image");
+                }
+                Thread.Sleep(100);
+            }
+        }
+        private void HandleAddObject(string request, NetworkStream networkStream)
+        {
+            try
+            {
+                // Format attendu : ADD_OBJECT, {"Id":"...", "Color":"...", "Shape":"...", "X":..., "Y":...}
+                var parts = request.Split(new[] { ',' }, 2);
+                if (parts.Length != 2)
+                    throw new FormatException("Commande ADD_OBJECT mal formatée.");
+
+                var objectData = parts[1].Trim();
+
+                // Ajouter un log pour vérifier objectData
+                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Données JSON reçues : {objectData}");
+
+                var robotObject = RobotObject.FromString(objectData);
+
+                objectBuffer.Enqueue(robotObject);
+                AppendLog(LogSource.Serveur, LogLevel.INFO, $"Objet ajouté : {robotObject}");
+
+                string response = "OBJET AJOUTÉ\n";
+                byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+                networkStream.Write(responseBytes, 0, responseBytes.Length);
+            }
+            catch (Exception ex)
+            {
+                AppendLog(LogSource.Serveur, LogLevel.ERROR, $"Erreur lors de l'ajout de l'objet : {ex.Message}");
+                string errorResponse = $"ERREUR: {ex.Message}\n";
+                byte[] errorBytes = Encoding.UTF8.GetBytes(errorResponse);
+                networkStream.Write(errorBytes, 0, errorBytes.Length);
             }
         }
 
@@ -451,7 +472,6 @@ namespace Serveur
             }
         }
 
-        // Génère une image de test si la caméra n'est pas connectée
         private Bitmap GenerateTestImage()
         {
             try
@@ -613,9 +633,9 @@ namespace Serveur
 
         private void quitterToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            CloseCamera();
-            StopTCPServer();
-            this.Close();
+            //CloseCamera();
+            //StopTCPServer();
+            //this.Close();
         }
 
         private void AppendLog(LogSource source, LogLevel level, string message)
@@ -701,4 +721,5 @@ namespace Serveur
             }
         }
     }
+
 }

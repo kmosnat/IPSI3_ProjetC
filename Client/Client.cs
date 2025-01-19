@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Collections.Concurrent;
+using Newtonsoft.Json; // Assurez-vous d'ajouter cette directive
 
 namespace Client
 {
@@ -17,6 +19,7 @@ namespace Client
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
         private System.Windows.Forms.Timer imageTimer;
+        private ConcurrentDictionary<Guid, RobotObject> localObjects = new ConcurrentDictionary<Guid, RobotObject>();
 
         public Client()
         {
@@ -38,7 +41,6 @@ namespace Client
             }
             return BitConverter.ToUInt32(bytes, 0);
         }
-
 
         private void InitClientTCP()
         {
@@ -82,11 +84,11 @@ namespace Client
                     }
 
                     uint imageSize = FromBigEndianBytes(sizeBytes);
-                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image à recevoir : " + imageSize + " octets.\r\n")));
+                    //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image à recevoir : " + imageSize + " octets.\r\n")));
 
                     if (imageSize == 0)
                     {
-                        this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur a signalé une erreur lors de la capture de l'image.\r\n")));
+                        //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur a signalé une erreur lors de la capture de l'image.\r\n")));
                         continue;
                     }
 
@@ -107,7 +109,7 @@ namespace Client
                         totalRead += bytesRead;
                     }
 
-                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image reçue en " + totalRead + " octets.\r\n")));
+                    //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image reçue en " + totalRead + " octets.\r\n")));
 
                     using (MemoryStream ms = new MemoryStream(imageBytes))
                     {
@@ -150,18 +152,17 @@ namespace Client
                     this.pbImage.Image = processedImage;
                 }));
 
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image affichée.\r\n")));
+                //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image affichée.\r\n")));
             }
             catch (Exception ex)
             {
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'affichage de l'image : " + ex.Message + "\r\n")));
+                //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'affichage de l'image : " + ex.Message + "\r\n")));
             }
             finally
             {
                 receivedImage.Dispose();
             }
         }
-
 
         private Image ProcessImage(Image inputImage)
         {
@@ -208,6 +209,42 @@ namespace Client
                         nbCol: width);
 
                     clImage.ProcessCapPtr();
+
+                    // Supposons que clImage.ObjetLibValeurChamp(int index) retourne une string
+                    // Exemple d'extraction des objets détectés
+                    // Vous devez adapter ceci en fonction de votre implémentation réelle
+
+                    // Exemple fictif d'extraction des objets
+                    // Remplacez ceci par votre logique réelle pour obtenir les objets
+                    int objectCount = 0; // Remplacez par la méthode correcte pour obtenir le nombre d'objets
+
+                    try
+                    {
+                        // Supposons que le champ 4 contient le nombre d'objets détectés
+                        //objectCount = int.Parse(clImage.ObjetLibValeurChamp(4));
+                    }
+                    catch
+                    {
+                        objectCount = 0;
+                    }
+                    
+                    for (int i = 0; i < objectCount; i++)
+                    {
+                        try
+                        {
+                            //string color = clImage.ObjetLibValeurChamp(i * 4 + 0); // Couleur
+                            //string shape = clImage.ObjetLibValeurChamp(i * 4 + 1); // Forme
+                            //int posX = int.Parse(clImage.ObjetLibValeurChamp(i * 4 + 2)); // Position X
+                            //int posY = int.Parse(clImage.ObjetLibValeurChamp(i * 4 + 3)); // Position Y
+
+                            // Ajouter l'objet au serveur
+                            //AddRobotObject(color, shape, posX, posY);
+                        }
+                        catch (Exception ex)
+                        {
+                            AppendLog($"Erreur lors de l'extraction d'un objet : {ex.Message}");
+                        }
+                    }
                 }
 
                 unsafe
@@ -254,10 +291,141 @@ namespace Client
             }
         }
 
-
         private void quitterToolStripMenuItem1_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void AppendLog(string message)
+        {
+            if (this.tbCom.InvokeRequired)
+            {
+                this.tbCom.Invoke(new Action(() => this.tbCom.AppendText(message + "\r\n")));
+            }
+            else
+            {
+                this.tbCom.AppendText(message + "\r\n");
+            }
+        }
+
+        private void AddRobotObject(string color, string shape, int x, int y) // Changement de posX, posY à x, y
+        {
+            // Créer un nouvel objet avec un ID unique
+            var robotObject = new RobotObject(color, shape, x, y); // Passer x et y
+
+            // Vérifier si l'objet existe déjà
+            if (localObjects.ContainsKey(robotObject.Id))
+            {
+                AppendLog($"Objet avec l'ID {robotObject.Id} existe déjà. Ignoré.");
+                return;
+            }
+
+            // Ajouter l'objet à la collection locale
+            if (localObjects.TryAdd(robotObject.Id, robotObject))
+            {
+                // Sérialiser l'objet en JSON
+                string robotObjectJson = robotObject.ToString();
+
+                // Formater la commande ADD_OBJECT avec le JSON
+                string addObjectCommand = $"ADD_OBJECT, {robotObjectJson}\n";
+                byte[] commandBytes = Encoding.ASCII.GetBytes(addObjectCommand);
+
+                try
+                {
+                    using (TcpClient client = new TcpClient())
+                    {
+                        client.Connect(m_ipAdrDistante, m_numPort);
+                        NetworkStream networkStream = client.GetStream();
+                        networkStream.Write(commandBytes, 0, commandBytes.Length);
+                        networkStream.Flush();
+
+                        AppendLog($"Commande ADD_OBJECT envoyée : {addObjectCommand.Trim()}");
+
+                        // Lire la réponse du serveur
+                        byte[] buffer = new byte[1024];
+                        int bytesRead = networkStream.Read(buffer, 0, buffer.Length);
+                        string response = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
+
+                        AppendLog($"Réponse du serveur : {response}");
+
+                        if (response.Equals("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            AppendLog($"Objet {robotObject.Id} ajouté avec succès.");
+                        }
+                        else
+                        {
+                            AppendLog($"Erreur lors de l'ajout de l'objet {robotObject.Id} : {response}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"Erreur lors de l'envoi de l'objet : {ex.Message}");
+                }
+            }
+            else
+            {
+                AppendLog($"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
+            }
+        }
+
+        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string color = "Rouge";
+            string shape = "Triangle";
+            int x = 200; // Changer posX à x
+            int y = 30;  // Changer posY à y
+
+            AddRobotObject(color, shape, x, y);
+        }
+    }
+
+    public class RobotObject
+    {
+        [JsonProperty("Id")]
+        public Guid Id { get; private set; }
+
+        [JsonProperty("Color")]
+        public string Color { get; set; }
+
+        [JsonProperty("Shape")]
+        public string Shape { get; set; }
+
+        [JsonProperty("X")]
+        public int X { get; set; } // Changement de PosX à X
+
+        [JsonProperty("Y")]
+        public int Y { get; set; } // Changement de PosY à Y
+
+        // Constructeur pour création d'un nouvel objet avec un ID unique
+        public RobotObject(string color, string shape, int x, int y)
+        {
+            Id = Guid.NewGuid();
+            Color = color;
+            Shape = shape;
+            X = x;
+            Y = y;
+        }
+
+        // Constructeur pour parsing d'un objet reçu avec un ID
+        [JsonConstructor]
+        public RobotObject(Guid id, string color, string shape, int x, int y)
+        {
+            Id = id;
+            Color = color;
+            Shape = shape;
+            X = x;
+            Y = y;
+        }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this);
+        }
+
+        public static RobotObject FromString(string data)
+        {
+            return JsonConvert.DeserializeObject<RobotObject>(data);
         }
     }
 }

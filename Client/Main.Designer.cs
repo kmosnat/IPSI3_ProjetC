@@ -34,6 +34,7 @@
             this.serveurToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitterToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.statusIndicator = new System.Windows.Forms.Panel();
+            this.testObjectToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.navBar.SuspendLayout();
             this.SuspendLayout();
@@ -61,24 +62,25 @@
             this.navBar.ImageScalingSize = new System.Drawing.Size(32, 32);
             this.navBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.serveurToolStripMenuItem,
-            this.quitterToolStripMenuItem1});
+            this.quitterToolStripMenuItem1,
+            this.testObjectToolStripMenuItem});
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
-            this.navBar.Size = new System.Drawing.Size(1305, 40);
+            this.navBar.Size = new System.Drawing.Size(1305, 42);
             this.navBar.TabIndex = 5;
             this.navBar.Text = "menuStrip1";
             // 
             // serveurToolStripMenuItem
             // 
             this.serveurToolStripMenuItem.Name = "serveurToolStripMenuItem";
-            this.serveurToolStripMenuItem.Size = new System.Drawing.Size(115, 36);
+            this.serveurToolStripMenuItem.Size = new System.Drawing.Size(115, 38);
             this.serveurToolStripMenuItem.Text = "Serveur";
             this.serveurToolStripMenuItem.Click += new System.EventHandler(this.serveurToolStripMenuItem_Click);
             // 
             // quitterToolStripMenuItem1
             // 
             this.quitterToolStripMenuItem1.Name = "quitterToolStripMenuItem1";
-            this.quitterToolStripMenuItem1.Size = new System.Drawing.Size(109, 36);
+            this.quitterToolStripMenuItem1.Size = new System.Drawing.Size(109, 38);
             this.quitterToolStripMenuItem1.Text = "Quitter";
             this.quitterToolStripMenuItem1.Click += new System.EventHandler(this.quitterToolStripMenuItem1_Click);
             // 
@@ -90,7 +92,14 @@
             this.statusIndicator.Size = new System.Drawing.Size(63, 59);
             this.statusIndicator.TabIndex = 6;
             // 
-            // Main
+            // testObjectToolStripMenuItem
+            // 
+            this.testObjectToolStripMenuItem.Name = "testObjectToolStripMenuItem";
+            this.testObjectToolStripMenuItem.Size = new System.Drawing.Size(153, 38);
+            this.testObjectToolStripMenuItem.Text = "Test Object";
+            this.testObjectToolStripMenuItem.Click += new System.EventHandler(this.testObjectToolStripMenuItem_Click);
+            // 
+            // Client
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -100,7 +109,7 @@
             this.Controls.Add(this.pbImage);
             this.Controls.Add(this.navBar);
             this.MainMenuStrip = this.navBar;
-            this.Name = "Main";
+            this.Name = "Client";
             this.Text = "Couleur - Client";
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).EndInit();
             this.navBar.ResumeLayout(false);
@@ -118,6 +127,7 @@
         private System.Windows.Forms.ToolStripMenuItem serveurToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem quitterToolStripMenuItem1;
         private System.Windows.Forms.Panel statusIndicator;
+        private System.Windows.Forms.ToolStripMenuItem testObjectToolStripMenuItem;
     }
 }
 
