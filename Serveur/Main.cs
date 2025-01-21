@@ -167,40 +167,39 @@ namespace Serveur
             smcs.CameraSuite.InitCameraAPI();
             var smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
 
-            if (!smcsVisionApi.IsUsingKernelDriver())
+            await Task.Run(() =>
             {
-                MessageBox.Show("Warning: Smartek Filter Driver non chargé.");
-            }
 
-            smcsVisionApi.FindAllDevices(3.0);
-            var devices = smcsVisionApi.GetAllDevices();
+                smcsVisionApi.FindAllDevices(3.0);
+                var devices = smcsVisionApi.GetAllDevices();
 
-            if (devices.Length > 0)
-            {
-                _device = devices[0];
-
-                if (_device != null && _device.Connect())
+                if (devices.Length > 0)
                 {
-                    UpdateUIOnCameraConnected();
+                    _device = devices[0];
 
-                    bool status = _device.SetStringNodeValue("TriggerMode", "Off");
-                    status = _device.SetStringNodeValue("AcquisitionMode", "Continuous");
-                    status = _device.SetIntegerNodeValue("TLParamsLocked", 1);
-                    status = _device.CommandNodeExecute("AcquisitionStart");
-                    cameraConnected = true;
-
-                    InvokeIfNeeded(() =>
+                    if (_device != null && _device.Connect())
                     {
-                        btnStartAcquisition.Enabled = true;
-                        btnStartAcquisition.BackColor = Color.LightGreen;
-                    });
+                        UpdateUIOnCameraConnected();
 
-                    if (!_isTCPRunning)
-                    {
-                        _ = StartServerAsync();
+                        bool status = _device.SetStringNodeValue("TriggerMode", "Off");
+                        status = _device.SetStringNodeValue("AcquisitionMode", "Continuous");
+                        status = _device.SetIntegerNodeValue("TLParamsLocked", 1);
+                        status = _device.CommandNodeExecute("AcquisitionStart");
+                        cameraConnected = true;
+
+                        InvokeIfNeeded(() =>
+                        {
+                            btnStartAcquisition.Enabled = true;
+                            btnStartAcquisition.BackColor = Color.LightGreen;
+                        });
+
+                        if (!_isTCPRunning)
+                        {
+                            _ = StartServerAsync();
+                        }
                     }
                 }
-            }
+            });
 
             if (!cameraConnected)
             {
