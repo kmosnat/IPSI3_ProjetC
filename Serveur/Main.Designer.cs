@@ -47,24 +47,20 @@ namespace Serveur
             this.réseauToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.NetworkInterfaceSelection = new System.Windows.Forms.ToolStripMenuItem();
             this.afficherLAdresseIPToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.robotToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ethernetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hotspotToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.imageTestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitApp = new System.Windows.Forms.ToolStripMenuItem();
             this.btnSearchCamera = new System.Windows.Forms.PictureBox();
             this.btnStartAcquisition = new System.Windows.Forms.PictureBox();
             this.btnStopAcquisition = new System.Windows.Forms.PictureBox();
-            this.cbCom = new System.Windows.Forms.ComboBox();
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.btnArduinoConnect = new System.Windows.Forms.PictureBox();
-            this.lblConnectionArduino = new System.Windows.Forms.Label();
-            this.btnArduinoDeconnect = new System.Windows.Forms.PictureBox();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.navBar.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.btnSearchCamera)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStartAcquisition)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStopAcquisition)).BeginInit();
-            this.groupBox1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoConnect)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoDeconnect)).BeginInit();
             this.SuspendLayout();
             // 
             // gbCamera
@@ -76,7 +72,7 @@ namespace Serveur
             this.gbCamera.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.gbCamera.Name = "gbCamera";
             this.gbCamera.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.gbCamera.Size = new System.Drawing.Size(655, 211);
+            this.gbCamera.Size = new System.Drawing.Size(606, 211);
             this.gbCamera.TabIndex = 0;
             this.gbCamera.TabStop = false;
             this.gbCamera.Text = "Caméra";
@@ -111,10 +107,10 @@ namespace Serveur
             // 
             // pbImage
             // 
-            this.pbImage.Location = new System.Drawing.Point(713, 59);
+            this.pbImage.Location = new System.Drawing.Point(880, 59);
             this.pbImage.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(1351, 1037);
+            this.pbImage.Size = new System.Drawing.Size(1184, 1037);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 1;
             this.pbImage.TabStop = false;
@@ -127,11 +123,11 @@ namespace Serveur
             // tbCom
             // 
             this.tbCom.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.tbCom.Location = new System.Drawing.Point(21, 682);
+            this.tbCom.Location = new System.Drawing.Point(21, 441);
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(655, 414);
+            this.tbCom.Size = new System.Drawing.Size(783, 655);
             this.tbCom.TabIndex = 0;
             this.tbCom.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
@@ -142,6 +138,7 @@ namespace Serveur
             this.navBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.serveurTCPToolStripMenuItem,
             this.réseauToolStripMenuItem,
+            this.imageTestToolStripMenuItem,
             this.exitApp});
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
@@ -176,7 +173,8 @@ namespace Serveur
             // 
             this.réseauToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.NetworkInterfaceSelection,
-            this.afficherLAdresseIPToolStripMenuItem});
+            this.afficherLAdresseIPToolStripMenuItem,
+            this.robotToolStripMenuItem});
             this.réseauToolStripMenuItem.Name = "réseauToolStripMenuItem";
             this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 36);
             this.réseauToolStripMenuItem.Text = "Réseau";
@@ -195,6 +193,36 @@ namespace Serveur
             this.afficherLAdresseIPToolStripMenuItem.Size = new System.Drawing.Size(473, 44);
             this.afficherLAdresseIPToolStripMenuItem.Text = "Adresse IP :";
             // 
+            // robotToolStripMenuItem
+            // 
+            this.robotToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.ethernetToolStripMenuItem,
+            this.hotspotToolStripMenuItem});
+            this.robotToolStripMenuItem.Name = "robotToolStripMenuItem";
+            this.robotToolStripMenuItem.Size = new System.Drawing.Size(473, 44);
+            this.robotToolStripMenuItem.Text = "Robot";
+            // 
+            // ethernetToolStripMenuItem
+            // 
+            this.ethernetToolStripMenuItem.Name = "ethernetToolStripMenuItem";
+            this.ethernetToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
+            this.ethernetToolStripMenuItem.Text = "Ethernet";
+            this.ethernetToolStripMenuItem.Click += new System.EventHandler(this.ethernetToolStripMenuItem_Click);
+            // 
+            // hotspotToolStripMenuItem
+            // 
+            this.hotspotToolStripMenuItem.Name = "hotspotToolStripMenuItem";
+            this.hotspotToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
+            this.hotspotToolStripMenuItem.Text = "Hotspot";
+            this.hotspotToolStripMenuItem.Click += new System.EventHandler(this.hotspotToolStripMenuItem_Click);
+            // 
+            // imageTestToolStripMenuItem
+            // 
+            this.imageTestToolStripMenuItem.Name = "imageTestToolStripMenuItem";
+            this.imageTestToolStripMenuItem.Size = new System.Drawing.Size(100, 36);
+            this.imageTestToolStripMenuItem.Text = "Image";
+            this.imageTestToolStripMenuItem.Click += new System.EventHandler(this.imageTestToolStripMenuItem_Click);
+            // 
             // exitApp
             // 
             this.exitApp.Name = "exitApp";
@@ -205,7 +233,7 @@ namespace Serveur
             // btnSearchCamera
             // 
             this.btnSearchCamera.Image = global::Serveur.Properties.Resources.search;
-            this.btnSearchCamera.Location = new System.Drawing.Point(86, 315);
+            this.btnSearchCamera.Location = new System.Drawing.Point(21, 315);
             this.btnSearchCamera.Name = "btnSearchCamera";
             this.btnSearchCamera.Size = new System.Drawing.Size(66, 64);
             this.btnSearchCamera.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -216,7 +244,7 @@ namespace Serveur
             // btnStartAcquisition
             // 
             this.btnStartAcquisition.Image = global::Serveur.Properties.Resources.play;
-            this.btnStartAcquisition.Location = new System.Drawing.Point(310, 315);
+            this.btnStartAcquisition.Location = new System.Drawing.Point(278, 315);
             this.btnStartAcquisition.Name = "btnStartAcquisition";
             this.btnStartAcquisition.Size = new System.Drawing.Size(66, 64);
             this.btnStartAcquisition.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -235,67 +263,11 @@ namespace Serveur
             this.btnStopAcquisition.TabStop = false;
             this.btnStopAcquisition.Click += new System.EventHandler(this.btnStopAcquisition_Click);
             // 
-            // cbCom
-            // 
-            this.cbCom.FormattingEnabled = true;
-            this.cbCom.Location = new System.Drawing.Point(28, 111);
-            this.cbCom.Name = "cbCom";
-            this.cbCom.Size = new System.Drawing.Size(223, 33);
-            this.cbCom.TabIndex = 14;
-            // 
-            // groupBox1
-            // 
-            this.groupBox1.Controls.Add(this.btnArduinoDeconnect);
-            this.groupBox1.Controls.Add(this.btnArduinoConnect);
-            this.groupBox1.Controls.Add(this.lblConnectionArduino);
-            this.groupBox1.Controls.Add(this.cbCom);
-            this.groupBox1.Location = new System.Drawing.Point(21, 438);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.groupBox1.Size = new System.Drawing.Size(655, 211);
-            this.groupBox1.TabIndex = 3;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Arduino";
-            // 
-            // btnArduinoConnect
-            // 
-            this.btnArduinoConnect.Image = global::Serveur.Properties.Resources.play;
-            this.btnArduinoConnect.Location = new System.Drawing.Point(364, 90);
-            this.btnArduinoConnect.Name = "btnArduinoConnect";
-            this.btnArduinoConnect.Size = new System.Drawing.Size(66, 64);
-            this.btnArduinoConnect.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.btnArduinoConnect.TabIndex = 14;
-            this.btnArduinoConnect.TabStop = false;
-            this.btnArduinoConnect.Click += new System.EventHandler(this.btnArduinoConnect_Click);
-            // 
-            // lblConnectionArduino
-            // 
-            this.lblConnectionArduino.AutoSize = true;
-            this.lblConnectionArduino.BackColor = System.Drawing.Color.Red;
-            this.lblConnectionArduino.Location = new System.Drawing.Point(26, 55);
-            this.lblConnectionArduino.Name = "lblConnectionArduino";
-            this.lblConnectionArduino.Size = new System.Drawing.Size(127, 25);
-            this.lblConnectionArduino.TabIndex = 0;
-            this.lblConnectionArduino.Text = "Déconnecté";
-            // 
-            // btnArduinoDeconnect
-            // 
-            this.btnArduinoDeconnect.Image = global::Serveur.Properties.Resources.stop;
-            this.btnArduinoDeconnect.Location = new System.Drawing.Point(526, 90);
-            this.btnArduinoDeconnect.Name = "btnArduinoDeconnect";
-            this.btnArduinoDeconnect.Size = new System.Drawing.Size(66, 64);
-            this.btnArduinoDeconnect.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.btnArduinoDeconnect.TabIndex = 14;
-            this.btnArduinoDeconnect.TabStop = false;
-            this.btnArduinoDeconnect.Click += new System.EventHandler(this.btnArduinoDeconnect_Click);
-            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(2121, 1156);
-            this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.btnStopAcquisition);
             this.Controls.Add(this.btnStartAcquisition);
             this.Controls.Add(this.btnSearchCamera);
@@ -316,10 +288,6 @@ namespace Serveur
             ((System.ComponentModel.ISupportInitialize)(this.btnSearchCamera)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStartAcquisition)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.btnStopAcquisition)).EndInit();
-            this.groupBox1.ResumeLayout(false);
-            this.groupBox1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoConnect)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.btnArduinoDeconnect)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -346,11 +314,10 @@ namespace Serveur
         private PictureBox btnSearchCamera;
         private PictureBox btnStartAcquisition;
         private PictureBox btnStopAcquisition;
-        private ComboBox cbCom;
-        private GroupBox groupBox1;
-        private Label lblConnectionArduino;
-        private PictureBox btnArduinoConnect;
-        private PictureBox btnArduinoDeconnect;
+        private ToolStripMenuItem imageTestToolStripMenuItem;
+        private ToolStripMenuItem robotToolStripMenuItem;
+        private ToolStripMenuItem ethernetToolStripMenuItem;
+        private ToolStripMenuItem hotspotToolStripMenuItem;
     }
 }
 

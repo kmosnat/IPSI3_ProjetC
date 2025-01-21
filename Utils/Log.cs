@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows;
 
 namespace Utils
 {
@@ -36,5 +37,16 @@ namespace Utils
         {
             return $"{Time}:\n[{Source}][{Level}] - {Message}";
         }
+
+        public void AppendLog(Action<string> appendAction, LogSource source, LogLevel level, string message)
+        {
+            var logEntry = new Log(source, level, message);
+            string content = logEntry.ToString().Replace("\n", Environment.NewLine);
+            string finalMessage = "--------------------------" + Environment.NewLine
+                                  + content + Environment.NewLine;
+
+            appendAction(finalMessage);
+        }
     }
+
 }

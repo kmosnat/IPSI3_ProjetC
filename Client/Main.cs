@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
 
-using Utils;
+using Utils; 
 
 namespace Client
 {
@@ -47,7 +47,8 @@ namespace Client
         {
             if (m_ipAdrDistante == null)
             {
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.\r\n")));
+                // Au lieu de this.tbCom.Invoke(...), on fait :
+                tbCom.LogError("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.");
                 return;
             }
 
@@ -55,10 +56,10 @@ namespace Client
             try
             {
                 tcpClient = new TcpClient();
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion en cours...\r\n")));
+                tbCom.LogInfo("Connexion en cours...");
 
                 tcpClient.Connect(m_ipAdrDistante, m_numPort);
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion établie\r\n")));
+                tbCom.LogInfo("Connexion établie");
 
                 NetworkStream networkStream = tcpClient.GetStream();
 
@@ -66,7 +67,7 @@ namespace Client
                 byte[] requestBytes = Encoding.ASCII.GetBytes(request);
                 networkStream.Write(requestBytes, 0, requestBytes.Length);
                 networkStream.Flush();
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête d'image envoyée : " + request + "\r\n")));
+                tbCom.LogInfo("Requête d'image envoyée : " + request);
 
                 const uint maxExpectedSize = 10_000_000;
 
@@ -85,11 +86,10 @@ namespace Client
                     }
 
                     uint imageSize = FromBigEndianBytes(sizeBytes);
-                    //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image à recevoir : " + imageSize + " octets.\r\n")));
 
                     if (imageSize == 0)
                     {
-                        //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur a signalé une erreur lors de la capture de l'image.\r\n")));
+                        // Erreur signalée par le serveur, on skip
                         continue;
                     }
 
@@ -110,12 +110,9 @@ namespace Client
                         totalRead += bytesRead;
                     }
 
-                    //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image reçue en " + totalRead + " octets.\r\n")));
-
                     using (MemoryStream ms = new MemoryStream(imageBytes))
                     {
                         Image receivedImage = Image.FromStream(ms);
-
                         DisplayImage(receivedImage);
                     }
 
@@ -124,8 +121,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur : " + ex.Message + "\r\n")));
-
+                tbCom.LogError("Erreur : " + ex.Message);
                 this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Red));
             }
             finally
@@ -133,7 +129,7 @@ namespace Client
                 if (tcpClient != null)
                 {
                     tcpClient.Close();
-                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion fermée.\r\n")));
+                    tbCom.LogInfo("Connexion fermée.");
                 }
             }
         }
@@ -152,39 +148,14 @@ namespace Client
                     }
                     this.pbImage.Image = processedImage;
                 }));
-
-                //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image affichée.\r\n")));
             }
             catch (Exception ex)
             {
-                //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'affichage de l'image : " + ex.Message + "\r\n")));
                 Console.WriteLine("Erreur lors de l'affichage de l'image : " + ex.Message);
             }
             finally
             {
                 receivedImage.Dispose();
-            }
-        }
-
-        private void AppendLog(LogSource source, LogLevel level, string message)
-        {
-            Utils.Log logEntry = new Utils.Log(source, level, message);
-            string content = logEntry.ToString().Replace("\n", Environment.NewLine);
-
-            string finalMessage = "--------------------------" + Environment.NewLine
-                                  + content
-                                  + Environment.NewLine;
-
-            if (tbCom.InvokeRequired)
-            {
-                tbCom.Invoke(new Action(() =>
-                {
-                    tbCom.AppendText(finalMessage);
-                }));
-            }
-            else
-            {
-                tbCom.AppendText(finalMessage);
             }
         }
 
@@ -234,39 +205,18 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-                    // Supposons que clImage.ObjetLibValeurChamp(int index) retourne une string
-                    // Exemple d'extraction des objets détectés
-                    // Vous devez adapter ceci en fonction de votre implémentation réelle
-
-                    // Exemple fictif d'extraction des objets
-                    // Remplacez ceci par votre logique réelle pour obtenir les objets
-                    int objectCount = 0; // Remplacez par la méthode correcte pour obtenir le nombre d'objets
-
-                    try
-                    {
-                        // Supposons que le champ 4 contient le nombre d'objets détectés
-                        //objectCount = int.Parse(clImage.ObjetLibValeurChamp(4));
-                    }
-                    catch
-                    {
-                        objectCount = 0;
-                    }
+                    int objectCount = 0; // A remplacer par votre code d'extraction
 
                     for (int i = 0; i < objectCount; i++)
                     {
                         try
                         {
-                            //string color = clImage.ObjetLibValeurChamp(i * 4 + 0); // Couleur
-                            //string shape = clImage.ObjetLibValeurChamp(i * 4 + 1); // Forme
-                            //int posX = int.Parse(clImage.ObjetLibValeurChamp(i * 4 + 2)); // Position X
-                            //int posY = int.Parse(clImage.ObjetLibValeurChamp(i * 4 + 3)); // Position Y
-
-                            // Ajouter l'objet au serveur
+                            // On imagine extraire : color, shape, posX, posY
                             //AddRobotObject(color, shape, posX, posY);
                         }
                         catch (Exception ex)
                         {
-                            AppendLog(LogSource.Client, LogLevel.ERROR, $"Erreur lors de l'extraction d'un objet : {ex.Message}");
+                            tbCom.LogError($"Erreur lors de l'extraction d'un objet : {ex.Message}");
                         }
                     }
                 }
@@ -304,13 +254,13 @@ namespace Client
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     m_ipAdrDistante = dialog.SelectedIPAddress;
-                    this.tbCom.AppendText("Adresse IP du serveur mise à jour : " + m_ipAdrDistante.ToString() + "\r\n");
+                    tbCom.LogInfo("Adresse IP du serveur mise à jour : " + m_ipAdrDistante);
 
                     Task.Run(() => InitClientTCP());
                 }
                 else
                 {
-                    this.tbCom.AppendText("Aucune adresse IP n'a été entrée. L'application ne peut pas continuer.\r\n");
+                    tbCom.LogWarning("Aucune adresse IP n'a été entrée. L'application ne peut pas continuer.");
                 }
             }
         }
@@ -322,26 +272,21 @@ namespace Client
 
         private void AddRobotObject(string color, string shape, int x, int y)
         {
-            // Créer un nouvel objet avec un ID unique
             var robotObject = new RobotObject(color, shape, x, y);
 
-            // Vérifier si l'objet existe déjà
             if (localObjects.ContainsKey(robotObject.Id))
             {
-                AppendLog(LogSource.Client, LogLevel.INFO, $"Objet avec l'ID {robotObject.Id} existe déjà. Ignoré.");
+                tbCom.LogInfo($"Objet avec l'ID {robotObject.Id} existe déjà. Ignoré.");
                 return;
             }
 
-            // Ajouter l'objet à la collection locale
             if (localObjects.TryAdd(robotObject.Id, robotObject))
             {
-                // Sérialiser l'objet en JSON
                 string robotObjectJson = robotObject.ToString();
-                AppendLog(LogSource.Client, LogLevel.INFO, $"Serialized RobotObject: {robotObjectJson}");
+                tbCom.LogInfo($"Serialized RobotObject: {robotObjectJson}");
 
-                // Formater la commande ADD_OBJECT avec le JSON
                 string addObjectCommand = $"ADD_OBJECT, {robotObjectJson}\n";
-                AppendLog(LogSource.Client, LogLevel.INFO, $"Commande ADD_OBJECT envoyée : {addObjectCommand.Trim()}");
+                tbCom.LogInfo($"Commande ADD_OBJECT envoyée : {addObjectCommand.Trim()}");
 
                 byte[] commandBytes = Encoding.UTF8.GetBytes(addObjectCommand);
 
@@ -354,31 +299,30 @@ namespace Client
                         networkStream.Write(commandBytes, 0, commandBytes.Length);
                         networkStream.Flush();
 
-                        // Lire la réponse du serveur avec UTF8
                         byte[] buffer = new byte[1024];
                         int bytesRead = networkStream.Read(buffer, 0, buffer.Length);
                         string response = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
 
-                        AppendLog(LogSource.Client, LogLevel.INFO, $"Réponse du serveur : {response}");
+                        tbCom.LogInfo($"Réponse du serveur : {response}");
 
                         if (response.Equals("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
                         {
-                            AppendLog(LogSource.Client, LogLevel.INFO, $"Objet {robotObject.Id} ajouté avec succès.");
+                            tbCom.LogInfo($"Objet {robotObject.Id} ajouté avec succès.");
                         }
                         else
                         {
-                            AppendLog(LogSource.Client, LogLevel.ERROR, $"Erreur lors de l'ajout de l'objet {robotObject.Id} : {response}");
+                            tbCom.LogError($"Erreur lors de l'ajout de l'objet {robotObject.Id} : {response}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    AppendLog(LogSource.Client, LogLevel.ERROR, $"Erreur lors de l'envoi de l'objet : {ex.Message}");
+                    tbCom.LogError($"Erreur lors de l'envoi de l'objet : {ex.Message}");
                 }
             }
             else
             {
-                AppendLog(LogSource.Client, LogLevel.ERROR, $"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
+                tbCom.LogError($"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
             }
         }
 
@@ -386,8 +330,8 @@ namespace Client
         {
             string color = "Rouge";
             string shape = "Triangle";
-            int x = 200; // Changer posX à x
-            int y = 30;  // Changer posY à y
+            int x = 300;
+            int y = 200;
 
             AddRobotObject(color, shape, x, y);
         }
