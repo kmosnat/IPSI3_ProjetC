@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;           
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -26,16 +27,16 @@ namespace Serveur
         private Bitmap _customTestImage = null;
 
         // ---- File d'objets et gestion d'état ----
+        // Concurrency => pour la logique
         private ConcurrentQueue<RobotObject> objectBuffer = new ConcurrentQueue<RobotObject>();
 
-        // Remplacez l’énumération si vous souhaitez des noms explicites :
-        //    Wait, OnProcess, Moving
+        // État interne du robot
         private RobotState robotState = RobotState.Wait;
 
-        // Pour mémoriser l’objet courant en cours de traitement
+        // Objet courant en cours de traitement
         private RobotObject currentRobotObject = null;
 
-        // Pour signaler un mouvement en cours (dans le cas asynchrone)
+        // Indique si un mouvement est en cours
         private bool isMoving = false;
         private Task moveTask;
 
@@ -55,6 +56,11 @@ namespace Serveur
         private bool _isAcquisitionRunning = false;
         private readonly object _deviceLock = new object();
 
+        // == Nouveaux contrôles UI ==   
+        private BindingList<RobotObject> robotObjectsList = new BindingList<RobotObject>();
+        private TableLayoutPanel mainTableLayout;
+
+
         public Main()
         {
             InitializeComponent();
@@ -62,26 +68,25 @@ namespace Serveur
             _port = 8001;
             InitializeUIState();
 
-            // Choix de l’adresse IP du robot (Ethernet par défaut par ex.)
             _ipRobot = "169.254.200.200";
             robot = new RobotModbusHelper(_ipRobot, 5020);
 
-            // Ajustez ces menus en fonction de votre UI
             ethernetToolStripMenuItem.Enabled = false;
             hotspotToolStripMenuItem.Enabled = true;
 
-            // Timer pour mettre à jour la machine à états du robot
             var timerRobotState = new System.Windows.Forms.Timer();
-            timerRobotState.Interval = 500; // toutes les 500 ms
+            timerRobotState.Interval = 500;
             timerRobotState.Tick += timerRobotState_Tick;
             timerRobotState.Start();
+
+            dgvObjects.AutoGenerateColumns = true;
+            dgvObjects.DataSource = robotObjectsList;
+
         }
 
         private void Main_Load(object sender, EventArgs e)
         {
-            // Sélection de la carte réseau
             NetworkSelection();
-
         }
 
 
@@ -95,28 +100,21 @@ namespace Serveur
             switch (robotState)
             {
                 case RobotState.Wait:
-                    // On regarde s’il y a un objet à traiter.
                     if (objectBuffer.TryDequeue(out RobotObject robotObject))
                     {
                         tbCom.LogInfo($"Objet à traiter : {robotObject}", LogSource.Serveur);
 
-                        // On mémorise cet objet, on passe en état "OnProcess"
                         currentRobotObject = robotObject;
                         robotState = RobotState.OnProcess;
                     }
                     break;
 
                 case RobotState.OnProcess:
-                    // Ici, on envoie l’information au robot (coordonnées, forme, etc.)
-                    // Puis on lance le mouvement en asynchrone pour bien visualiser "Moving".
                     tbCom.LogInfo("Envoi des informations au robot...", LogSource.Serveur);
 
-                    // Exemple asynchrone : on passe immédiatement en "Moving",
-                    // puis la tâche effectue le mouvement et remettra isMoving à false.
                     isMoving = true;
                     moveTask = Task.Run(() =>
                     {
-                        // Conversion en mètres ou en tout autre unité gérée par votre robot
                         float x = currentRobotObject.X / 1000f;
                         float y = currentRobotObject.Y / 1000f;
 
@@ -134,12 +132,41 @@ namespace Serveur
                     {
                         tbCom.LogInfo("Mouvement du robot terminé.", LogSource.Serveur);
 
-                        // On pourrait ici gérer un retour "OK" ou stocker l’objet traité.
-                        // Une fois fini, on repasse en "Wait" pour attendre un autre objet.
+                        // Une fois terminé, on peut retirer l’objet de la liste si on veut
+                        if (currentRobotObject != null)
+                        {
+                            // Cherche l'objet dans la BindingList et le retire
+                            var roToRemove = robotObjectsList.FirstOrDefault(ro => ro.Id == currentRobotObject.Id);
+                            if (roToRemove != null)
+                            {
+                                robotObjectsList.Remove(roToRemove);
+                            }
+                        }
+
                         robotState = RobotState.Wait;
                     }
                     break;
             }
+
+            // Mise à jour de l'affichage du Label d’état
+            InvokeIfNeeded(() =>
+            {
+                switch (robotState)
+                {
+                    case RobotState.Wait:
+                        lblRobotState.Text = "État Robot: En attente";
+                        lblRobotState.BackColor = Color.LightGray;
+                        break;
+                    case RobotState.OnProcess:
+                        lblRobotState.Text = "État Robot: Analyse objet…";
+                        lblRobotState.BackColor = Color.Khaki;
+                        break;
+                    case RobotState.RobotOnMoving:
+                        lblRobotState.Text = "État Robot: En mouvement";
+                        lblRobotState.BackColor = Color.LightGreen;
+                        break;
+                }
+            });
         }
 
         private void moveRobot(float x, float y)
@@ -158,7 +185,6 @@ namespace Serveur
                 RobotPose currentPose = robot.GetCurrentPose();
                 tbCom.LogInfo($"Pose courante => {currentPose}", LogSource.Serveur);
 
-                // Déplace le robot en (x, y, 0.1) par exemple
                 robot.MoveToPose(x, y, 0.1f);
                 tbCom.LogInfo($"Déplacement du robot vers X={x}, Y={y}, Z=0.1 en cours...", LogSource.Serveur);
             }
@@ -262,6 +288,7 @@ namespace Serveur
                 }
                 else
                 {
+                    // Génère une simple image de test si la caméra n’est pas connectée
                     return GenerateTestImage();
                 }
             }
@@ -579,11 +606,13 @@ namespace Serveur
                 var objectData = parts[1].Trim();
                 tbCom.LogInfo($"Données JSON reçues : {objectData}", LogSource.Serveur);
 
-                // Conversion JSON => RobotObject
                 var robotObject = RobotObject.FromString(objectData);
 
-                // Ajout dans la file d'objets
+                // 1) On l'ajoute à la queue => logique
                 objectBuffer.Enqueue(robotObject);
+
+                // 2) On l'ajoute à la liste liée au DataGridView => affichage
+                robotObjectsList.Add(robotObject);
 
                 float x = robotObject.X / 1000f;
                 float y = robotObject.Y / 1000f;
@@ -591,7 +620,6 @@ namespace Serveur
                 tbCom.LogInfo($"Objet ajouté : ID={robotObject.Id}, Color={robotObject.Color}, Shape={robotObject.Shape}, X={x}, Y={y}",
                               LogSource.Serveur);
 
-                // Réponse au client
                 string response = $"OBJET AJOUTÉ - Coordonnées reçues : X={x}, Y={y}\n";
                 byte[] responseBytes = Encoding.UTF8.GetBytes(response);
                 networkStream.Write(responseBytes, 0, responseBytes.Length);
@@ -641,8 +669,6 @@ namespace Serveur
             if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
             return bytes;
         }
-
-       
 
         private void imageTestToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -694,7 +720,6 @@ namespace Serveur
             StopTCPServer();
             Close();
         }
-
 
         private void InitializeUIState()
         {

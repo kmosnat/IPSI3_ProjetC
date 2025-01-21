@@ -1,4 +1,6 @@
-﻿namespace Serveur
+﻿using System.Windows.Forms;
+
+namespace Serveur
 {
     partial class NetworkInterfaceSelectionDialog
     {
@@ -28,53 +30,75 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.lblInstruction = new System.Windows.Forms.Label();
             this.listViewInterfaces = new System.Windows.Forms.ListView();
-            this.btnOK = new System.Windows.Forms.Button();
+            this.btnOk = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
-            this.SuspendLayout();
-            // 
-            // listViewInterfaces
-            // 
-            this.listViewInterfaces.HideSelection = false;
-            this.listViewInterfaces.Location = new System.Drawing.Point(63, 45);
-            this.listViewInterfaces.Name = "listViewInterfaces";
-            this.listViewInterfaces.Size = new System.Drawing.Size(449, 337);
-            this.listViewInterfaces.TabIndex = 0;
-            this.listViewInterfaces.UseCompatibleStateImageBehavior = false;
-            // 
-            // btnOK
-            // 
-            this.btnOK.Location = new System.Drawing.Point(112, 413);
-            this.btnOK.Name = "btnOK";
-            this.btnOK.Size = new System.Drawing.Size(124, 41);
-            this.btnOK.TabIndex = 1;
-            this.btnOK.Text = "OK";
-            this.btnOK.UseVisualStyleBackColor = true;
-            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
-            // 
-            // btnCancel
-            // 
-            this.btnCancel.Location = new System.Drawing.Point(334, 413);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(137, 41);
-            this.btnCancel.TabIndex = 2;
-            this.btnCancel.Text = "Fermer";
-            this.btnCancel.UseVisualStyleBackColor = true;
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
-            // 
-            // NetworkInterfaceSelectionDialog
-            // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(563, 481);
-            this.ControlBox = false;
-            this.Controls.Add(this.btnCancel);
-            this.Controls.Add(this.btnOK);
-            this.Controls.Add(this.listViewInterfaces);
-            this.Name = "NetworkInterfaceSelectionDialog";
-            this.Text = "NetworkInterfaceSelectionDialog";
-            this.ResumeLayout(false);
 
+            // 
+            // Form propriétés
+            // 
+            this.Text = "Sélection de l’interface réseau";
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.MinimumSize = new System.Drawing.Size(400, 300);
+            // Permet d’avoir une taille minimale
+            this.Size = new System.Drawing.Size(500, 350);
+            // Taille de départ
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            // Rendre la fenêtre redimensionnable
+
+            //
+            // lblInstruction
+            //
+            this.lblInstruction.Text = "Veuillez sélectionner une interface réseau :";
+            this.lblInstruction.AutoSize = true;
+            this.lblInstruction.Location = new System.Drawing.Point(12, 9);
+            // On n’ancre pas forcément ce label en bas ni à droite,
+            // mais on peut le laisser en haut à gauche.
+
+            //
+            // listViewInterfaces
+            //
+            this.listViewInterfaces.Location = new System.Drawing.Point(12, 30);
+            this.listViewInterfaces.Size = new System.Drawing.Size(460, 220);
+            this.listViewInterfaces.Anchor = AnchorStyles.Top
+                                           | AnchorStyles.Bottom
+                                           | AnchorStyles.Left
+                                           | AnchorStyles.Right;
+            this.listViewInterfaces.FullRowSelect = true;
+            this.listViewInterfaces.View = View.Details;
+            this.listViewInterfaces.HideSelection = false;
+
+            // Ajouter des colonnes pour un affichage en mode Details
+            this.listViewInterfaces.Columns.Add("Interface", 250);
+            // Ajuster la taille au contenu (si besoin)
+            this.listViewInterfaces.Columns.Add("Adresse IP", 180);
+
+            //
+            // btnOk
+            //
+            this.btnOk.Text = "Valider";
+            this.btnOk.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            this.btnOk.Size = new System.Drawing.Size(75, 23);
+            this.btnOk.Location = new System.Drawing.Point(316, 260);
+            this.btnOk.Click += new System.EventHandler(this.btnOK_Click);
+
+            //
+            // btnCancel
+            //
+            this.btnCancel.Text = "Annuler";
+            this.btnCancel.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            this.btnCancel.Size = new System.Drawing.Size(75, 23);
+            this.btnCancel.Location = new System.Drawing.Point(397, 260);
+            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+
+            //
+            // Ajout des contrôles sur le formulaire
+            //
+            this.Controls.Add(this.lblInstruction);
+            this.Controls.Add(this.listViewInterfaces);
+            this.Controls.Add(this.btnOk);
+            this.Controls.Add(this.btnCancel);
         }
 
         #endregion
