@@ -10,16 +10,22 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
 
-using Utils; 
+using Utils;
 
 namespace Client
 {
     public partial class Client : Form
     {
-        private readonly object imageLock = new object();
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
-        private System.Windows.Forms.Timer imageTimer;
+
+        // Ajout du Timer et d’un flag indiquant l’état de connexion
+        private Timer reconnectTimer;
+        private bool isConnected = false;
+
+        // On stocke le TcpClient comme champ de classe pour pouvoir le manipuler à tout moment
+        private TcpClient tcpClient;
+
         private ConcurrentDictionary<Guid, RobotObject> localObjects = new ConcurrentDictionary<Guid, RobotObject>();
 
         public Client()
@@ -31,7 +37,25 @@ namespace Client
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+
+            // On propose déjà de choisir le serveur (ouvre la boîte de dialogue)
             serveurToolStripMenuItem_Click(this, EventArgs.Empty);
+
+            // Configuration du Timer qui check la connexion toutes les 5 secondes
+            reconnectTimer = new Timer();
+            reconnectTimer.Interval = 5000; // 5 secondes
+            reconnectTimer.Tick += ReconnectTimer_Tick;
+            reconnectTimer.Start();
+        }
+
+
+        private void ReconnectTimer_Tick(object sender, EventArgs e)
+        {
+            if (!isConnected)
+            {
+                // On lance InitClientTCP sur un thread séparé pour ne pas bloquer l’UI
+                Task.Run(() => InitClientTCP());
+            }
         }
 
         private uint FromBigEndianBytes(byte[] bytes)
@@ -47,22 +71,43 @@ namespace Client
         {
             if (m_ipAdrDistante == null)
             {
-                // Au lieu de this.tbCom.Invoke(...), on fait :
                 tbCom.LogError("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.");
                 return;
             }
 
-            TcpClient tcpClient = null;
+            // Fermer éventuellement l’ancien client
+            if (tcpClient != null)
+            {
+                try
+                {
+                    tcpClient.Close();
+                }
+                catch
+                {
+                    // Ignorer les erreurs éventuelles
+
+                }
+            }
+
             try
             {
                 tcpClient = new TcpClient();
-                tbCom.LogInfo("Connexion en cours...");
+                tbCom.LogInfo("Tentative de connexion...");
 
                 tcpClient.Connect(m_ipAdrDistante, m_numPort);
-                tbCom.LogInfo("Connexion établie");
+                tbCom.LogInfo("Connexion établie.");
+
+                // On est connecté
+                isConnected = true;
+                this.Invoke((MethodInvoker)(() =>
+                {
+                    statusIndicator.BackColor = Color.Green;
+                    toolStripStatusLabel.Text = "État : Connecté";
+                }));
 
                 NetworkStream networkStream = tcpClient.GetStream();
 
+                // Envoi de la requête pour obtenir des images
                 string request = "GET_IMAGE\n";
                 byte[] requestBytes = Encoding.ASCII.GetBytes(request);
                 networkStream.Write(requestBytes, 0, requestBytes.Length);
@@ -71,6 +116,7 @@ namespace Client
 
                 const uint maxExpectedSize = 10_000_000;
 
+                // Boucle de réception
                 while (tcpClient.Connected)
                 {
                     byte[] sizeBytes = new byte[4];
@@ -115,20 +161,25 @@ namespace Client
                         Image receivedImage = Image.FromStream(ms);
                         DisplayImage(receivedImage);
                     }
-
-                    this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
                 }
             }
             catch (Exception ex)
             {
                 tbCom.LogError("Erreur : " + ex.Message);
-                this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Red));
+
+                isConnected = false;
+                this.Invoke((MethodInvoker)(() =>
+                {
+                    statusIndicator.BackColor = Color.Red;
+                    toolStripStatusLabel.Text = "État : Déconnecté";
+                }));
             }
             finally
             {
                 if (tcpClient != null)
                 {
                     tcpClient.Close();
+                    tcpClient = null;
                     tbCom.LogInfo("Connexion fermée.");
                 }
             }
@@ -178,7 +229,6 @@ namespace Client
                 int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 int bytesPerPixel = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
-
                 int packedStride = width * bytesPerPixel;
                 byte[] imageData = new byte[height * packedStride];
 
@@ -205,7 +255,8 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-                    int objectCount = 0; // A remplacer par votre code d'extraction
+                    // Exemple: on imagine un count d’objets détectés
+                    int objectCount = 0;
 
                     for (int i = 0; i < objectCount; i++)
                     {
@@ -270,6 +321,16 @@ namespace Client
             this.Close();
         }
 
+        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string color = "Rouge";
+            string shape = "Triangle";
+            int x = 300;
+            int y = 200;
+
+            AddRobotObject(color, shape, x, y);
+        }
+
         private void AddRobotObject(string color, string shape, int x, int y)
         {
             var robotObject = new RobotObject(color, shape, x, y);
@@ -324,16 +385,6 @@ namespace Client
             {
                 tbCom.LogError($"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
             }
-        }
-
-        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            string color = "Rouge";
-            string shape = "Triangle";
-            int x = 300;
-            int y = 200;
-
-            AddRobotObject(color, shape, x, y);
         }
     }
 }
