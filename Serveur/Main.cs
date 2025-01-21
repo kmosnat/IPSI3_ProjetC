@@ -690,10 +690,9 @@ namespace Serveur
 
         private void quitterToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            // Fermez proprement si nécessaire
-            //CloseCamera();
-            //StopTCPServer();
-            //Close();
+            CloseCamera();
+            StopTCPServer();
+            Close();
         }
 
 
