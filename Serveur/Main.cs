@@ -16,7 +16,7 @@ using System.Net.NetworkInformation;
 using System.IO.Ports;
 using System.Collections.Concurrent;
 
-using Log;
+using Utils;
 
 namespace Serveur
 {
@@ -391,6 +391,7 @@ namespace Serveur
                     catch (Exception ex)
                     {
                         //AppendLog(LogSource.Client, LogLevel.ERROR, ex.Message);
+                        Console.WriteLine(ex.Message);
                     }
                 }
                 else
@@ -640,7 +641,7 @@ namespace Serveur
 
         private void AppendLog(LogSource source, LogLevel level, string message)
         {
-            Log.Log logEntry = new Log.Log(source, level, message);
+            Utils.Log logEntry = new Utils.Log(source, level, message);
             string content = logEntry.ToString().Replace("\n", Environment.NewLine);
 
             string finalMessage = "--------------------------" + Environment.NewLine

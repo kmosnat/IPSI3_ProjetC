@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
 
-using Log;
-using Newtonsoft.Json;
+using Utils;
 
 namespace Client
 {
@@ -159,6 +158,7 @@ namespace Client
             catch (Exception ex)
             {
                 //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'affichage de l'image : " + ex.Message + "\r\n")));
+                Console.WriteLine("Erreur lors de l'affichage de l'image : " + ex.Message);
             }
             finally
             {
@@ -168,7 +168,7 @@ namespace Client
 
         private void AppendLog(LogSource source, LogLevel level, string message)
         {
-            Log.Log logEntry = new Log.Log(source, level, message);
+            Utils.Log logEntry = new Utils.Log(source, level, message);
             string content = logEntry.ToString().Replace("\n", Environment.NewLine);
 
             string finalMessage = "--------------------------" + Environment.NewLine
@@ -336,7 +336,7 @@ namespace Client
             if (localObjects.TryAdd(robotObject.Id, robotObject))
             {
                 // Sérialiser l'objet en JSON
-                string robotObjectJson = JsonConvert.SerializeObject(robotObject);
+                string robotObjectJson = robotObject.ToString();
                 AppendLog(LogSource.Client, LogLevel.INFO, $"Serialized RobotObject: {robotObjectJson}");
 
                 // Formater la commande ADD_OBJECT avec le JSON
