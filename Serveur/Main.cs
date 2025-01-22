@@ -58,7 +58,6 @@ namespace Serveur
 
         // == Nouveaux contrôles UI ==   
         private BindingList<RobotObject> robotObjectsList = new BindingList<RobotObject>();
-        private TableLayoutPanel mainTableLayout;
 
 
         public Main()
