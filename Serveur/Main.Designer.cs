@@ -233,7 +233,7 @@ namespace Serveur
             // lblNomCamera
             // 
             this.lblNomCamera.AutoSize = true;
-            this.lblNomCamera.Location = new System.Drawing.Point(27, 88);
+            this.lblNomCamera.Location = new System.Drawing.Point(27, 91);
             this.lblNomCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblNomCamera.Name = "lblNomCamera";
             this.lblNomCamera.Size = new System.Drawing.Size(193, 25);
@@ -243,7 +243,7 @@ namespace Serveur
             // lblAdrIP
             // 
             this.lblAdrIP.AutoSize = true;
-            this.lblAdrIP.Location = new System.Drawing.Point(27, 56);
+            this.lblAdrIP.Location = new System.Drawing.Point(28, 61);
             this.lblAdrIP.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblAdrIP.Name = "lblAdrIP";
             this.lblAdrIP.Size = new System.Drawing.Size(200, 25);
@@ -254,7 +254,7 @@ namespace Serveur
             // 
             this.lblConnectionCamera.AutoSize = true;
             this.lblConnectionCamera.BackColor = System.Drawing.Color.Red;
-            this.lblConnectionCamera.Location = new System.Drawing.Point(27, 25);
+            this.lblConnectionCamera.Location = new System.Drawing.Point(29, 30);
             this.lblConnectionCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblConnectionCamera.Name = "lblConnectionCamera";
             this.lblConnectionCamera.Size = new System.Drawing.Size(127, 25);
