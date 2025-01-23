@@ -224,6 +224,10 @@ void ClibIHM::runProcessCap()
 	this->ecrireChamp(1, seuilHaut);
 
 	this->writeBinaryImage(imgSeuil);
+
+	//Traitement de l'image
+
+
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 

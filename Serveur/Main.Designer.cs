@@ -75,6 +75,8 @@ namespace Serveur
             this.robotToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ethernetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hotspotToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.jointsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.positionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.imageTestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitApp = new System.Windows.Forms.ToolStripMenuItem();
             this.gbCamera = new System.Windows.Forms.GroupBox();
@@ -116,6 +118,7 @@ namespace Serveur
             // 
             // navBar
             // 
+            this.navBar.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
             this.navBar.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.navBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.serveurTCPToolStripMenuItem,
@@ -124,8 +127,8 @@ namespace Serveur
             this.exitApp});
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
-            this.navBar.Padding = new System.Windows.Forms.Padding(4, 1, 0, 1);
-            this.navBar.Size = new System.Drawing.Size(962, 24);
+            this.navBar.Padding = new System.Windows.Forms.Padding(8, 2, 0, 2);
+            this.navBar.Size = new System.Drawing.Size(1924, 40);
             this.navBar.TabIndex = 0;
             // 
             // serveurTCPToolStripMenuItem
@@ -134,20 +137,20 @@ namespace Serveur
             this.startTCP,
             this.stopTCP});
             this.serveurTCPToolStripMenuItem.Name = "serveurTCPToolStripMenuItem";
-            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(81, 22);
+            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(162, 36);
             this.serveurTCPToolStripMenuItem.Text = "Serveur TCP";
             // 
             // startTCP
             // 
             this.startTCP.Name = "startTCP";
-            this.startTCP.Size = new System.Drawing.Size(177, 22);
+            this.startTCP.Size = new System.Drawing.Size(361, 44);
             this.startTCP.Text = "Démarrer le Serveur";
             this.startTCP.Click += new System.EventHandler(this.démarrerLeServeurToolStripMenuItem_Click);
             // 
             // stopTCP
             // 
             this.stopTCP.Name = "stopTCP";
-            this.stopTCP.Size = new System.Drawing.Size(177, 22);
+            this.stopTCP.Size = new System.Drawing.Size(361, 44);
             this.stopTCP.Text = "Arrêter le Serveur";
             this.stopTCP.Click += new System.EventHandler(this.arrêterLeServeurToolStripMenuItem_Click);
             // 
@@ -158,13 +161,13 @@ namespace Serveur
             this.afficherLAdresseIPToolStripMenuItem,
             this.robotToolStripMenuItem});
             this.réseauToolStripMenuItem.Name = "réseauToolStripMenuItem";
-            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(56, 22);
+            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 36);
             this.réseauToolStripMenuItem.Text = "Réseau";
             // 
             // NetworkInterfaceSelection
             // 
             this.NetworkInterfaceSelection.Name = "NetworkInterfaceSelection";
-            this.NetworkInterfaceSelection.Size = new System.Drawing.Size(233, 22);
+            this.NetworkInterfaceSelection.Size = new System.Drawing.Size(473, 44);
             this.NetworkInterfaceSelection.Text = "Sélectionner une Carte Réseau";
             this.NetworkInterfaceSelection.Click += new System.EventHandler(this.sélectionnerUneCarteRéseauToolStripMenuItem_Click);
             // 
@@ -172,43 +175,59 @@ namespace Serveur
             // 
             this.afficherLAdresseIPToolStripMenuItem.Enabled = false;
             this.afficherLAdresseIPToolStripMenuItem.Name = "afficherLAdresseIPToolStripMenuItem";
-            this.afficherLAdresseIPToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.afficherLAdresseIPToolStripMenuItem.Size = new System.Drawing.Size(473, 44);
             this.afficherLAdresseIPToolStripMenuItem.Text = "Adresse IP :";
             // 
             // robotToolStripMenuItem
             // 
             this.robotToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.ethernetToolStripMenuItem,
-            this.hotspotToolStripMenuItem});
+            this.hotspotToolStripMenuItem,
+            this.jointsToolStripMenuItem,
+            this.positionToolStripMenuItem});
             this.robotToolStripMenuItem.Name = "robotToolStripMenuItem";
-            this.robotToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.robotToolStripMenuItem.Size = new System.Drawing.Size(473, 44);
             this.robotToolStripMenuItem.Text = "Robot";
             // 
             // ethernetToolStripMenuItem
             // 
             this.ethernetToolStripMenuItem.Name = "ethernetToolStripMenuItem";
-            this.ethernetToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
+            this.ethernetToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
             this.ethernetToolStripMenuItem.Text = "Ethernet";
             this.ethernetToolStripMenuItem.Click += new System.EventHandler(this.ethernetToolStripMenuItem_Click);
             // 
             // hotspotToolStripMenuItem
             // 
             this.hotspotToolStripMenuItem.Name = "hotspotToolStripMenuItem";
-            this.hotspotToolStripMenuItem.Size = new System.Drawing.Size(118, 22);
+            this.hotspotToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
             this.hotspotToolStripMenuItem.Text = "Hotspot";
             this.hotspotToolStripMenuItem.Click += new System.EventHandler(this.hotspotToolStripMenuItem_Click);
+            // 
+            // jointsToolStripMenuItem
+            // 
+            this.jointsToolStripMenuItem.Name = "jointsToolStripMenuItem";
+            this.jointsToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
+            this.jointsToolStripMenuItem.Text = "Joints";
+            this.jointsToolStripMenuItem.Click += new System.EventHandler(this.jointsToolStripMenuItem_Click);
+            // 
+            // positionToolStripMenuItem
+            // 
+            this.positionToolStripMenuItem.Name = "positionToolStripMenuItem";
+            this.positionToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
+            this.positionToolStripMenuItem.Text = "Position";
+            this.positionToolStripMenuItem.Click += new System.EventHandler(this.positionToolStripMenuItem_Click);
             // 
             // imageTestToolStripMenuItem
             // 
             this.imageTestToolStripMenuItem.Name = "imageTestToolStripMenuItem";
-            this.imageTestToolStripMenuItem.Size = new System.Drawing.Size(52, 22);
+            this.imageTestToolStripMenuItem.Size = new System.Drawing.Size(100, 36);
             this.imageTestToolStripMenuItem.Text = "Image";
             this.imageTestToolStripMenuItem.Click += new System.EventHandler(this.imageTestToolStripMenuItem_Click);
             // 
             // exitApp
             // 
             this.exitApp.Name = "exitApp";
-            this.exitApp.Size = new System.Drawing.Size(56, 22);
+            this.exitApp.Size = new System.Drawing.Size(109, 36);
             this.exitApp.Text = "Quitter";
             this.exitApp.Click += new System.EventHandler(this.quitterToolStripMenuItem_Click);
             // 
@@ -219,10 +238,10 @@ namespace Serveur
             this.gbCamera.Controls.Add(this.lblConnectionCamera);
             this.gbCamera.Dock = System.Windows.Forms.DockStyle.Top;
             this.gbCamera.Location = new System.Drawing.Point(0, 0);
-            this.gbCamera.Margin = new System.Windows.Forms.Padding(2);
+            this.gbCamera.Margin = new System.Windows.Forms.Padding(4);
             this.gbCamera.Name = "gbCamera";
-            this.gbCamera.Padding = new System.Windows.Forms.Padding(2);
-            this.gbCamera.Size = new System.Drawing.Size(320, 65);
+            this.gbCamera.Padding = new System.Windows.Forms.Padding(4);
+            this.gbCamera.Size = new System.Drawing.Size(640, 125);
             this.gbCamera.TabIndex = 1;
             this.gbCamera.TabStop = false;
             this.gbCamera.Text = "Caméra";
@@ -230,20 +249,20 @@ namespace Serveur
             // lblNomCamera
             // 
             this.lblNomCamera.AutoSize = true;
-            this.lblNomCamera.Location = new System.Drawing.Point(14, 47);
-            this.lblNomCamera.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.lblNomCamera.Location = new System.Drawing.Point(28, 90);
+            this.lblNomCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblNomCamera.Name = "lblNomCamera";
-            this.lblNomCamera.Size = new System.Drawing.Size(96, 13);
+            this.lblNomCamera.Size = new System.Drawing.Size(193, 25);
             this.lblNomCamera.TabIndex = 0;
             this.lblNomCamera.Text = "Caméra : inconnue";
             // 
             // lblAdrIP
             // 
             this.lblAdrIP.AutoSize = true;
-            this.lblAdrIP.Location = new System.Drawing.Point(14, 32);
-            this.lblAdrIP.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.lblAdrIP.Location = new System.Drawing.Point(28, 62);
+            this.lblAdrIP.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblAdrIP.Name = "lblAdrIP";
-            this.lblAdrIP.Size = new System.Drawing.Size(100, 13);
+            this.lblAdrIP.Size = new System.Drawing.Size(200, 25);
             this.lblAdrIP.TabIndex = 1;
             this.lblAdrIP.Text = "Adresse IP : 0.0.0.0";
             // 
@@ -251,10 +270,10 @@ namespace Serveur
             // 
             this.lblConnectionCamera.AutoSize = true;
             this.lblConnectionCamera.BackColor = System.Drawing.Color.Red;
-            this.lblConnectionCamera.Location = new System.Drawing.Point(14, 16);
-            this.lblConnectionCamera.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.lblConnectionCamera.Location = new System.Drawing.Point(28, 31);
+            this.lblConnectionCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblConnectionCamera.Name = "lblConnectionCamera";
-            this.lblConnectionCamera.Size = new System.Drawing.Size(66, 13);
+            this.lblConnectionCamera.Size = new System.Drawing.Size(127, 25);
             this.lblConnectionCamera.TabIndex = 2;
             this.lblConnectionCamera.Text = "Déconnecté";
             // 
@@ -262,10 +281,10 @@ namespace Serveur
             // 
             this.btnSearchCamera.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnSearchCamera.Image = global::Serveur.Properties.Resources.search;
-            this.btnSearchCamera.Location = new System.Drawing.Point(6, 5);
-            this.btnSearchCamera.Margin = new System.Windows.Forms.Padding(2);
+            this.btnSearchCamera.Location = new System.Drawing.Point(12, 10);
+            this.btnSearchCamera.Margin = new System.Windows.Forms.Padding(4);
             this.btnSearchCamera.Name = "btnSearchCamera";
-            this.btnSearchCamera.Size = new System.Drawing.Size(32, 31);
+            this.btnSearchCamera.Size = new System.Drawing.Size(64, 60);
             this.btnSearchCamera.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.btnSearchCamera.TabIndex = 0;
             this.btnSearchCamera.TabStop = false;
@@ -275,10 +294,10 @@ namespace Serveur
             // 
             this.btnStartAcquisition.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnStartAcquisition.Image = global::Serveur.Properties.Resources.play;
-            this.btnStartAcquisition.Location = new System.Drawing.Point(42, 5);
-            this.btnStartAcquisition.Margin = new System.Windows.Forms.Padding(2);
+            this.btnStartAcquisition.Location = new System.Drawing.Point(84, 10);
+            this.btnStartAcquisition.Margin = new System.Windows.Forms.Padding(4);
             this.btnStartAcquisition.Name = "btnStartAcquisition";
-            this.btnStartAcquisition.Size = new System.Drawing.Size(32, 31);
+            this.btnStartAcquisition.Size = new System.Drawing.Size(64, 60);
             this.btnStartAcquisition.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.btnStartAcquisition.TabIndex = 1;
             this.btnStartAcquisition.TabStop = false;
@@ -288,10 +307,10 @@ namespace Serveur
             // 
             this.btnStopAcquisition.Cursor = System.Windows.Forms.Cursors.Hand;
             this.btnStopAcquisition.Image = global::Serveur.Properties.Resources.stop;
-            this.btnStopAcquisition.Location = new System.Drawing.Point(78, 5);
-            this.btnStopAcquisition.Margin = new System.Windows.Forms.Padding(2);
+            this.btnStopAcquisition.Location = new System.Drawing.Point(156, 10);
+            this.btnStopAcquisition.Margin = new System.Windows.Forms.Padding(4);
             this.btnStopAcquisition.Name = "btnStopAcquisition";
-            this.btnStopAcquisition.Size = new System.Drawing.Size(32, 31);
+            this.btnStopAcquisition.Size = new System.Drawing.Size(64, 60);
             this.btnStopAcquisition.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.btnStopAcquisition.TabIndex = 2;
             this.btnStopAcquisition.TabStop = false;
@@ -304,11 +323,11 @@ namespace Serveur
             this.flowButtons.Controls.Add(this.btnStartAcquisition);
             this.flowButtons.Controls.Add(this.btnStopAcquisition);
             this.flowButtons.Dock = System.Windows.Forms.DockStyle.Top;
-            this.flowButtons.Location = new System.Drawing.Point(0, 65);
-            this.flowButtons.Margin = new System.Windows.Forms.Padding(2);
+            this.flowButtons.Location = new System.Drawing.Point(0, 125);
+            this.flowButtons.Margin = new System.Windows.Forms.Padding(4);
             this.flowButtons.Name = "flowButtons";
-            this.flowButtons.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.flowButtons.Size = new System.Drawing.Size(320, 41);
+            this.flowButtons.Padding = new System.Windows.Forms.Padding(8, 6, 8, 6);
+            this.flowButtons.Size = new System.Drawing.Size(640, 80);
             this.flowButtons.TabIndex = 2;
             // 
             // lblRobotState
@@ -318,11 +337,11 @@ namespace Serveur
             this.lblRobotState.Dock = System.Windows.Forms.DockStyle.Top;
             this.lblRobotState.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblRobotState.ForeColor = System.Drawing.Color.Black;
-            this.lblRobotState.Location = new System.Drawing.Point(0, 106);
-            this.lblRobotState.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.lblRobotState.Location = new System.Drawing.Point(0, 205);
+            this.lblRobotState.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblRobotState.Name = "lblRobotState";
-            this.lblRobotState.Padding = new System.Windows.Forms.Padding(6, 5, 6, 5);
-            this.lblRobotState.Size = new System.Drawing.Size(151, 29);
+            this.lblRobotState.Padding = new System.Windows.Forms.Padding(12, 10, 12, 10);
+            this.lblRobotState.Size = new System.Drawing.Size(295, 57);
             this.lblRobotState.TabIndex = 1;
             this.lblRobotState.Text = "État Robot: Inconnu";
             // 
@@ -331,18 +350,18 @@ namespace Serveur
             this.dgvObjects.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dgvObjects.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvObjects.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dgvObjects.Location = new System.Drawing.Point(0, 135);
-            this.dgvObjects.Margin = new System.Windows.Forms.Padding(2);
+            this.dgvObjects.Location = new System.Drawing.Point(0, 262);
+            this.dgvObjects.Margin = new System.Windows.Forms.Padding(4);
             this.dgvObjects.Name = "dgvObjects";
             this.dgvObjects.RowHeadersWidth = 82;
-            this.dgvObjects.Size = new System.Drawing.Size(320, 393);
+            this.dgvObjects.Size = new System.Drawing.Size(640, 760);
             this.dgvObjects.TabIndex = 0;
             // 
             // rightSplit
             // 
             this.rightSplit.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rightSplit.Location = new System.Drawing.Point(0, 0);
-            this.rightSplit.Margin = new System.Windows.Forms.Padding(2);
+            this.rightSplit.Margin = new System.Windows.Forms.Padding(4);
             this.rightSplit.Name = "rightSplit";
             this.rightSplit.Orientation = System.Windows.Forms.Orientation.Horizontal;
             // 
@@ -353,9 +372,9 @@ namespace Serveur
             // rightSplit.Panel2
             // 
             this.rightSplit.Panel2.Controls.Add(this.tabControlBottom);
-            this.rightSplit.Size = new System.Drawing.Size(640, 528);
-            this.rightSplit.SplitterDistance = 264;
-            this.rightSplit.SplitterWidth = 3;
+            this.rightSplit.Size = new System.Drawing.Size(1280, 1022);
+            this.rightSplit.SplitterDistance = 511;
+            this.rightSplit.SplitterWidth = 6;
             this.rightSplit.TabIndex = 0;
             // 
             // pbImage
@@ -363,9 +382,9 @@ namespace Serveur
             this.pbImage.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pbImage.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pbImage.Location = new System.Drawing.Point(0, 0);
-            this.pbImage.Margin = new System.Windows.Forms.Padding(2);
+            this.pbImage.Margin = new System.Windows.Forms.Padding(4);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(640, 264);
+            this.pbImage.Size = new System.Drawing.Size(1280, 511);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 0;
             this.pbImage.TabStop = false;
@@ -375,20 +394,20 @@ namespace Serveur
             this.tabControlBottom.Controls.Add(this.tabLogs);
             this.tabControlBottom.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControlBottom.Location = new System.Drawing.Point(0, 0);
-            this.tabControlBottom.Margin = new System.Windows.Forms.Padding(2);
+            this.tabControlBottom.Margin = new System.Windows.Forms.Padding(4);
             this.tabControlBottom.Name = "tabControlBottom";
             this.tabControlBottom.SelectedIndex = 0;
-            this.tabControlBottom.Size = new System.Drawing.Size(640, 261);
+            this.tabControlBottom.Size = new System.Drawing.Size(1280, 505);
             this.tabControlBottom.TabIndex = 0;
             // 
             // tabLogs
             // 
             this.tabLogs.Controls.Add(this.tbCom);
-            this.tabLogs.Location = new System.Drawing.Point(4, 22);
-            this.tabLogs.Margin = new System.Windows.Forms.Padding(2);
+            this.tabLogs.Location = new System.Drawing.Point(8, 39);
+            this.tabLogs.Margin = new System.Windows.Forms.Padding(4);
             this.tabLogs.Name = "tabLogs";
-            this.tabLogs.Padding = new System.Windows.Forms.Padding(6, 5, 6, 5);
-            this.tabLogs.Size = new System.Drawing.Size(632, 235);
+            this.tabLogs.Padding = new System.Windows.Forms.Padding(12, 10, 12, 10);
+            this.tabLogs.Size = new System.Drawing.Size(1264, 458);
             this.tabLogs.TabIndex = 0;
             this.tabLogs.Text = "Logs";
             // 
@@ -396,12 +415,12 @@ namespace Serveur
             // 
             this.tbCom.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tbCom.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tbCom.Location = new System.Drawing.Point(6, 5);
-            this.tbCom.Margin = new System.Windows.Forms.Padding(2);
+            this.tbCom.Location = new System.Drawing.Point(12, 10);
+            this.tbCom.Margin = new System.Windows.Forms.Padding(4);
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(620, 225);
+            this.tbCom.Size = new System.Drawing.Size(1240, 438);
             this.tbCom.TabIndex = 0;
             // 
             // timAcq
@@ -412,8 +431,8 @@ namespace Serveur
             // mainSplit
             // 
             this.mainSplit.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mainSplit.Location = new System.Drawing.Point(0, 24);
-            this.mainSplit.Margin = new System.Windows.Forms.Padding(2);
+            this.mainSplit.Location = new System.Drawing.Point(0, 40);
+            this.mainSplit.Margin = new System.Windows.Forms.Padding(4);
             this.mainSplit.Name = "mainSplit";
             // 
             // mainSplit.Panel1
@@ -426,20 +445,19 @@ namespace Serveur
             // mainSplit.Panel2
             // 
             this.mainSplit.Panel2.Controls.Add(this.rightSplit);
-            this.mainSplit.Size = new System.Drawing.Size(962, 528);
-            this.mainSplit.SplitterDistance = 320;
-            this.mainSplit.SplitterWidth = 2;
+            this.mainSplit.Size = new System.Drawing.Size(1924, 1022);
+            this.mainSplit.SplitterDistance = 640;
             this.mainSplit.TabIndex = 0;
             // 
             // Main
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(962, 552);
+            this.ClientSize = new System.Drawing.Size(1924, 1062);
             this.Controls.Add(this.mainSplit);
             this.Controls.Add(this.navBar);
             this.MainMenuStrip = this.navBar;
-            this.Margin = new System.Windows.Forms.Padding(2);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Main";
             this.Text = "Couleur - Serveur";
             this.Load += new System.EventHandler(this.Main_Load);
@@ -471,5 +489,8 @@ namespace Serveur
         }
 
         #endregion
+
+        private ToolStripMenuItem jointsToolStripMenuItem;
+        private ToolStripMenuItem positionToolStripMenuItem;
     }
 }

@@ -37,7 +37,6 @@ namespace Serveur
         private RobotObject currentRobotObject = null;
 
         // Indique si un mouvement est en cours
-        private bool isMoving = false;
         private Task moveTask;
 
         // ---- Adresses & robot ----
@@ -111,14 +110,12 @@ namespace Serveur
                 case RobotState.OnProcess:
                     tbCom.LogInfo("Envoi des informations au robot...", LogSource.Serveur);
 
-                    isMoving = true;
                     moveTask = Task.Run(() =>
                     {
                         float x = currentRobotObject.X / 1000f;
                         float y = currentRobotObject.Y / 1000f;
 
-                        moveRobot(x, y);
-                        isMoving = false;
+                        moveRobot(x, y, 0.1f);
                     });
 
                     // Passage immédiat en "Moving"
@@ -127,7 +124,7 @@ namespace Serveur
 
                 case RobotState.RobotOnMoving:
                     // On attend que la tâche de mouvement se termine.
-                    if (!isMoving)
+                    if (!robot.isMoving())
                     {
                         tbCom.LogInfo("Mouvement du robot terminé.", LogSource.Serveur);
 
@@ -168,23 +165,19 @@ namespace Serveur
             });
         }
 
-        private void moveRobot(float x, float y)
+        private void moveRobot(float x, float y, float z)
         {
             try
             {
                 robot.Connect();
 
-                float[] joints = robot.GetCurrentJointStates();
-                tbCom.LogInfo("[ROBOT] Lecture des Joints :", LogSource.Serveur);
-                for (int i = 0; i < joints.Length; i++)
-                {
-                    tbCom.LogInfo($"Joint {i + 1} = {joints[i]:F4} rad", LogSource.Serveur);
-                }
+                tbCom.LogInfo($"Besoin d'une calibration ? {robot.calibrationNeeded()}");
 
-                RobotPose currentPose = robot.GetCurrentPose();
-                tbCom.LogInfo($"Pose courante => {currentPose}", LogSource.Serveur);
+                robot.calibrate();
 
-                robot.MoveToPose(x, y, 0.1f);
+                tbCom.LogInfo($"Besoin d'une calibration ? {robot.calibrationNeeded()}");
+
+                robot.MoveToPose(x, y, z);
                 tbCom.LogInfo($"Déplacement du robot vers X={x}, Y={y}, Z=0.1 en cours...", LogSource.Serveur);
             }
             catch (Exception ex)
@@ -287,7 +280,6 @@ namespace Serveur
                 }
                 else
                 {
-                    // Génère une simple image de test si la caméra n’est pas connectée
                     return GenerateTestImage();
                 }
             }
@@ -771,5 +763,53 @@ namespace Serveur
                 action();
         }
 
+        private void jointsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                robot.Connect();
+
+                float[] joints = robot.GetCurrentJointStates();
+                tbCom.LogInfo("[ROBOT] Lecture des Joints :", LogSource.Serveur);
+                for (int i = 0; i < joints.Length; i++)
+                {
+                    tbCom.LogInfo($"Joint {i + 1} = {joints[i]:F4} rad", LogSource.Serveur);
+                }
+
+                tbCom.LogInfo($"{robot.isMoving()}", LogSource.Serveur);
+
+            }
+            catch (Exception ex)
+            {
+                tbCom.LogError("Erreur Modbus: " + ex.Message, LogSource.Serveur);
+            }
+            finally
+            {
+                robot.Disconnect();
+            }
+        }
+
+        private void positionToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                robot.Connect();
+
+                RobotPose currentPose = robot.GetCurrentPose();
+                tbCom.LogInfo($"Pose courante => {currentPose}", LogSource.Serveur);
+
+                moveRobot(0.264f, -0.168f, 0.395f);
+
+            }
+            catch (Exception ex)
+            {
+                tbCom.LogError("Erreur Modbus: " + ex.Message, LogSource.Serveur);
+            }
+            finally
+            {
+                robot.Disconnect();
+            }
+
+        }
     }
 }
