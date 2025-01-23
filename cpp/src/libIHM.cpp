@@ -212,20 +212,49 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
-void ClibIHM::runProcessCap()
-{
-	//Seuillage
-	int seuilBas = 0;
-	int seuilHaut = 255;
+//void ClibIHM::runProcessCap()
+//{
+//	//Seuillage
+//	int seuilBas = 0;
+//	int seuilHaut = 255;
+//
+//	CImageNdg imgSeuil = this->imgNdgPt->seuillage("otsu", seuilBas, seuilHaut);
+//
+//	this->ecrireChamp(0, seuilBas);
+//	this->ecrireChamp(1, seuilHaut);
+//
+//	this->writeBinaryImage(imgSeuil);
+//	this->persitData(this->imgNdgPt, COULEUR::RVB);
+//}
+// projet vision
+ // Reconnaissance de couleur
+void ClibIHM::runProcessCap() {
+	int colorResult = 0;   // Couleur détectée : 0 = aucune, 1 = rouge, etc.
+	int shapeResult = 0;   // Forme détectée : 0 = aucune, 1 = cercle, etc.
+	int posX = -1, posY = -1;
 
-	CImageNdg imgSeuil = this->imgNdgPt->seuillage("otsu", seuilBas, seuilHaut);
+	// Simuler une détection de couleur
+	CImageNdg mask(NbLig, NbCol, 0);
+	for (int y = 0; y < imgNdgPt->lireHauteur(); y++) {
+		for (int x = 0; x < imgNdgPt->lireLargeur(); x++) {
+			int val = imgNdgPt->operator()(y, x);
+			if (val > 100) { // Exemple de seuil pour une couleur détectée
+				mask(y, x) = 255;
+				colorResult = 1; // Rouge détecté
+			}
+		}
+	}
 
-	this->ecrireChamp(0, seuilBas);
-	this->ecrireChamp(1, seuilHaut);
+	// Détection de forme
+	CImageClasse formes(mask, "V8");
 
-	this->writeBinaryImage(imgSeuil);
-	this->persitData(this->imgNdgPt, COULEUR::RVB);
+
+	// Afficher les résultats
+	std::cout << "Couleur : " << colorResult
+		<< ", Forme : " << shapeResult
+		<< ", Position : (" << posX << ", " << posY << ")" << std::endl;
 }
+
 
 // Compare l'image traitee et la ground truth pour afficher les ressemblances et differences
 void ClibIHM::compare(ClibIHM* pImgGt)

@@ -120,6 +120,74 @@ namespace Client
 
                     this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
                 }
+
+
+                //ajout traitement d'image
+                while (tcpClient.Connected)
+                {
+                    // Lire les résultats de traitement d'image
+                    byte[] resultBuffer = new byte[100]; // Taille arbitraire pour les résultats
+                    int resultBytesRead = networkStream.Read(resultBuffer, 0, resultBuffer.Length);
+                    string resultData = Encoding.UTF8.GetString(resultBuffer, 0, resultBytesRead).Trim();
+                    string[] results = resultData.Split(';');
+                    string couleur = results[0];
+                    string forme = results[1];
+                    int posX = int.Parse(results[2]);
+                    int posY = int.Parse(results[3]);
+
+                    // Afficher les résultats
+                    this.tbCom.Invoke((MethodInvoker)(() =>
+                    {
+                        this.tbCom.AppendText("===== Résultats reçus du traitement =====\r\n");
+                        this.tbCom.AppendText($"Couleur détectée : {couleur}\r\n");
+                        this.tbCom.AppendText($"Forme détectée   : {forme}\r\n");
+                        this.tbCom.AppendText($"Position X       : {posX}\r\n");
+                        this.tbCom.AppendText($"Position Y       : {posY}\r\n");
+                        this.tbCom.AppendText("=======================================\r\n");
+                    }));
+
+                    // Lire la taille de l'image
+                    byte[] sizeBytes = new byte[4];
+                    int totalRead = 0;
+                    while (totalRead < 4)
+                    {
+                        int bytesRead = networkStream.Read(sizeBytes, totalRead, 4 - totalRead);
+                        if (bytesRead == 0)
+                        {
+                            throw new Exception("Connexion fermée avant de recevoir la taille de l'image.");
+                        }
+                        totalRead += bytesRead;
+                    }
+
+                    uint imageSize = FromBigEndianBytes(sizeBytes);
+                    if (imageSize > maxExpectedSize)
+                    {
+                        throw new Exception($"Taille d'image invalide reçue : {imageSize}");
+                    }
+
+                    // Lire les octets de l'image
+                    byte[] imageBytes = new byte[imageSize];
+                    totalRead = 0;
+                    while (totalRead < imageSize)
+                    {
+                        int bytesRead = networkStream.Read(imageBytes, totalRead, (int)(imageSize - totalRead));
+                        if (bytesRead == 0)
+                        {
+                            throw new Exception("Connexion fermée avant de recevoir toute l'image.");
+                        }
+                        totalRead += bytesRead;
+                    }
+
+                    using (MemoryStream ms = new MemoryStream(imageBytes))
+                    {
+                        Image receivedImage = Image.FromStream(ms);
+                        DisplayImage(receivedImage);
+                    }
+
+                    this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
+                }
+            }
+
             }
             catch (Exception ex)
             {
@@ -135,6 +203,8 @@ namespace Client
                     this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion fermée.\r\n")));
                 }
             }
+           
+
         }
 
         private void DisplayImage(Image receivedImage)
@@ -427,5 +497,7 @@ namespace Client
         {
             return JsonConvert.DeserializeObject<RobotObject>(data);
         }
+
+        // ajout traitement d'image
     }
 }

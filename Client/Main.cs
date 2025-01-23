@@ -72,6 +72,9 @@ namespace Client
             if (m_ipAdrDistante == null)
             {
                 tbCom.LogError("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.");
+
+                
+
                 return;
             }
 
@@ -255,48 +258,34 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-                    // Exemple: on imagine un count d’objets détectés
-                    int objectCount = 0;
 
-                    for (int i = 0; i < objectCount; i++)
-                    {
-                        try
-                        {
-                            // On imagine extraire : color, shape, posX, posY
-                            //AddRobotObject(color, shape, posX, posY);
-                        }
-                        catch (Exception ex)
-                        {
-                            tbCom.LogError($"Erreur lors de l'extraction d'un objet : {ex.Message}");
-                        }
-                    }
+                  // ajout  traitement
+
+                    int couleur = (int)ClImage.valeurChamp(clImage.ClPtr, 0);   // Couleur détectée
+                    int forme = (int)ClImage.valeurChamp(clImage.ClPtr, 1);     // Forme détectée
+                    int posX = (int)ClImage.valeurChamp(clImage.ClPtr, 2);      // Position X
+                    int posY = (int)ClImage.valeurChamp(clImage.ClPtr, 3);      // Position Y
+
+                    // Affichage des résultats dans une zone locale (par exemple, `tbCom` dans le client)
+                    tbCom.LogInfo("===== Résultats reçus du traitement =====.");
+                    tbCom.LogInfo("Couleur détectée : {couleur}.");
+                    tbCom.LogInfo("Forme détectée   : {forme}.");
+                    tbCom.LogInfo("Position X       : {posX}.");
+                    tbCom.LogInfo("Position Y       : {posY}.");
+
                 }
-
-                unsafe
-                {
-                    byte* destPtr = (byte*)scan0.ToPointer();
-
-                    for (int y = 0; y < height; y++)
-                    {
-                        Marshal.Copy(imageData, y * packedStride, new IntPtr(destPtr + y * stride), packedStride);
-                    }
-                }
-
-                bitmap.UnlockBits(bitmapData);
-                bitmapData = null;
 
                 return bitmap;
             }
-            catch
+            finally
             {
-                if (bitmapData != null)
-                {
-                    bitmap.UnlockBits(bitmapData);
-                }
-                bitmap.Dispose();
-                throw;
+                bitmap.UnlockBits(bitmapData);
             }
+
+
+
         }
+
 
         private void serveurToolStripMenuItem_Click(object sender, EventArgs e)
         {
