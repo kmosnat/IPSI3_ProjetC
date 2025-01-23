@@ -9,23 +9,16 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
-
-using Utils;
+using Newtonsoft.Json; // Assurez-vous d'ajouter cette directive
 
 namespace Client
 {
     public partial class Client : Form
     {
+        private readonly object imageLock = new object();
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
-
-        // Ajout du Timer et d’un flag indiquant l’état de connexion
-        private Timer reconnectTimer;
-        private bool isConnected = false;
-
-        // On stocke le TcpClient comme champ de classe pour pouvoir le manipuler à tout moment
-        private TcpClient tcpClient;
-
+        private System.Windows.Forms.Timer imageTimer;
         private ConcurrentDictionary<Guid, RobotObject> localObjects = new ConcurrentDictionary<Guid, RobotObject>();
 
         public Client()
@@ -37,25 +30,7 @@ namespace Client
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-
-            // On propose déjà de choisir le serveur (ouvre la boîte de dialogue)
             serveurToolStripMenuItem_Click(this, EventArgs.Empty);
-
-            // Configuration du Timer qui check la connexion toutes les 5 secondes
-            reconnectTimer = new Timer();
-            reconnectTimer.Interval = 5000; // 5 secondes
-            reconnectTimer.Tick += ReconnectTimer_Tick;
-            reconnectTimer.Start();
-        }
-
-
-        private void ReconnectTimer_Tick(object sender, EventArgs e)
-        {
-            if (!isConnected)
-            {
-                // On lance InitClientTCP sur un thread séparé pour ne pas bloquer l’UI
-                Task.Run(() => InitClientTCP());
-            }
         }
 
         private uint FromBigEndianBytes(byte[] bytes)
@@ -71,52 +46,29 @@ namespace Client
         {
             if (m_ipAdrDistante == null)
             {
-                tbCom.LogError("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.");
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.\r\n")));
                 return;
             }
 
-            // Fermer éventuellement l’ancien client
-            if (tcpClient != null)
-            {
-                try
-                {
-                    tcpClient.Close();
-                }
-                catch
-                {
-                    // Ignorer les erreurs éventuelles
-
-                }
-            }
-
+            TcpClient tcpClient = null;
             try
             {
                 tcpClient = new TcpClient();
-                tbCom.LogInfo("Tentative de connexion...");
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion en cours...\r\n")));
 
                 tcpClient.Connect(m_ipAdrDistante, m_numPort);
-                tbCom.LogInfo("Connexion établie.");
-
-                // On est connecté
-                isConnected = true;
-                this.Invoke((MethodInvoker)(() =>
-                {
-                    statusIndicator.BackColor = Color.Green;
-                    toolStripStatusLabel.Text = "État : Connecté";
-                }));
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion établie\r\n")));
 
                 NetworkStream networkStream = tcpClient.GetStream();
 
-                // Envoi de la requête pour obtenir des images
                 string request = "GET_IMAGE\n";
                 byte[] requestBytes = Encoding.ASCII.GetBytes(request);
                 networkStream.Write(requestBytes, 0, requestBytes.Length);
                 networkStream.Flush();
-                tbCom.LogInfo("Requête d'image envoyée : " + request);
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Requête d'image envoyée : " + request + "\r\n")));
 
                 const uint maxExpectedSize = 10_000_000;
 
-                // Boucle de réception
                 while (tcpClient.Connected)
                 {
                     byte[] sizeBytes = new byte[4];
@@ -132,10 +84,11 @@ namespace Client
                     }
 
                     uint imageSize = FromBigEndianBytes(sizeBytes);
+                    //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Taille de l'image à recevoir : " + imageSize + " octets.\r\n")));
 
                     if (imageSize == 0)
                     {
-                        // Erreur signalée par le serveur, on skip
+                        //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Le serveur a signalé une erreur lors de la capture de l'image.\r\n")));
                         continue;
                     }
 
@@ -156,31 +109,30 @@ namespace Client
                         totalRead += bytesRead;
                     }
 
+                    //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image reçue en " + totalRead + " octets.\r\n")));
+
                     using (MemoryStream ms = new MemoryStream(imageBytes))
                     {
                         Image receivedImage = Image.FromStream(ms);
+
                         DisplayImage(receivedImage);
                     }
+
+                    this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
                 }
             }
             catch (Exception ex)
             {
-                tbCom.LogError("Erreur : " + ex.Message);
+                this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur : " + ex.Message + "\r\n")));
 
-                isConnected = false;
-                this.Invoke((MethodInvoker)(() =>
-                {
-                    statusIndicator.BackColor = Color.Red;
-                    toolStripStatusLabel.Text = "État : Déconnecté";
-                }));
+                this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Red));
             }
             finally
             {
                 if (tcpClient != null)
                 {
                     tcpClient.Close();
-                    tcpClient = null;
-                    tbCom.LogInfo("Connexion fermée.");
+                    this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Connexion fermée.\r\n")));
                 }
             }
         }
@@ -199,10 +151,12 @@ namespace Client
                     }
                     this.pbImage.Image = processedImage;
                 }));
+
+                //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Image affichée.\r\n")));
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Erreur lors de l'affichage de l'image : " + ex.Message);
+                //this.tbCom.Invoke((MethodInvoker)(() => this.tbCom.AppendText("Erreur lors de l'affichage de l'image : " + ex.Message + "\r\n")));
             }
             finally
             {
@@ -229,6 +183,7 @@ namespace Client
                 int height = bitmapData.Height;
                 int stride = bitmapData.Stride;
                 int bytesPerPixel = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
+
                 int packedStride = width * bytesPerPixel;
                 byte[] imageData = new byte[height * packedStride];
 
@@ -255,19 +210,39 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-                    // Exemple: on imagine un count d’objets détectés
-                    int objectCount = 0;
+                    // Supposons que clImage.ObjetLibValeurChamp(int index) retourne une string
+                    // Exemple d'extraction des objets détectés
+                    // Vous devez adapter ceci en fonction de votre implémentation réelle
 
+                    // Exemple fictif d'extraction des objets
+                    // Remplacez ceci par votre logique réelle pour obtenir les objets
+                    int objectCount = 0; // Remplacez par la méthode correcte pour obtenir le nombre d'objets
+
+                    try
+                    {
+                        // Supposons que le champ 4 contient le nombre d'objets détectés
+                        //objectCount = int.Parse(clImage.ObjetLibValeurChamp(4));
+                    }
+                    catch
+                    {
+                        objectCount = 0;
+                    }
+                    
                     for (int i = 0; i < objectCount; i++)
                     {
                         try
                         {
-                            // On imagine extraire : color, shape, posX, posY
+                            //string color = clImage.ObjetLibValeurChamp(i * 4 + 0); // Couleur
+                            //string shape = clImage.ObjetLibValeurChamp(i * 4 + 1); // Forme
+                            //int posX = int.Parse(clImage.ObjetLibValeurChamp(i * 4 + 2)); // Position X
+                            //int posY = int.Parse(clImage.ObjetLibValeurChamp(i * 4 + 3)); // Position Y
+
+                            // Ajouter l'objet au serveur
                             //AddRobotObject(color, shape, posX, posY);
                         }
                         catch (Exception ex)
                         {
-                            tbCom.LogError($"Erreur lors de l'extraction d'un objet : {ex.Message}");
+                            AppendLog($"Erreur lors de l'extraction d'un objet : {ex.Message}");
                         }
                     }
                 }
@@ -305,13 +280,13 @@ namespace Client
                 if (dialog.ShowDialog() == DialogResult.OK)
                 {
                     m_ipAdrDistante = dialog.SelectedIPAddress;
-                    tbCom.LogInfo("Adresse IP du serveur mise à jour : " + m_ipAdrDistante);
+                    this.tbCom.AppendText("Adresse IP du serveur mise à jour : " + m_ipAdrDistante.ToString() + "\r\n");
 
                     Task.Run(() => InitClientTCP());
                 }
                 else
                 {
-                    tbCom.LogWarning("Aucune adresse IP n'a été entrée. L'application ne peut pas continuer.");
+                    this.tbCom.AppendText("Aucune adresse IP n'a été entrée. L'application ne peut pas continuer.\r\n");
                 }
             }
         }
@@ -321,35 +296,39 @@ namespace Client
             this.Close();
         }
 
-        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
+        private void AppendLog(string message)
         {
-            string color = "Rouge";
-            string shape = "Triangle";
-            int x = 300;
-            int y = 200;
-
-            AddRobotObject(color, shape, x, y);
+            if (this.tbCom.InvokeRequired)
+            {
+                this.tbCom.Invoke(new Action(() => this.tbCom.AppendText(message + "\r\n")));
+            }
+            else
+            {
+                this.tbCom.AppendText(message + "\r\n");
+            }
         }
 
-        private void AddRobotObject(string color, string shape, int x, int y)
+        private void AddRobotObject(string color, string shape, int x, int y) // Changement de posX, posY à x, y
         {
-            var robotObject = new RobotObject(color, shape, x, y);
+            // Créer un nouvel objet avec un ID unique
+            var robotObject = new RobotObject(color, shape, x, y); // Passer x et y
 
+            // Vérifier si l'objet existe déjà
             if (localObjects.ContainsKey(robotObject.Id))
             {
-                tbCom.LogInfo($"Objet avec l'ID {robotObject.Id} existe déjà. Ignoré.");
+                AppendLog($"Objet avec l'ID {robotObject.Id} existe déjà. Ignoré.");
                 return;
             }
 
+            // Ajouter l'objet à la collection locale
             if (localObjects.TryAdd(robotObject.Id, robotObject))
             {
+                // Sérialiser l'objet en JSON
                 string robotObjectJson = robotObject.ToString();
-                tbCom.LogInfo($"Serialized RobotObject: {robotObjectJson}");
 
+                // Formater la commande ADD_OBJECT avec le JSON
                 string addObjectCommand = $"ADD_OBJECT, {robotObjectJson}\n";
-                tbCom.LogInfo($"Commande ADD_OBJECT envoyée : {addObjectCommand.Trim()}");
-
-                byte[] commandBytes = Encoding.UTF8.GetBytes(addObjectCommand);
+                byte[] commandBytes = Encoding.ASCII.GetBytes(addObjectCommand);
 
                 try
                 {
@@ -360,31 +339,93 @@ namespace Client
                         networkStream.Write(commandBytes, 0, commandBytes.Length);
                         networkStream.Flush();
 
+                        AppendLog($"Commande ADD_OBJECT envoyée : {addObjectCommand.Trim()}");
+
+                        // Lire la réponse du serveur
                         byte[] buffer = new byte[1024];
                         int bytesRead = networkStream.Read(buffer, 0, buffer.Length);
-                        string response = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                        string response = Encoding.ASCII.GetString(buffer, 0, bytesRead).Trim();
 
-                        tbCom.LogInfo($"Réponse du serveur : {response}");
+                        AppendLog($"Réponse du serveur : {response}");
 
                         if (response.Equals("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
                         {
-                            tbCom.LogInfo($"Objet {robotObject.Id} ajouté avec succès.");
+                            AppendLog($"Objet {robotObject.Id} ajouté avec succès.");
                         }
                         else
                         {
-                            tbCom.LogError($"Erreur lors de l'ajout de l'objet {robotObject.Id} : {response}");
+                            AppendLog($"Erreur lors de l'ajout de l'objet {robotObject.Id} : {response}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    tbCom.LogError($"Erreur lors de l'envoi de l'objet : {ex.Message}");
+                    AppendLog($"Erreur lors de l'envoi de l'objet : {ex.Message}");
                 }
             }
             else
             {
-                tbCom.LogError($"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
+                AppendLog($"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
             }
+        }
+
+        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string color = "Rouge";
+            string shape = "Triangle";
+            int x = 200; // Changer posX à x
+            int y = 30;  // Changer posY à y
+
+            AddRobotObject(color, shape, x, y);
+        }
+    }
+
+    public class RobotObject
+    {
+        [JsonProperty("Id")]
+        public Guid Id { get; private set; }
+
+        [JsonProperty("Color")]
+        public string Color { get; set; }
+
+        [JsonProperty("Shape")]
+        public string Shape { get; set; }
+
+        [JsonProperty("X")]
+        public int X { get; set; } // Changement de PosX à X
+
+        [JsonProperty("Y")]
+        public int Y { get; set; } // Changement de PosY à Y
+
+        // Constructeur pour création d'un nouvel objet avec un ID unique
+        public RobotObject(string color, string shape, int x, int y)
+        {
+            Id = Guid.NewGuid();
+            Color = color;
+            Shape = shape;
+            X = x;
+            Y = y;
+        }
+
+        // Constructeur pour parsing d'un objet reçu avec un ID
+        [JsonConstructor]
+        public RobotObject(Guid id, string color, string shape, int x, int y)
+        {
+            Id = id;
+            Color = color;
+            Shape = shape;
+            X = x;
+            Y = y;
+        }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this);
+        }
+
+        public static RobotObject FromString(string data)
+        {
+            return JsonConvert.DeserializeObject<RobotObject>(data);
         }
     }
 }

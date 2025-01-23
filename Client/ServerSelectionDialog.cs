@@ -31,7 +31,6 @@ namespace Client
 
         private bool IsValidIPAddress(string ipAddress)
         {
-            // Expression régulière pour valider une adresse IPv4
             string pattern = @"^(([0-9]|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9]{2}|[0-1][0-9]{2}|2[0-4][0-9]|25[0-5])$";
             return Regex.IsMatch(ipAddress, pattern);
         }
