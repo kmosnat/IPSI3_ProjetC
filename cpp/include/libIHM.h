@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <thread>
 #include <vector>
+#include <map>
 
 // Enumération des couleurs
 enum class COULEUR
@@ -16,6 +17,21 @@ enum class COULEUR
 	rouge,
 	vert,
 	bleu
+};
+
+struct Bouchon {
+	int label;
+	std::vector<std::pair<int, int>> pixels;
+	double centroidX;
+	double centroidY;
+	std::string forme;
+	std::string couleur;
+};
+
+// Déclaration de la structure Label
+struct Label {
+	int parent;
+	int rank;
 };
 
 
@@ -89,6 +105,34 @@ public:
 	_declspec(dllexport) void score(ClibIHM* pImgGt);
 
 	_declspec(dllexport) void persitData(CImageNdg* pImg, COULEUR couleur);
+
+private:
+
+
+	// Méthodes d'étiquetage
+	void connectedComponentLabeling(CImageNdg& binaryImg, std::vector<std::vector<int>>& labels);
+
+	// Méthodes d'extraction
+	std::vector<Bouchon> extractBouchons(const std::vector<std::vector<int>>& labels);
+
+	// Méthodes d'analyse des formes
+	bool isCircle(const Bouchon& bouchon);
+	std::string determineShape(const Bouchon& bouchon);
+	bool isHeart(const Bouchon& bouchon);
+	std::string determineShapeAdvanced(const Bouchon& bouchon);
+
+	// Méthodes d'analyse des couleurs
+	std::string determineColor(const Bouchon& bouchon);
+	void analyzeColors(std::vector<Bouchon>& bouchons);
+
+	// Méthodes utilitaires
+	int findRoot(int label, std::map<int, Label>& labels) {
+		while (labels[label].parent != label) {
+			labels[label].parent = labels[labels[label].parent].parent; // Path compression
+			label = labels[label].parent;
+		}
+		return label;
+	}
 };
 
 
