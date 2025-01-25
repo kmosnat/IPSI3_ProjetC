@@ -15,6 +15,7 @@ ClibIHM::ClibIHM() {
 
 	this->nbDataImg = 0;
 	this->dataFromImg.clear();
+	this->dataObject.clear();
 	this->imgPt = NULL;
 }
 
@@ -218,15 +219,31 @@ void ClibIHM::runProcessCap()
 	int seuilBas = 0;
 	int seuilHaut = 255;
 
-	CImageNdg imgSeuil = this->imgNdgPt->seuillage("otsu", seuilBas, seuilHaut);
+	//Nombre d'objet
+	int numObject;
 
-	this->ecrireChamp(0, seuilBas);
-	this->ecrireChamp(1, seuilHaut);
+	// Detection du nombre d'objets
 
-	this->writeBinaryImage(imgSeuil);
+	CImageNdg img = this->imgNdgPt->filtrage("median", 3);
 
-	//Traitement de l'image
+	//this->writeBinaryImage(img);
 
+	// Detection de la forme
+
+	// Detection de la position
+
+	numObject = 4;
+
+	this->dataObject.resize(numObject);
+
+	//
+	// Test
+	this->ecrireChamp(0, numObject);
+
+	//this->ecrireObject(0, "Rouge, Triangle, 200, 300");
+	//this->ecrireObject(1, "Bleu, Rond, 200, 150");
+	//this->ecrireObject(2, "Noir, Carre, 140, 100");
+	//this->ecrireObject(3, "Rose, Coeur, 100, 200");
 
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
@@ -279,7 +296,7 @@ void ClibIHM::score(ClibIHM* pImgGt)
 
 		double score = img.indicateurPerformance(GT, "iou");
 
-		this->dataFromImg.at(0) = floor(score * 10000) / 100;
+		this->ecrireChamp(0, floor(score * 10000) / 100);
 	});
 
 	std::thread th2([&] {
@@ -288,7 +305,7 @@ void ClibIHM::score(ClibIHM* pImgGt)
 
 		double score = imgClasse.vinet(img, GT);
 
-		this->dataFromImg.at(1) = floor(score * 10000) / 100;
+		this->ecrireChamp(1, floor(score * 10000) / 100);
 	
 	});
 	
@@ -342,5 +359,6 @@ ClibIHM::~ClibIHM() {
 	if (imgPt)
 		(*this->imgPt).~CImageCouleur(); 
 	this->dataFromImg.clear();
+	this->dataObject.clear();
 }
 

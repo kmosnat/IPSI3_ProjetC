@@ -27,7 +27,8 @@ private:
 
 	// data n�cessaires � l'IHM donc fonction de l'application cibl�e
 	int						nbDataImg; 
-	std::vector<double>		dataFromImg; 
+	std::vector<double>		dataFromImg;
+	std::vector<char*>		dataObject;
 	CImageCouleur* imgPt;        
 	CImageNdg* imgNdgPt;     
 	byte* data;       
@@ -57,12 +58,20 @@ public:
 		return dataFromImg.at(i);
 	}
 
+	_declspec(dllexport) char* lireObject(int i) const {
+		return dataObject.at(i);
+	}
+
 	_declspec(dllexport) CImageCouleur* imgData() const {
 		return imgPt;
 	}
 
 	_declspec(dllexport) void ecrireChamp(int i, double val) {
 		dataFromImg.at(i) = val;
+	}
+
+	_declspec(dllexport) void ecrireObject(int i, char* val) {
+		dataObject.at(i) = val;
 	}
 
 	_declspec(dllexport) void copyImage(CImageNdg img);
@@ -134,6 +143,14 @@ extern "C" _declspec(dllexport) double valeurChamp(ClibIHM* pImg, int i)
 		return 0.0;
 
 	return pImg->lireChamp(i);
+}
+
+extern "C" _declspec(dllexport) char* valeurObject(ClibIHM* pImg, int i)
+{
+	if (pImg == nullptr)
+		return "";
+
+	return pImg->lireObject(i);
 }
 
 //vider la mémoire 

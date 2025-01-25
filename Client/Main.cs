@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using System.Collections.Concurrent;
 
 using Utils;
+using System.Threading;
 
 namespace Client
 {
@@ -19,8 +20,11 @@ namespace Client
         private readonly object imageLock = new object();
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
-        private System.Windows.Forms.Timer imageTimer;
         private ConcurrentDictionary<Guid, RobotObject> localObjects = new ConcurrentDictionary<Guid, RobotObject>();
+
+        private readonly TimeSpan reconnectInterval = TimeSpan.FromSeconds(5);
+        private readonly int maxReconnectAttempts = 0; // 0 pour illimité
+        private CancellationTokenSource reconnectCancellationTokenSource;
 
         public Client()
         {
@@ -43,7 +47,7 @@ namespace Client
             return BitConverter.ToUInt32(bytes, 0);
         }
 
-        private void InitClientTCP()
+        private async Task InitClientTCPAsync(CancellationToken cancellationToken)
         {
             if (m_ipAdrDistante == null)
             {
@@ -51,85 +55,119 @@ namespace Client
                 return;
             }
 
-            TcpClient tcpClient = null;
-            try
+            int attempt = 0;
+
+            while (!cancellationToken.IsCancellationRequested)
             {
-                tcpClient = new TcpClient();
-                tbCom.LogInfo("Connexion en cours...");
-
-                tcpClient.Connect(m_ipAdrDistante, m_numPort);
-                tbCom.LogInfo("Connexion établie");
-
-                NetworkStream networkStream = tcpClient.GetStream();
-
-                string request = "GET_IMAGE\n";
-                byte[] requestBytes = Encoding.ASCII.GetBytes(request);
-                networkStream.Write(requestBytes, 0, requestBytes.Length);
-                networkStream.Flush();
-                tbCom.LogInfo("Requête d'image envoyée : " + request);
-
-                const uint maxExpectedSize = 10_000_000;
-
-                while (tcpClient.Connected)
+                TcpClient tcpClient = new TcpClient();
+                try
                 {
-                    byte[] sizeBytes = new byte[4];
-                    int totalRead = 0;
-                    while (totalRead < 4)
+                    tbCom.LogInfo("Tentative de connexion au serveur...");
+                    var connectTask = tcpClient.ConnectAsync(m_ipAdrDistante, m_numPort);
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken); // Timeout de 10 secondes
+
+                    var completedTask = await Task.WhenAny(connectTask, timeoutTask);
+                    if (completedTask == timeoutTask)
                     {
-                        int bytesRead = networkStream.Read(sizeBytes, totalRead, 4 - totalRead);
-                        if (bytesRead == 0)
+                        throw new TimeoutException("Délai de connexion dépassé.");
+                    }
+
+                    await connectTask; // Assurez-vous que la connexion a réussi
+                    tbCom.LogInfo("Connexion établie");
+                    UpdateStatus(true);
+
+                    NetworkStream networkStream = tcpClient.GetStream();
+
+                    string request = "GET_IMAGE\n";
+                    byte[] requestBytes = Encoding.ASCII.GetBytes(request);
+                    await networkStream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken);
+                    await networkStream.FlushAsync(cancellationToken);
+                    tbCom.LogInfo("Requête d'image envoyée : " + request);
+
+                    const uint maxExpectedSize = 10_000_000;
+
+                    while (tcpClient.Connected && !cancellationToken.IsCancellationRequested)
+                    {
+                        // Lecture de la taille de l'image
+                        byte[] sizeBytes = new byte[4];
+                        int totalRead = 0;
+                        while (totalRead < 4)
                         {
-                            throw new Exception("Connexion fermée avant de recevoir la taille de l'image.");
+                            int bytesRead = await networkStream.ReadAsync(sizeBytes, totalRead, 4 - totalRead, cancellationToken);
+                            if (bytesRead == 0)
+                            {
+                                throw new Exception("Connexion fermée avant de recevoir la taille de l'image.");
+                            }
+                            totalRead += bytesRead;
                         }
-                        totalRead += bytesRead;
-                    }
 
-                    uint imageSize = FromBigEndianBytes(sizeBytes);
+                        uint imageSize = FromBigEndianBytes(sizeBytes);
 
-                    if (imageSize == 0)
-                    {
-                        // Erreur signalée par le serveur, on skip
-                        continue;
-                    }
-
-                    if (imageSize > maxExpectedSize)
-                    {
-                        throw new Exception($"Taille d'image invalide reçue : {imageSize}");
-                    }
-
-                    byte[] imageBytes = new byte[imageSize];
-                    totalRead = 0;
-                    while (totalRead < imageSize)
-                    {
-                        int bytesRead = networkStream.Read(imageBytes, totalRead, (int)(imageSize - totalRead));
-                        if (bytesRead == 0)
+                        if (imageSize == 0)
                         {
-                            throw new Exception("Connexion fermée avant de recevoir toute l'image.");
+                            continue;
                         }
-                        totalRead += bytesRead;
+
+                        if (imageSize > maxExpectedSize)
+                        {
+                            throw new Exception($"Taille d'image invalide reçue : {imageSize}");
+                        }
+
+                        byte[] imageBytes = new byte[imageSize];
+                        totalRead = 0;
+                        while (totalRead < imageSize)
+                        {
+                            int bytesRead = await networkStream.ReadAsync(imageBytes, totalRead, (int)(imageSize - totalRead), cancellationToken);
+                            if (bytesRead == 0)
+                            {
+                                throw new Exception("Connexion fermée avant de recevoir toute l'image.");
+                            }
+                            totalRead += bytesRead;
+                        }
+
+                        using (MemoryStream ms = new MemoryStream(imageBytes))
+                        {
+                            Image receivedImage = Image.FromStream(ms);
+                            DisplayImage(receivedImage);
+                        }
+
+                        UpdateStatus(true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tbCom.LogError("Erreur : " + ex.Message);
+                    UpdateStatus(false);
+
+                    attempt++;
+                    if (maxReconnectAttempts > 0 && attempt >= maxReconnectAttempts)
+                    {
+                        tbCom.LogError("Nombre maximal de tentatives de reconnexion atteint.");
+                        break;
                     }
 
-                    using (MemoryStream ms = new MemoryStream(imageBytes))
+                    tbCom.LogInfo($"Nouvelle tentative de connexion dans {reconnectInterval.TotalSeconds} secondes...");
+                    await Task.Delay(reconnectInterval, cancellationToken);
+                }
+                finally
+                {
+                    if (tcpClient != null)
                     {
-                        Image receivedImage = Image.FromStream(ms);
-                        DisplayImage(receivedImage);
+                        tcpClient.Close();
+                        tbCom.LogInfo("Connexion fermée.");
                     }
-                    this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Green));
                 }
             }
-            catch (Exception ex)
+        }
+
+        private void UpdateStatus(bool isConnected)
+        {
+            this.Invoke((MethodInvoker)(() =>
             {
-                tbCom.LogError("Erreur : " + ex.Message);
-                this.statusIndicator.Invoke((MethodInvoker)(() => this.statusIndicator.BackColor = Color.Red));
-            }
-            finally
-            {
-                if (tcpClient != null)
-                {
-                    tcpClient.Close();
-                    tbCom.LogInfo("Connexion fermée.");
-                }
-            }
+                toolStripStatus.Text = isConnected ? "État : Connecté" : "État : Déconnecté";
+                toolStripStatus.ForeColor = isConnected ? Color.Green : Color.Red;
+
+            }));
         }
 
         private void DisplayImage(Image receivedImage)
@@ -202,12 +240,16 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-                    int objectCount = 0; // A remplacer par votre code d'extraction
+                    int objectCount = (int)clImage.ObjetLibValeurChamp(0);
+                    tbCom.LogInfo($"Nombre d'objet: {objectCount}");
 
                     for (int i = 0; i < objectCount; i++)
                     {
                         try
                         {
+                            tbCom.LogInfo(clImage.ObjetLibObjectChamp(i));
+
+
                             // On imagine extraire : color, shape, posX, posY
                             //AddRobotObject(color, shape, posX, posY);
                         }
@@ -253,7 +295,12 @@ namespace Client
                     m_ipAdrDistante = dialog.SelectedIPAddress;
                     tbCom.LogInfo("Adresse IP du serveur mise à jour : " + m_ipAdrDistante);
 
-                    Task.Run(() => InitClientTCP());
+                    reconnectCancellationTokenSource?.Cancel();
+
+                    reconnectCancellationTokenSource = new CancellationTokenSource();
+                    var token = reconnectCancellationTokenSource.Token;
+
+                    Task.Run(() => InitClientTCPAsync(token), token);
                 }
                 else
                 {
@@ -261,9 +308,15 @@ namespace Client
                 }
             }
         }
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            reconnectCancellationTokenSource?.Cancel();
+            base.OnFormClosing(e);
+        }
 
         private void quitterToolStripMenuItem1_Click(object sender, EventArgs e)
         {
+            reconnectCancellationTokenSource?.Cancel();
             this.Close();
         }
 
