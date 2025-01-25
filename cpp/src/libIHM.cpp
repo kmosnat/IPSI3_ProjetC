@@ -215,38 +215,23 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 
 void ClibIHM::runProcessCap()
 {
-	//Seuillage
-	int seuilBas = 0;
-	int seuilHaut = 255;
-
-	//Nombre d'objet
 	int numObject;
-
-	// Detection du nombre d'objets
-
-	CImageNdg img = this->imgNdgPt->filtrage("median", 3);
-
-	//this->writeBinaryImage(img);
-
-	// Detection de la forme
-
-	// Detection de la position
-
+	// Seuillage et autres traitements...
 	numObject = 4;
-
 	this->dataObject.resize(numObject);
 
-	//
 	// Test
 	this->ecrireChamp(0, numObject);
 
-	//this->ecrireObject(0, "Rouge, Triangle, 200, 300");
-	//this->ecrireObject(1, "Bleu, Rond, 200, 150");
-	//this->ecrireObject(2, "Noir, Carre, 140, 100");
-	//this->ecrireObject(3, "Rose, Coeur, 100, 200");
+	// Allocation dynamique des chaînes
+	this->ecrireObject(0, _strdup("Rouge, Triangle, 200, 300"));
+	this->ecrireObject(1, _strdup("Bleu, Rond, 200, 150"));
+	this->ecrireObject(2, _strdup("Noir, Carre, 140, 100"));
+	this->ecrireObject(3, _strdup("Rose, Coeur, 100, 200"));
 
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
+
 
 // Compare l'image traitee et la ground truth pour afficher les ressemblances et differences
 void ClibIHM::compare(ClibIHM* pImgGt)
@@ -360,5 +345,6 @@ ClibIHM::~ClibIHM() {
 		(*this->imgPt).~CImageCouleur(); 
 	this->dataFromImg.clear();
 	this->dataObject.clear();
+
 }
 

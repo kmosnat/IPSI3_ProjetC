@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using Newtonsoft.Json;
 
 namespace Utils
@@ -25,6 +26,7 @@ namespace Utils
         OnProcess,
         RobotOnMoving
     }
+
     public class RobotObject
     {
         [JsonProperty("Id")]
@@ -41,6 +43,18 @@ namespace Utils
 
         [JsonProperty("Y")]
         public int Y { get; set; }
+
+        // Propriété pour générer une clé unique basée sur les propriétés de l'objet
+        [JsonIgnore]
+        public string Key => GenerateKey();
+
+        // Méthode pour générer la clé unique
+        private string GenerateKey()
+        {
+            int roundedX = (X / 10) * 10;
+            int roundedY = (Y / 10) * 10;
+            return $"{Color.ToLower()}_{Shape.ToLower()}_{roundedX}_{roundedY}";
+        }
 
         // Constructeur pour création d'un nouvel objet avec un ID unique
         public RobotObject(string color, string shape, int x, int y)

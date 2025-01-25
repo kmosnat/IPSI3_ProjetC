@@ -20,7 +20,7 @@ namespace Client
         private readonly object imageLock = new object();
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
-        private ConcurrentDictionary<Guid, RobotObject> localObjects = new ConcurrentDictionary<Guid, RobotObject>();
+        private ConcurrentDictionary<string, RobotObject> localObjects = new ConcurrentDictionary<string, RobotObject>();
 
         private readonly TimeSpan reconnectInterval = TimeSpan.FromSeconds(5);
         private readonly int maxReconnectAttempts = 0; // 0 pour illimité
@@ -72,7 +72,7 @@ namespace Client
                         throw new TimeoutException("Délai de connexion dépassé.");
                     }
 
-                    await connectTask; // Assurez-vous que la connexion a réussi
+                    await connectTask;
                     tbCom.LogInfo("Connexion établie");
                     UpdateStatus(true);
 
@@ -241,17 +241,34 @@ namespace Client
                     clImage.ProcessCapPtr();
 
                     int objectCount = (int)clImage.ObjetLibValeurChamp(0);
-                    tbCom.LogInfo($"Nombre d'objet: {objectCount}");
 
                     for (int i = 0; i < objectCount; i++)
                     {
                         try
                         {
-                            tbCom.LogInfo(clImage.ObjetLibObjectChamp(i));
+                            string objectInfo = clImage.ObjetLibObjectChamp(i);
 
+                            var parts = objectInfo.Split(',');
+                            if (parts.Length != 4)
+                            {
+                                tbCom.LogError($"Format d'objet invalide : {objectInfo}");
+                                continue;
+                            }
 
-                            // On imagine extraire : color, shape, posX, posY
-                            //AddRobotObject(color, shape, posX, posY);
+                            string color = parts[0].Trim();
+                            string shape = parts[1].Trim();
+                            if (!int.TryParse(parts[2].Trim(), out int x) ||
+                                !int.TryParse(parts[3].Trim(), out int y))
+                            {
+                                tbCom.LogError($"Coordonnées invalides dans l'objet : {objectInfo}");
+                                continue;
+                            }
+
+                            // Normaliser les valeurs avant d'ajouter
+                            color = color.ToLowerInvariant().Trim();
+                            shape = shape.ToLowerInvariant().Trim();
+
+                            AddRobotObject(color, shape, x, y);
                         }
                         catch (Exception ex)
                         {
@@ -308,6 +325,7 @@ namespace Client
                 }
             }
         }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             reconnectCancellationTokenSource?.Cancel();
@@ -323,15 +341,12 @@ namespace Client
         private void AddRobotObject(string color, string shape, int x, int y)
         {
             var robotObject = new RobotObject(color, shape, x, y);
+            string key = robotObject.Key;
 
-            if (localObjects.ContainsKey(robotObject.Id))
+            if (localObjects.TryAdd(key, robotObject))
             {
-                tbCom.LogInfo($"Objet avec l'ID {robotObject.Id} existe déjà. Ignoré.");
-                return;
-            }
+                tbCom.LogInfo($"Ajout de l'objet {color}, {shape}, {x}, {y} avec clé '{key}'.");
 
-            if (localObjects.TryAdd(robotObject.Id, robotObject))
-            {
                 string robotObjectJson = robotObject.ToString();
                 tbCom.LogInfo($"Serialized RobotObject: {robotObjectJson}");
 
@@ -355,26 +370,36 @@ namespace Client
 
                         tbCom.LogInfo($"Réponse du serveur : {response}");
 
-                        if (response.Equals("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
+                        if (response.StartsWith("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
                         {
-                            tbCom.LogInfo($"Objet {robotObject.Id} ajouté avec succès.");
+                            tbCom.LogInfo($"Objet '{key}' ajouté avec succès.");
+                        }
+                        else if (response.StartsWith("OBJET EXISTE DÉJÀ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            tbCom.LogInfo($"Objet '{key}' existe déjà.");
                         }
                         else
                         {
-                            tbCom.LogError($"Erreur lors de l'ajout de l'objet {robotObject.Id} : {response}");
+                            tbCom.LogError($"Erreur lors de l'ajout de l'objet '{key}' : {response}");
+                            // Si l'ajout a échoué, retirer l'objet de la collection locale
+                            localObjects.TryRemove(key, out _);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    tbCom.LogError($"Erreur lors de l'envoi de l'objet : {ex.Message}");
+                    tbCom.LogError($"Erreur lors de l'envoi de l'objet '{key}' : {ex.Message}");
+                    // Si une erreur survient, retirer l'objet de la collection locale
+                    localObjects.TryRemove(key, out _);
                 }
             }
             else
             {
-                tbCom.LogError($"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
+                //tbCom.LogInfo($"Objet {color}, {shape}, {x}, {y} avec clé '{key}' existe déjà. Ignoré.");
             }
         }
+
+
         private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string color = "Rouge";

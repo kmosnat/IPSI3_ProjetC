@@ -36,7 +36,7 @@ namespace Client
         public static extern double valeurChamp(IntPtr pImg, int i);
 
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern string valeurObject(IntPtr pImg, int i);
+        public static extern IntPtr valeurObject(IntPtr pImg, int i);
 
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void destroyClibIHM(IntPtr pImg);
@@ -91,7 +91,8 @@ namespace Client
             if (ClPtr == IntPtr.Zero)
                 throw new InvalidOperationException("L'objet ClibIHM n'est pas initialisé.");
 
-            return valeurObject(ClPtr, i);
+            IntPtr strPtr = valeurObject(ClPtr, i);
+            return Marshal.PtrToStringAnsi(strPtr);
         }
 
         // Implémentation de IDisposable

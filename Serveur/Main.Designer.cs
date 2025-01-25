@@ -118,7 +118,6 @@ namespace Serveur
             // 
             // navBar
             // 
-            this.navBar.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
             this.navBar.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.navBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.serveurTCPToolStripMenuItem,
