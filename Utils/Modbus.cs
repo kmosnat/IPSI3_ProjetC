@@ -34,14 +34,31 @@ namespace Utils
             }
         }
 
+        public bool IsConnected()
+        {
+            if (modbusClient != null && modbusClient.Connected)
+            {
+                return modbusClient.Connected;
+            }
+            return false;
+        }
+
+
         public bool calibrationNeeded()
         {
-            return modbusClient.ReadCoils(115, 1)[0];
+            if (modbusClient != null && modbusClient.Connected)
+            {
+                return modbusClient.ReadCoils(115, 1)[0];
+            }
+            return false;
         }
 
         public void calibrate()
         {
-            modbusClient.WriteSingleCoil(116, true);
+            if (modbusClient != null && modbusClient.Connected)
+            {
+                modbusClient.WriteSingleCoil(116, true);
+            }
         }
 
         public float[] GetCurrentJointStates()

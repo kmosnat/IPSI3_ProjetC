@@ -18,8 +18,6 @@ namespace Serveur
         private ToolStripMenuItem robotToolStripMenuItem;
         private ToolStripMenuItem ethernetToolStripMenuItem;
         private ToolStripMenuItem hotspotToolStripMenuItem;
-        private ToolStripMenuItem jointsToolStripMenuItem;
-        private ToolStripMenuItem positionToolStripMenuItem;
         private ToolStripMenuItem imageTestToolStripMenuItem;
         private ToolStripMenuItem exitApp;
 
@@ -105,8 +103,6 @@ namespace Serveur
             this.robotToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ethernetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hotspotToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.jointsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.positionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.imageTestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitApp = new System.Windows.Forms.ToolStripMenuItem();
             this.gbCamera = new System.Windows.Forms.GroupBox();
@@ -122,8 +118,6 @@ namespace Serveur
             this.rightSplit = new System.Windows.Forms.SplitContainer();
             this.pbImage = new System.Windows.Forms.PictureBox();
             this.tabControlBottom = new System.Windows.Forms.TabControl();
-            this.tabLogs = new System.Windows.Forms.TabPage();
-            this.tbCom = new System.Windows.Forms.TextBox();
             this.RobotPage = new System.Windows.Forms.TabPage();
             this.tableLayoutRobot = new System.Windows.Forms.TableLayoutPanel();
             this.gbJointInfo = new System.Windows.Forms.GroupBox();
@@ -147,8 +141,11 @@ namespace Serveur
             this.btnSaveRef1 = new System.Windows.Forms.Button();
             this.btnSaveRef2 = new System.Windows.Forms.Button();
             this.lbReferencePoints = new System.Windows.Forms.ListBox();
+            this.tabLogs = new System.Windows.Forms.TabPage();
+            this.tbCom = new System.Windows.Forms.TextBox();
             this.timAcq = new System.Windows.Forms.Timer(this.components);
             this.mainSplit = new System.Windows.Forms.SplitContainer();
+            this.moveRobotTest = new System.Windows.Forms.Button();
             this.navBar.SuspendLayout();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.btnSearchCamera)).BeginInit();
@@ -162,13 +159,13 @@ namespace Serveur
             this.rightSplit.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).BeginInit();
             this.tabControlBottom.SuspendLayout();
-            this.tabLogs.SuspendLayout();
             this.RobotPage.SuspendLayout();
             this.tableLayoutRobot.SuspendLayout();
             this.gbJointInfo.SuspendLayout();
             this.gbRealPosition.SuspendLayout();
             this.panelCalibration.SuspendLayout();
             this.gbReferencePoints.SuspendLayout();
+            this.tabLogs.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mainSplit)).BeginInit();
             this.mainSplit.Panel1.SuspendLayout();
             this.mainSplit.Panel2.SuspendLayout();
@@ -187,7 +184,7 @@ namespace Serveur
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
             this.navBar.Padding = new System.Windows.Forms.Padding(8, 2, 0, 2);
-            this.navBar.Size = new System.Drawing.Size(1829, 40);
+            this.navBar.Size = new System.Drawing.Size(1686, 40);
             this.navBar.TabIndex = 0;
             // 
             // serveurTCPToolStripMenuItem
@@ -241,9 +238,7 @@ namespace Serveur
             // 
             this.robotToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.ethernetToolStripMenuItem,
-            this.hotspotToolStripMenuItem,
-            this.jointsToolStripMenuItem,
-            this.positionToolStripMenuItem});
+            this.hotspotToolStripMenuItem});
             this.robotToolStripMenuItem.Name = "robotToolStripMenuItem";
             this.robotToolStripMenuItem.Size = new System.Drawing.Size(473, 44);
             this.robotToolStripMenuItem.Text = "Robot";
@@ -251,30 +246,16 @@ namespace Serveur
             // ethernetToolStripMenuItem
             // 
             this.ethernetToolStripMenuItem.Name = "ethernetToolStripMenuItem";
-            this.ethernetToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
+            this.ethernetToolStripMenuItem.Size = new System.Drawing.Size(359, 44);
             this.ethernetToolStripMenuItem.Text = "Ethernet";
             this.ethernetToolStripMenuItem.Click += new System.EventHandler(this.ethernetToolStripMenuItem_Click);
             // 
             // hotspotToolStripMenuItem
             // 
             this.hotspotToolStripMenuItem.Name = "hotspotToolStripMenuItem";
-            this.hotspotToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
+            this.hotspotToolStripMenuItem.Size = new System.Drawing.Size(359, 44);
             this.hotspotToolStripMenuItem.Text = "Hotspot";
             this.hotspotToolStripMenuItem.Click += new System.EventHandler(this.hotspotToolStripMenuItem_Click);
-            // 
-            // jointsToolStripMenuItem
-            // 
-            this.jointsToolStripMenuItem.Name = "jointsToolStripMenuItem";
-            this.jointsToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
-            this.jointsToolStripMenuItem.Text = "Joints";
-            this.jointsToolStripMenuItem.Click += new System.EventHandler(this.jointsToolStripMenuItem_Click);
-            // 
-            // positionToolStripMenuItem
-            // 
-            this.positionToolStripMenuItem.Name = "positionToolStripMenuItem";
-            this.positionToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
-            this.positionToolStripMenuItem.Text = "Position";
-            this.positionToolStripMenuItem.Click += new System.EventHandler(this.positionToolStripMenuItem_Click);
             // 
             // imageTestToolStripMenuItem
             // 
@@ -300,7 +281,7 @@ namespace Serveur
             this.gbCamera.Margin = new System.Windows.Forms.Padding(4);
             this.gbCamera.Name = "gbCamera";
             this.gbCamera.Padding = new System.Windows.Forms.Padding(4);
-            this.gbCamera.Size = new System.Drawing.Size(664, 195);
+            this.gbCamera.Size = new System.Drawing.Size(612, 195);
             this.gbCamera.TabIndex = 1;
             this.gbCamera.TabStop = false;
             this.gbCamera.Text = "Caméra";
@@ -391,7 +372,7 @@ namespace Serveur
             this.flowButtons.Margin = new System.Windows.Forms.Padding(4);
             this.flowButtons.Name = "flowButtons";
             this.flowButtons.Padding = new System.Windows.Forms.Padding(8, 6, 8, 6);
-            this.flowButtons.Size = new System.Drawing.Size(664, 80);
+            this.flowButtons.Size = new System.Drawing.Size(612, 80);
             this.flowButtons.TabIndex = 2;
             // 
             // lblRobotState
@@ -418,7 +399,7 @@ namespace Serveur
             this.dgvObjects.Margin = new System.Windows.Forms.Padding(4);
             this.dgvObjects.Name = "dgvObjects";
             this.dgvObjects.RowHeadersWidth = 82;
-            this.dgvObjects.Size = new System.Drawing.Size(664, 755);
+            this.dgvObjects.Size = new System.Drawing.Size(612, 755);
             this.dgvObjects.TabIndex = 0;
             // 
             // rightSplit
@@ -436,7 +417,7 @@ namespace Serveur
             // rightSplit.Panel2
             // 
             this.rightSplit.Panel2.Controls.Add(this.tabControlBottom);
-            this.rightSplit.Size = new System.Drawing.Size(1161, 1087);
+            this.rightSplit.Size = new System.Drawing.Size(1070, 1087);
             this.rightSplit.SplitterDistance = 519;
             this.rightSplit.SplitterWidth = 6;
             this.rightSplit.TabIndex = 0;
@@ -448,47 +429,22 @@ namespace Serveur
             this.pbImage.Location = new System.Drawing.Point(0, 0);
             this.pbImage.Margin = new System.Windows.Forms.Padding(4);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(1161, 519);
+            this.pbImage.Size = new System.Drawing.Size(1070, 519);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 0;
             this.pbImage.TabStop = false;
             // 
             // tabControlBottom
             // 
-            this.tabControlBottom.Controls.Add(this.tabLogs);
             this.tabControlBottom.Controls.Add(this.RobotPage);
+            this.tabControlBottom.Controls.Add(this.tabLogs);
             this.tabControlBottom.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tabControlBottom.Location = new System.Drawing.Point(0, 0);
             this.tabControlBottom.Margin = new System.Windows.Forms.Padding(4);
             this.tabControlBottom.Name = "tabControlBottom";
             this.tabControlBottom.SelectedIndex = 0;
-            this.tabControlBottom.Size = new System.Drawing.Size(1161, 562);
+            this.tabControlBottom.Size = new System.Drawing.Size(1070, 562);
             this.tabControlBottom.TabIndex = 0;
-            // 
-            // tabLogs
-            // 
-            this.tabLogs.Controls.Add(this.tbCom);
-            this.tabLogs.Location = new System.Drawing.Point(8, 39);
-            this.tabLogs.Margin = new System.Windows.Forms.Padding(4);
-            this.tabLogs.Name = "tabLogs";
-            this.tabLogs.Padding = new System.Windows.Forms.Padding(12, 10, 12, 10);
-            this.tabLogs.Size = new System.Drawing.Size(1145, 707);
-            this.tabLogs.TabIndex = 0;
-            this.tabLogs.Text = "Logs";
-            this.tabLogs.UseVisualStyleBackColor = true;
-            // 
-            // tbCom
-            // 
-            this.tbCom.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.tbCom.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tbCom.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.tbCom.Location = new System.Drawing.Point(12, 10);
-            this.tbCom.Margin = new System.Windows.Forms.Padding(4);
-            this.tbCom.Multiline = true;
-            this.tbCom.Name = "tbCom";
-            this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(1121, 687);
-            this.tbCom.TabIndex = 0;
             // 
             // RobotPage
             // 
@@ -496,13 +452,15 @@ namespace Serveur
             this.RobotPage.Location = new System.Drawing.Point(8, 39);
             this.RobotPage.Name = "RobotPage";
             this.RobotPage.Padding = new System.Windows.Forms.Padding(3);
-            this.RobotPage.Size = new System.Drawing.Size(1145, 515);
+            this.RobotPage.Size = new System.Drawing.Size(1054, 515);
             this.RobotPage.TabIndex = 1;
             this.RobotPage.Text = "Robot";
             this.RobotPage.UseVisualStyleBackColor = true;
             // 
             // tableLayoutRobot
             // 
+            this.tableLayoutRobot.AutoSize = true;
+            this.tableLayoutRobot.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.tableLayoutRobot.ColumnCount = 2;
             this.tableLayoutRobot.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutRobot.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
@@ -514,9 +472,9 @@ namespace Serveur
             this.tableLayoutRobot.Location = new System.Drawing.Point(3, 3);
             this.tableLayoutRobot.Name = "tableLayoutRobot";
             this.tableLayoutRobot.RowCount = 2;
-            this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 41.06091F));
-            this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 58.93909F));
-            this.tableLayoutRobot.Size = new System.Drawing.Size(1139, 509);
+            this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
+            this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 60F));
+            this.tableLayoutRobot.Size = new System.Drawing.Size(1048, 509);
             this.tableLayoutRobot.TabIndex = 0;
             // 
             // gbJointInfo
@@ -528,10 +486,11 @@ namespace Serveur
             this.gbJointInfo.Controls.Add(this.lblJoint5Position);
             this.gbJointInfo.Controls.Add(this.lblJoint6Position);
             this.gbJointInfo.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gbJointInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.gbJointInfo.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
             this.gbJointInfo.Location = new System.Drawing.Point(3, 3);
             this.gbJointInfo.Name = "gbJointInfo";
-            this.gbJointInfo.Size = new System.Drawing.Size(563, 203);
+            this.gbJointInfo.Padding = new System.Windows.Forms.Padding(5);
+            this.gbJointInfo.Size = new System.Drawing.Size(518, 197);
             this.gbJointInfo.TabIndex = 2;
             this.gbJointInfo.TabStop = false;
             this.gbJointInfo.Text = "Informations des Joints";
@@ -539,60 +498,60 @@ namespace Serveur
             // lblJoint1Position
             // 
             this.lblJoint1Position.AutoSize = true;
-            this.lblJoint1Position.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblJoint1Position.Location = new System.Drawing.Point(23, 50);
+            this.lblJoint1Position.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblJoint1Position.Location = new System.Drawing.Point(19, 60);
             this.lblJoint1Position.Name = "lblJoint1Position";
-            this.lblJoint1Position.Size = new System.Drawing.Size(243, 37);
+            this.lblJoint1Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint1Position.TabIndex = 0;
             this.lblJoint1Position.Text = "Joint 1 Position : 0°";
             // 
             // lblJoint2Position
             // 
             this.lblJoint2Position.AutoSize = true;
-            this.lblJoint2Position.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblJoint2Position.Location = new System.Drawing.Point(23, 100);
+            this.lblJoint2Position.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblJoint2Position.Location = new System.Drawing.Point(19, 100);
             this.lblJoint2Position.Name = "lblJoint2Position";
-            this.lblJoint2Position.Size = new System.Drawing.Size(243, 37);
+            this.lblJoint2Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint2Position.TabIndex = 1;
             this.lblJoint2Position.Text = "Joint 2 Position : 0°";
             // 
             // lblJoint3Position
             // 
             this.lblJoint3Position.AutoSize = true;
-            this.lblJoint3Position.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblJoint3Position.Location = new System.Drawing.Point(23, 150);
+            this.lblJoint3Position.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblJoint3Position.Location = new System.Drawing.Point(19, 140);
             this.lblJoint3Position.Name = "lblJoint3Position";
-            this.lblJoint3Position.Size = new System.Drawing.Size(243, 37);
+            this.lblJoint3Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint3Position.TabIndex = 2;
             this.lblJoint3Position.Text = "Joint 3 Position : 0°";
             // 
             // lblJoint4Position
             // 
             this.lblJoint4Position.AutoSize = true;
-            this.lblJoint4Position.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblJoint4Position.Location = new System.Drawing.Point(306, 50);
+            this.lblJoint4Position.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblJoint4Position.Location = new System.Drawing.Point(299, 60);
             this.lblJoint4Position.Name = "lblJoint4Position";
-            this.lblJoint4Position.Size = new System.Drawing.Size(243, 37);
+            this.lblJoint4Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint4Position.TabIndex = 3;
             this.lblJoint4Position.Text = "Joint 4 Position : 0°";
             // 
             // lblJoint5Position
             // 
             this.lblJoint5Position.AutoSize = true;
-            this.lblJoint5Position.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblJoint5Position.Location = new System.Drawing.Point(306, 100);
+            this.lblJoint5Position.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblJoint5Position.Location = new System.Drawing.Point(299, 100);
             this.lblJoint5Position.Name = "lblJoint5Position";
-            this.lblJoint5Position.Size = new System.Drawing.Size(243, 37);
+            this.lblJoint5Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint5Position.TabIndex = 4;
             this.lblJoint5Position.Text = "Joint 5 Position : 0°";
             // 
             // lblJoint6Position
             // 
             this.lblJoint6Position.AutoSize = true;
-            this.lblJoint6Position.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblJoint6Position.Location = new System.Drawing.Point(306, 150);
+            this.lblJoint6Position.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblJoint6Position.Location = new System.Drawing.Point(299, 140);
             this.lblJoint6Position.Name = "lblJoint6Position";
-            this.lblJoint6Position.Size = new System.Drawing.Size(243, 37);
+            this.lblJoint6Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint6Position.TabIndex = 5;
             this.lblJoint6Position.Text = "Joint 6 Position : 0°";
             // 
@@ -605,10 +564,11 @@ namespace Serveur
             this.gbRealPosition.Controls.Add(this.lblPitch);
             this.gbRealPosition.Controls.Add(this.lblYaw);
             this.gbRealPosition.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gbRealPosition.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.gbRealPosition.Location = new System.Drawing.Point(572, 3);
+            this.gbRealPosition.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.gbRealPosition.Location = new System.Drawing.Point(527, 3);
             this.gbRealPosition.Name = "gbRealPosition";
-            this.gbRealPosition.Size = new System.Drawing.Size(564, 203);
+            this.gbRealPosition.Padding = new System.Windows.Forms.Padding(5);
+            this.gbRealPosition.Size = new System.Drawing.Size(518, 197);
             this.gbRealPosition.TabIndex = 3;
             this.gbRealPosition.TabStop = false;
             this.gbRealPosition.Text = "Positions Réelles";
@@ -616,72 +576,73 @@ namespace Serveur
             // lblX
             // 
             this.lblX.AutoSize = true;
-            this.lblX.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblX.Location = new System.Drawing.Point(43, 50);
+            this.lblX.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblX.Location = new System.Drawing.Point(52, 51);
             this.lblX.Name = "lblX";
-            this.lblX.Size = new System.Drawing.Size(157, 37);
+            this.lblX.Size = new System.Drawing.Size(128, 30);
             this.lblX.TabIndex = 0;
             this.lblX.Text = "X : 0.00 mm";
             // 
             // lblY
             // 
             this.lblY.AutoSize = true;
-            this.lblY.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblY.Location = new System.Drawing.Point(43, 100);
+            this.lblY.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblY.Location = new System.Drawing.Point(52, 91);
             this.lblY.Name = "lblY";
-            this.lblY.Size = new System.Drawing.Size(156, 37);
+            this.lblY.Size = new System.Drawing.Size(127, 30);
             this.lblY.TabIndex = 1;
             this.lblY.Text = "Y : 0.00 mm";
             // 
             // lblZ
             // 
             this.lblZ.AutoSize = true;
-            this.lblZ.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblZ.Location = new System.Drawing.Point(43, 150);
+            this.lblZ.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblZ.Location = new System.Drawing.Point(52, 131);
             this.lblZ.Name = "lblZ";
-            this.lblZ.Size = new System.Drawing.Size(156, 37);
+            this.lblZ.Size = new System.Drawing.Size(128, 30);
             this.lblZ.TabIndex = 2;
             this.lblZ.Text = "Z : 0.00 mm";
             // 
             // lblRoll
             // 
             this.lblRoll.AutoSize = true;
-            this.lblRoll.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblRoll.Location = new System.Drawing.Point(323, 50);
+            this.lblRoll.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblRoll.Location = new System.Drawing.Point(312, 51);
             this.lblRoll.Name = "lblRoll";
-            this.lblRoll.Size = new System.Drawing.Size(157, 37);
+            this.lblRoll.Size = new System.Drawing.Size(126, 30);
             this.lblRoll.TabIndex = 3;
             this.lblRoll.Text = "Roll :   0.00°";
             // 
             // lblPitch
             // 
             this.lblPitch.AutoSize = true;
-            this.lblPitch.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblPitch.Location = new System.Drawing.Point(323, 100);
+            this.lblPitch.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblPitch.Location = new System.Drawing.Point(312, 91);
             this.lblPitch.Name = "lblPitch";
-            this.lblPitch.Size = new System.Drawing.Size(156, 37);
+            this.lblPitch.Size = new System.Drawing.Size(125, 30);
             this.lblPitch.TabIndex = 4;
             this.lblPitch.Text = "Pitch : 0.00°";
             // 
             // lblYaw
             // 
             this.lblYaw.AutoSize = true;
-            this.lblYaw.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblYaw.Location = new System.Drawing.Point(323, 150);
+            this.lblYaw.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.lblYaw.Location = new System.Drawing.Point(312, 131);
             this.lblYaw.Name = "lblYaw";
-            this.lblYaw.Size = new System.Drawing.Size(152, 37);
+            this.lblYaw.Size = new System.Drawing.Size(122, 30);
             this.lblYaw.TabIndex = 5;
             this.lblYaw.Text = "Yaw :  0.00°";
             // 
             // panelCalibration
             // 
+            this.panelCalibration.Controls.Add(this.moveRobotTest);
             this.panelCalibration.Controls.Add(this.calibrationStatus);
             this.panelCalibration.Controls.Add(this.calibrationButton);
             this.panelCalibration.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelCalibration.Location = new System.Drawing.Point(3, 212);
+            this.panelCalibration.Location = new System.Drawing.Point(3, 206);
             this.panelCalibration.Name = "panelCalibration";
             this.panelCalibration.Padding = new System.Windows.Forms.Padding(10);
-            this.panelCalibration.Size = new System.Drawing.Size(563, 294);
+            this.panelCalibration.Size = new System.Drawing.Size(518, 300);
             this.panelCalibration.TabIndex = 6;
             // 
             // calibrationStatus
@@ -689,24 +650,25 @@ namespace Serveur
             this.calibrationStatus.AutoSize = true;
             this.calibrationStatus.BackColor = System.Drawing.Color.Red;
             this.calibrationStatus.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.calibrationStatus.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.calibrationStatus.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
             this.calibrationStatus.ForeColor = System.Drawing.Color.White;
-            this.calibrationStatus.Location = new System.Drawing.Point(123, 73);
+            this.calibrationStatus.Location = new System.Drawing.Point(173, 53);
             this.calibrationStatus.Name = "calibrationStatus";
             this.calibrationStatus.Padding = new System.Windows.Forms.Padding(10);
-            this.calibrationStatus.Size = new System.Drawing.Size(283, 59);
+            this.calibrationStatus.Size = new System.Drawing.Size(157, 52);
             this.calibrationStatus.TabIndex = 5;
-            this.calibrationStatus.Text = "Calibration requise";
+            this.calibrationStatus.Text = "Déconnecté";
             // 
             // calibrationButton
             // 
-            this.calibrationButton.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.calibrationButton.Location = new System.Drawing.Point(161, 153);
+            this.calibrationButton.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.calibrationButton.Location = new System.Drawing.Point(144, 156);
             this.calibrationButton.Name = "calibrationButton";
-            this.calibrationButton.Size = new System.Drawing.Size(211, 97);
+            this.calibrationButton.Size = new System.Drawing.Size(231, 50);
             this.calibrationButton.TabIndex = 2;
             this.calibrationButton.Text = "Lancer Calibration";
             this.calibrationButton.UseVisualStyleBackColor = true;
+            this.calibrationButton.Click += new System.EventHandler(this.calibrationButton_Click);
             // 
             // gbReferencePoints
             // 
@@ -714,43 +676,70 @@ namespace Serveur
             this.gbReferencePoints.Controls.Add(this.btnSaveRef2);
             this.gbReferencePoints.Controls.Add(this.lbReferencePoints);
             this.gbReferencePoints.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.gbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.gbReferencePoints.Location = new System.Drawing.Point(572, 212);
+            this.gbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
+            this.gbReferencePoints.Location = new System.Drawing.Point(527, 206);
             this.gbReferencePoints.Name = "gbReferencePoints";
-            this.gbReferencePoints.Size = new System.Drawing.Size(564, 294);
+            this.gbReferencePoints.Size = new System.Drawing.Size(518, 300);
             this.gbReferencePoints.TabIndex = 4;
             this.gbReferencePoints.TabStop = false;
             this.gbReferencePoints.Text = "Points de Référence";
             // 
             // btnSaveRef1
             // 
-            this.btnSaveRef1.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.btnSaveRef1.Location = new System.Drawing.Point(59, 61);
+            this.btnSaveRef1.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.btnSaveRef1.Location = new System.Drawing.Point(22, 53);
             this.btnSaveRef1.Name = "btnSaveRef1";
-            this.btnSaveRef1.Size = new System.Drawing.Size(172, 60);
+            this.btnSaveRef1.Size = new System.Drawing.Size(193, 99);
             this.btnSaveRef1.TabIndex = 0;
             this.btnSaveRef1.Text = "Enregistrer Réf 1";
             this.btnSaveRef1.UseVisualStyleBackColor = true;
+            this.btnSaveRef1.Click += new System.EventHandler(this.btnSaveRef1_Click);
             // 
             // btnSaveRef2
             // 
-            this.btnSaveRef2.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.btnSaveRef2.Location = new System.Drawing.Point(307, 61);
+            this.btnSaveRef2.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.btnSaveRef2.Location = new System.Drawing.Point(274, 53);
             this.btnSaveRef2.Name = "btnSaveRef2";
-            this.btnSaveRef2.Size = new System.Drawing.Size(172, 60);
+            this.btnSaveRef2.Size = new System.Drawing.Size(195, 99);
             this.btnSaveRef2.TabIndex = 1;
             this.btnSaveRef2.Text = "Enregistrer Réf 2";
             this.btnSaveRef2.UseVisualStyleBackColor = true;
+            this.btnSaveRef2.Click += new System.EventHandler(this.btnSaveRef2_Click);
             // 
             // lbReferencePoints
             // 
-            this.lbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 8F);
             this.lbReferencePoints.FormattingEnabled = true;
-            this.lbReferencePoints.ItemHeight = 37;
-            this.lbReferencePoints.Location = new System.Drawing.Point(72, 204);
+            this.lbReferencePoints.ItemHeight = 30;
+            this.lbReferencePoints.Location = new System.Drawing.Point(6, 158);
             this.lbReferencePoints.Name = "lbReferencePoints";
-            this.lbReferencePoints.Size = new System.Drawing.Size(368, 115);
+            this.lbReferencePoints.Size = new System.Drawing.Size(474, 124);
             this.lbReferencePoints.TabIndex = 4;
+            // 
+            // tabLogs
+            // 
+            this.tabLogs.Controls.Add(this.tbCom);
+            this.tabLogs.Location = new System.Drawing.Point(8, 39);
+            this.tabLogs.Margin = new System.Windows.Forms.Padding(4);
+            this.tabLogs.Name = "tabLogs";
+            this.tabLogs.Padding = new System.Windows.Forms.Padding(12, 10, 12, 10);
+            this.tabLogs.Size = new System.Drawing.Size(1054, 515);
+            this.tabLogs.TabIndex = 0;
+            this.tabLogs.Text = "Logs";
+            this.tabLogs.UseVisualStyleBackColor = true;
+            // 
+            // tbCom
+            // 
+            this.tbCom.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.tbCom.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tbCom.Font = new System.Drawing.Font("Segoe UI", 8F);
+            this.tbCom.Location = new System.Drawing.Point(12, 10);
+            this.tbCom.Margin = new System.Windows.Forms.Padding(4);
+            this.tbCom.Multiline = true;
+            this.tbCom.Name = "tbCom";
+            this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.tbCom.Size = new System.Drawing.Size(1030, 495);
+            this.tbCom.TabIndex = 0;
             // 
             // timAcq
             // 
@@ -774,15 +763,25 @@ namespace Serveur
             // mainSplit.Panel2
             // 
             this.mainSplit.Panel2.Controls.Add(this.rightSplit);
-            this.mainSplit.Size = new System.Drawing.Size(1829, 1087);
-            this.mainSplit.SplitterDistance = 664;
+            this.mainSplit.Size = new System.Drawing.Size(1686, 1087);
+            this.mainSplit.SplitterDistance = 612;
             this.mainSplit.TabIndex = 0;
+            // 
+            // moveRobotTest
+            // 
+            this.moveRobotTest.Location = new System.Drawing.Point(173, 222);
+            this.moveRobotTest.Name = "moveRobotTest";
+            this.moveRobotTest.Size = new System.Drawing.Size(181, 60);
+            this.moveRobotTest.TabIndex = 6;
+            this.moveRobotTest.Text = "Test Mouvement";
+            this.moveRobotTest.UseVisualStyleBackColor = true;
+            this.moveRobotTest.Click += new System.EventHandler(this.moveRobotTest_Click);
             // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1829, 1127);
+            this.ClientSize = new System.Drawing.Size(1686, 1127);
             this.Controls.Add(this.mainSplit);
             this.Controls.Add(this.navBar);
             this.MainMenuStrip = this.navBar;
@@ -805,9 +804,8 @@ namespace Serveur
             this.rightSplit.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pbImage)).EndInit();
             this.tabControlBottom.ResumeLayout(false);
-            this.tabLogs.ResumeLayout(false);
-            this.tabLogs.PerformLayout();
             this.RobotPage.ResumeLayout(false);
+            this.RobotPage.PerformLayout();
             this.tableLayoutRobot.ResumeLayout(false);
             this.gbJointInfo.ResumeLayout(false);
             this.gbJointInfo.PerformLayout();
@@ -816,6 +814,8 @@ namespace Serveur
             this.panelCalibration.ResumeLayout(false);
             this.panelCalibration.PerformLayout();
             this.gbReferencePoints.ResumeLayout(false);
+            this.tabLogs.ResumeLayout(false);
+            this.tabLogs.PerformLayout();
             this.mainSplit.Panel1.ResumeLayout(false);
             this.mainSplit.Panel1.PerformLayout();
             this.mainSplit.Panel2.ResumeLayout(false);
@@ -827,5 +827,7 @@ namespace Serveur
         }
 
         #endregion
+
+        private Button moveRobotTest;
     }
 }
