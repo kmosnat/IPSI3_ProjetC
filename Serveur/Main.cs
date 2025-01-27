@@ -814,6 +814,7 @@ namespace Serveur
             ethernetToolStripMenuItem.Enabled = false;
 
             _ipRobot = "169.254.200.200";
+            robot = new RobotModbusHelper(_ipRobot, 5020);
             tbCom.LogInfo("Adresse IP du robot sélectionnée : " + _ipRobot, LogSource.Serveur);
         }
 
@@ -823,6 +824,7 @@ namespace Serveur
             hotspotToolStripMenuItem.Enabled = false;
 
             _ipRobot = "10.10.10.10";
+            robot = new RobotModbusHelper(_ipRobot, 5020);
             tbCom.LogInfo("Adresse IP du robot sélectionnée : " + _ipRobot, LogSource.Serveur);
         }
 
