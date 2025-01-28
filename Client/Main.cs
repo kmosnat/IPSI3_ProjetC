@@ -244,20 +244,26 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-                    int couleur = (int)ClImage.valeurChamp(clImage.ClPtr, 0);   // Couleur détectée
-                    int forme = (int)ClImage.valeurChamp(clImage.ClPtr, 1);     // Forme détectée
-                    int posX = (int)ClImage.valeurChamp(clImage.ClPtr, 2);      // Position X
-                    int posY = (int)ClImage.valeurChamp(clImage.ClPtr, 3);      // Position Y
+                    int objectCount = (int)clImage.ObjetLibValeurChamp(0);
 
-                    // Affichage des résultats dans une zone locale (par exemple, `tbCom` dans le client)
-                    tbCom.LogInfo("===== Résultats reçus du traitement =====.");
-                    tbCom.LogInfo("Couleur détectée : {couleur}.");
-                    tbCom.LogInfo("Forme détectée   : {forme}.");
-                    tbCom.LogInfo("Position X       : {posX}.");
-                    tbCom.LogInfo("Position Y       : {posY}.");
+                    for (int i = 0; i < objectCount; i++)
+                    {
+                        try
+                        {
+                            string objectInfo = clImage.ObjetLibObjectChamp(i);
 
-                }
+                            tbCom.LogInfo($"Objet détecté : {objectInfo}");
 
+                            var parts = objectInfo.Split(',');
+
+                            // Vérifier le nombre de parties après le split
+                            if (parts.Length != 4)
+                            {
+                                tbCom.LogError($"Format d'objet invalide : {objectInfo}");
+                                continue;
+                            }
+
+                            // Extraire et nettoyer les données
                             string color = parts[0].Trim();
                             string shape = parts[1].Trim();
                             string xStr = parts[2].Trim();
@@ -268,8 +274,10 @@ namespace Client
                             tbCom.LogInfo($"X: {xStr}");
                             tbCom.LogInfo($"Y: {yStr}");
 
+                            // Tenter de parser les coordonnées
                             float x, y;
 
+                            // Utiliser la culture invariante pour garantir le bon format des nombres
                             if (!float.TryParse(xStr, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
                             {
                                 tbCom.LogError($"Erreur de parsing de la coordonnée X : {xStr}");
@@ -282,8 +290,46 @@ namespace Client
                                 continue;
                             }
 
+                            tbCom.LogInfo($"Coordonnées parsées - X: {x}, Y: {y}");
 
+                            // Normaliser les valeurs avant d'ajouter
+                            color = color.ToLowerInvariant().Trim();
+                            shape = shape.ToLowerInvariant().Trim();
 
+                            AddRobotObject(color, shape, x, y);
+                        }
+                        catch (Exception ex)
+                        {
+                            tbCom.LogError($"Erreur lors de l'extraction d'un objet : {ex.Message}");
+                        }
+
+                    }
+                }
+
+                unsafe
+                {
+                    byte* destPtr = (byte*)scan0.ToPointer();
+
+                    for (int y = 0; y < height; y++)
+                    {
+                        Marshal.Copy(imageData, y * packedStride, new IntPtr(destPtr + y * stride), packedStride);
+                    }
+                }
+
+                bitmap.UnlockBits(bitmapData);
+                bitmapData = null;
+
+                return bitmap;
+            }
+            catch
+            {
+                if (bitmapData != null)
+                {
+                    bitmap.UnlockBits(bitmapData);
+                }
+                bitmap.Dispose();
+                throw;
+            }
         }
 
 
