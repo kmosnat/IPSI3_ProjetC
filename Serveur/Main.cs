@@ -37,12 +37,12 @@ namespace Serveur
         private RobotObject currentRobotObject = null;
 
         // Indique si un mouvement est en cours
-        private bool isMoving = false;
         private Task moveTask;
 
         // ---- Adresses & robot ----
         private string _ipRobot;
         private RobotModbusHelper robot;
+        private bool isBlinking = false;
 
         // ---- TCP ----
         private IPAddress _localIPAddress;
@@ -78,6 +78,8 @@ namespace Serveur
             timerRobotState.Tick += timerRobotState_Tick;
             timerRobotState.Start();
 
+            calibrationButton.Enabled = false;
+
             dgvObjects.AutoGenerateColumns = true;
             dgvObjects.DataSource = robotObjectsList;
 
@@ -92,7 +94,125 @@ namespace Serveur
         private void timerRobotState_Tick(object sender, EventArgs e)
         {
             UpdateRobotStateMachine();
+
+            try
+            {
+                if (!robot.IsConnected())
+                {
+                    // Robot déconnecté
+                    calibrationStatus.Text = "Déconnecté";
+                    calibrationStatus.BackColor = Color.Red;
+
+                    // Arrêter le clignotement si en cours
+                    if (isBlinking)
+                    {
+                        calibrationStatus.Visible = true;
+                        isBlinking = false;
+                    }
+
+                    return;
+                }
+
+                if (robot.calibrationNeeded())
+                {
+                    // Calibration nécessaire
+                    calibrationStatus.Text = "Calibration Nécessaire";
+                    calibrationStatus.BackColor = Color.Orange;
+
+                    calibrationButton.Enabled = true;
+
+                    // Gérer le clignotement
+                    if (isBlinking)
+                    {
+                        calibrationStatus.Visible = !calibrationStatus.Visible;
+                    }
+                    else
+                    {
+                        isBlinking = true;
+                        calibrationStatus.Visible = true;
+                    }
+                }
+                else
+                {
+                    // Robot calibré
+                    calibrationStatus.Text = "Calibré";
+                    calibrationStatus.BackColor = Color.Green;
+
+                    if (isBlinking)
+                    {
+                        calibrationStatus.Visible = true;
+                        isBlinking = false;
+                    }
+                }
+
+                // Récupérer la pose actuelle du robot
+                RobotPose pos = robot.GetCurrentPose();
+
+                // Mettre à jour les labels de position
+                lblX.Text = $"X : {pos.X:F2} mm";
+                lblY.Text = $"Y : {pos.Y:F2} mm";
+                lblZ.Text = $"Z : {pos.Z:F2} mm";
+
+                // Mettre à jour les labels d'orientation
+                lblRoll.Text = $"Roll : {pos.Roll:F2}°";
+                lblPitch.Text = $"Pitch : {pos.Pitch:F2}°";
+                lblYaw.Text = $"Yaw : {pos.Yaw:F2}°";
+
+                // Récupérer les états actuels des joints
+                float[] joints = robot.GetCurrentJointStates();
+
+                // Mettre à jour les labels des joints
+                if (joints != null && joints.Length >= 6)
+                {
+                    lblJoint1Position.Text = $"Joint 1 Position : {joints[0]:F2}°";
+                    lblJoint2Position.Text = $"Joint 2 Position : {joints[1]:F2}°";
+                    lblJoint3Position.Text = $"Joint 3 Position : {joints[2]:F2}°";
+                    lblJoint4Position.Text = $"Joint 4 Position : {joints[3]:F2}°";
+                    lblJoint5Position.Text = $"Joint 5 Position : {joints[4]:F2}°";
+                    lblJoint6Position.Text = $"Joint 6 Position : {joints[5]:F2}°";
+                }
+                else
+                {
+                    lblJoint1Position.Text = "Joint 1 Position : N/A";
+                    lblJoint2Position.Text = "Joint 2 Position : N/A";
+                    lblJoint3Position.Text = "Joint 3 Position : N/A";
+                    lblJoint4Position.Text = "Joint 4 Position : N/A";
+                    lblJoint5Position.Text = "Joint 5 Position : N/A";
+                    lblJoint6Position.Text = "Joint 6 Position : N/A";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating robot pose: {ex.Message}");
+
+                // Mettre à jour tous les labels pour indiquer une erreur
+                lblX.Text = "X : Error";
+                lblY.Text = "Y : Error";
+                lblZ.Text = "Z : Error";
+                lblRoll.Text = "Roll : Error";
+                lblPitch.Text = "Pitch : Error";
+                lblYaw.Text = "Yaw : Error";
+
+                lblJoint1Position.Text = "Joint 1 Position : Error";
+                lblJoint2Position.Text = "Joint 2 Position : Error";
+                lblJoint3Position.Text = "Joint 3 Position : Error";
+                lblJoint4Position.Text = "Joint 4 Position : Error";
+                lblJoint5Position.Text = "Joint 5 Position : Error";
+                lblJoint6Position.Text = "Joint 6 Position : Error";
+
+                // Mettre à jour le status de calibration
+                calibrationStatus.Text = "Erreur de mise à jour";
+                calibrationStatus.BackColor = Color.DarkRed;
+                calibrationStatus.ForeColor = Color.White;
+
+                if (isBlinking)
+                {
+                    calibrationStatus.Visible = true;
+                    isBlinking = false;
+                }
+            }
         }
+
 
         private void UpdateRobotStateMachine()
         {
@@ -111,14 +231,12 @@ namespace Serveur
                 case RobotState.OnProcess:
                     tbCom.LogInfo("Envoi des informations au robot...", LogSource.Serveur);
 
-                    isMoving = true;
                     moveTask = Task.Run(() =>
                     {
                         float x = currentRobotObject.X / 1000f;
                         float y = currentRobotObject.Y / 1000f;
 
-                        moveRobot(x, y);
-                        isMoving = false;
+                        moveRobot(x, y, 0.1f);
                     });
 
                     // Passage immédiat en "Moving"
@@ -127,7 +245,7 @@ namespace Serveur
 
                 case RobotState.RobotOnMoving:
                     // On attend que la tâche de mouvement se termine.
-                    if (!isMoving)
+                    if (!robot.isMoving())
                     {
                         tbCom.LogInfo("Mouvement du robot terminé.", LogSource.Serveur);
 
@@ -168,23 +286,19 @@ namespace Serveur
             });
         }
 
-        private void moveRobot(float x, float y)
+        private void moveRobot(float x, float y, float z)
         {
             try
             {
                 robot.Connect();
 
-                float[] joints = robot.GetCurrentJointStates();
-                tbCom.LogInfo("[ROBOT] Lecture des Joints :", LogSource.Serveur);
-                for (int i = 0; i < joints.Length; i++)
-                {
-                    tbCom.LogInfo($"Joint {i + 1} = {joints[i]:F4} rad", LogSource.Serveur);
-                }
+                tbCom.LogInfo($"Besoin d'une calibration ? {robot.calibrationNeeded()}");
 
-                RobotPose currentPose = robot.GetCurrentPose();
-                tbCom.LogInfo($"Pose courante => {currentPose}", LogSource.Serveur);
+                robot.calibrate();
 
-                robot.MoveToPose(x, y, 0.1f);
+                tbCom.LogInfo($"Besoin d'une calibration ? {robot.calibrationNeeded()}");
+
+                robot.MoveToPose(x, y, z);
                 tbCom.LogInfo($"Déplacement du robot vers X={x}, Y={y}, Z=0.1 en cours...", LogSource.Serveur);
             }
             catch (Exception ex)
@@ -287,7 +401,6 @@ namespace Serveur
                 }
                 else
                 {
-                    // Génère une simple image de test si la caméra n’est pas connectée
                     return GenerateTestImage();
                 }
             }
@@ -701,6 +814,7 @@ namespace Serveur
             ethernetToolStripMenuItem.Enabled = false;
 
             _ipRobot = "169.254.200.200";
+            robot = new RobotModbusHelper(_ipRobot, 5020);
             tbCom.LogInfo("Adresse IP du robot sélectionnée : " + _ipRobot, LogSource.Serveur);
         }
 
@@ -710,6 +824,7 @@ namespace Serveur
             hotspotToolStripMenuItem.Enabled = false;
 
             _ipRobot = "10.10.10.10";
+            robot = new RobotModbusHelper(_ipRobot, 5020);
             tbCom.LogInfo("Adresse IP du robot sélectionnée : " + _ipRobot, LogSource.Serveur);
         }
 
@@ -771,5 +886,56 @@ namespace Serveur
                 action();
         }
 
+        private void calibrationButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                robot.Connect();
+                robot.calibrate();
+
+                calibrationButton.Enabled = false;
+
+            }
+            catch (Exception ex)
+            {
+                tbCom.LogError("Erreur Modbus: " + ex.Message, LogSource.Serveur);
+            }
+            finally
+            {
+                robot.Disconnect();
+            }
+        }
+
+        private void btnSaveRef1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnSaveRef2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void moveRobotTest_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                robot.Connect();
+
+                RobotPose currentPose = robot.GetCurrentPose();
+                tbCom.LogInfo($"Pose courante => {currentPose}", LogSource.Serveur);
+
+                moveRobot(0.264f, -0.168f, 0.395f);
+
+            }
+            catch (Exception ex)
+            {
+                tbCom.LogError("Erreur Modbus: " + ex.Message, LogSource.Serveur);
+            }
+            finally
+            {
+                robot.Disconnect();
+            }
+        }
     }
 }

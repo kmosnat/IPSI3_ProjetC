@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <thread>
 #include <vector>
+#include <map>
 
 // Enumération des couleurs
 enum class COULEUR
@@ -16,6 +17,21 @@ enum class COULEUR
 	rouge,
 	vert,
 	bleu
+};
+
+struct Bouchon {
+	int label;
+	std::vector<std::pair<int, int>> pixels;
+	double centroidX;
+	double centroidY;
+	std::string forme;
+	std::string couleur;
+};
+
+// Déclaration de la structure Label
+struct Label {
+	int parent;
+	int rank;
 };
 
 
@@ -27,7 +43,8 @@ private:
 
 	// data n�cessaires � l'IHM donc fonction de l'application cibl�e
 	int						nbDataImg; 
-	std::vector<double>		dataFromImg; 
+	std::vector<double>		dataFromImg;
+	std::vector<std::string> dataObject;
 	CImageCouleur* imgPt;        
 	CImageNdg* imgNdgPt;     
 	byte* data;       
@@ -57,12 +74,20 @@ public:
 		return dataFromImg.at(i);
 	}
 
+	_declspec(dllexport) std::string lireObject(int i) const {
+		return dataObject.at(i);
+	}
+
 	_declspec(dllexport) CImageCouleur* imgData() const {
 		return imgPt;
 	}
 
 	_declspec(dllexport) void ecrireChamp(int i, double val) {
 		dataFromImg.at(i) = val;
+	}
+
+	_declspec(dllexport) void ecrireObject(int i, const std::string& val) {
+		dataObject.at(i) = val;
 	}
 
 	_declspec(dllexport) void copyImage(CImageNdg img);
@@ -80,6 +105,34 @@ public:
 	_declspec(dllexport) void score(ClibIHM* pImgGt);
 
 	_declspec(dllexport) void persitData(CImageNdg* pImg, COULEUR couleur);
+
+private:
+
+
+	// Méthodes d'étiquetage
+	void connectedComponentLabeling(CImageNdg& binaryImg, std::vector<std::vector<int>>& labels);
+
+	// Méthodes d'extraction
+	std::vector<Bouchon> extractBouchons(const std::vector<std::vector<int>>& labels);
+
+	// Méthodes d'analyse des formes
+	bool isCircle(const Bouchon& bouchon);
+	std::string determineShape(const Bouchon& bouchon);
+	bool isHeart(const Bouchon& bouchon);
+	std::string determineShapeAdvanced(const Bouchon& bouchon);
+
+	// Méthodes d'analyse des couleurs
+	std::string determineColor(const Bouchon& bouchon);
+	void analyzeColors(std::vector<Bouchon>& bouchons);
+
+	// Méthodes utilitaires
+	int findRoot(int label, std::map<int, Label>& labels) {
+		while (labels[label].parent != label) {
+			labels[label].parent = labels[labels[label].parent].parent; // Path compression
+			label = labels[label].parent;
+		}
+		return label;
+	}
 };
 
 
@@ -134,6 +187,14 @@ extern "C" _declspec(dllexport) double valeurChamp(ClibIHM* pImg, int i)
 		return 0.0;
 
 	return pImg->lireChamp(i);
+}
+
+extern "C" _declspec(dllexport) const char* valeurObject(ClibIHM* pImg, int i)
+{
+	if (pImg == nullptr)
+		return "";
+
+	return pImg->lireObject(i).c_str();
 }
 
 //vider la mémoire 

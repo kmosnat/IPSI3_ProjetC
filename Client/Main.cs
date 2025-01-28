@@ -11,22 +11,20 @@ using System.Windows.Forms;
 using System.Collections.Concurrent;
 
 using Utils;
+using System.Threading;
 
 namespace Client
 {
     public partial class Client : Form
     {
+        private readonly object imageLock = new object();
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
+        private ConcurrentDictionary<string, RobotObject> localObjects = new ConcurrentDictionary<string, RobotObject>();
 
-        // Ajout du Timer et d’un flag indiquant l’état de connexion
-        private Timer reconnectTimer;
-        private bool isConnected = false;
-
-        // On stocke le TcpClient comme champ de classe pour pouvoir le manipuler à tout moment
-        private TcpClient tcpClient;
-
-        private ConcurrentDictionary<Guid, RobotObject> localObjects = new ConcurrentDictionary<Guid, RobotObject>();
+        private readonly TimeSpan reconnectInterval = TimeSpan.FromSeconds(5);
+        private readonly int maxReconnectAttempts = 0; // 0 pour illimité
+        private CancellationTokenSource reconnectCancellationTokenSource;
 
         public Client()
         {
@@ -37,25 +35,7 @@ namespace Client
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
-
-            // On propose déjà de choisir le serveur (ouvre la boîte de dialogue)
             serveurToolStripMenuItem_Click(this, EventArgs.Empty);
-
-            // Configuration du Timer qui check la connexion toutes les 5 secondes
-            reconnectTimer = new Timer();
-            reconnectTimer.Interval = 5000; // 5 secondes
-            reconnectTimer.Tick += ReconnectTimer_Tick;
-            reconnectTimer.Start();
-        }
-
-
-        private void ReconnectTimer_Tick(object sender, EventArgs e)
-        {
-            if (!isConnected)
-            {
-                // On lance InitClientTCP sur un thread séparé pour ne pas bloquer l’UI
-                Task.Run(() => InitClientTCP());
-            }
         }
 
         private uint FromBigEndianBytes(byte[] bytes)
@@ -67,7 +47,7 @@ namespace Client
             return BitConverter.ToUInt32(bytes, 0);
         }
 
-        private void InitClientTCP()
+        private async Task InitClientTCPAsync(CancellationToken cancellationToken)
         {
             if (m_ipAdrDistante == null)
             {
@@ -78,114 +58,119 @@ namespace Client
                 return;
             }
 
-            // Fermer éventuellement l’ancien client
-            if (tcpClient != null)
+            int attempt = 0;
+
+            while (!cancellationToken.IsCancellationRequested)
             {
+                TcpClient tcpClient = new TcpClient();
                 try
                 {
-                    tcpClient.Close();
-                }
-                catch
-                {
-                    // Ignorer les erreurs éventuelles
+                    tbCom.LogInfo("Tentative de connexion au serveur...");
+                    var connectTask = tcpClient.ConnectAsync(m_ipAdrDistante, m_numPort);
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken); // Timeout de 10 secondes
 
-                }
-            }
-
-            try
-            {
-                tcpClient = new TcpClient();
-                tbCom.LogInfo("Tentative de connexion...");
-
-                tcpClient.Connect(m_ipAdrDistante, m_numPort);
-                tbCom.LogInfo("Connexion établie.");
-
-                // On est connecté
-                isConnected = true;
-                this.Invoke((MethodInvoker)(() =>
-                {
-                    statusIndicator.BackColor = Color.Green;
-                    toolStripStatusLabel.Text = "État : Connecté";
-                }));
-
-                NetworkStream networkStream = tcpClient.GetStream();
-
-                // Envoi de la requête pour obtenir des images
-                string request = "GET_IMAGE\n";
-                byte[] requestBytes = Encoding.ASCII.GetBytes(request);
-                networkStream.Write(requestBytes, 0, requestBytes.Length);
-                networkStream.Flush();
-                tbCom.LogInfo("Requête d'image envoyée : " + request);
-
-                const uint maxExpectedSize = 10_000_000;
-
-                // Boucle de réception
-                while (tcpClient.Connected)
-                {
-                    byte[] sizeBytes = new byte[4];
-                    int totalRead = 0;
-                    while (totalRead < 4)
+                    var completedTask = await Task.WhenAny(connectTask, timeoutTask);
+                    if (completedTask == timeoutTask)
                     {
-                        int bytesRead = networkStream.Read(sizeBytes, totalRead, 4 - totalRead);
-                        if (bytesRead == 0)
+                        throw new TimeoutException("Délai de connexion dépassé.");
+                    }
+
+                    await connectTask;
+                    tbCom.LogInfo("Connexion établie");
+                    UpdateStatus(true);
+
+                    NetworkStream networkStream = tcpClient.GetStream();
+
+                    string request = "GET_IMAGE\n";
+                    byte[] requestBytes = Encoding.ASCII.GetBytes(request);
+                    await networkStream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken);
+                    await networkStream.FlushAsync(cancellationToken);
+                    tbCom.LogInfo("Requête d'image envoyée : " + request);
+
+                    const uint maxExpectedSize = 10_000_000;
+
+                    while (tcpClient.Connected && !cancellationToken.IsCancellationRequested)
+                    {
+                        // Lecture de la taille de l'image
+                        byte[] sizeBytes = new byte[4];
+                        int totalRead = 0;
+                        while (totalRead < 4)
                         {
-                            throw new Exception("Connexion fermée avant de recevoir la taille de l'image.");
+                            int bytesRead = await networkStream.ReadAsync(sizeBytes, totalRead, 4 - totalRead, cancellationToken);
+                            if (bytesRead == 0)
+                            {
+                                throw new Exception("Connexion fermée avant de recevoir la taille de l'image.");
+                            }
+                            totalRead += bytesRead;
                         }
-                        totalRead += bytesRead;
-                    }
 
-                    uint imageSize = FromBigEndianBytes(sizeBytes);
+                        uint imageSize = FromBigEndianBytes(sizeBytes);
 
-                    if (imageSize == 0)
-                    {
-                        // Erreur signalée par le serveur, on skip
-                        continue;
-                    }
-
-                    if (imageSize > maxExpectedSize)
-                    {
-                        throw new Exception($"Taille d'image invalide reçue : {imageSize}");
-                    }
-
-                    byte[] imageBytes = new byte[imageSize];
-                    totalRead = 0;
-                    while (totalRead < imageSize)
-                    {
-                        int bytesRead = networkStream.Read(imageBytes, totalRead, (int)(imageSize - totalRead));
-                        if (bytesRead == 0)
+                        if (imageSize == 0)
                         {
-                            throw new Exception("Connexion fermée avant de recevoir toute l'image.");
+                            continue;
                         }
-                        totalRead += bytesRead;
-                    }
 
-                    using (MemoryStream ms = new MemoryStream(imageBytes))
+                        if (imageSize > maxExpectedSize)
+                        {
+                            throw new Exception($"Taille d'image invalide reçue : {imageSize}");
+                        }
+
+                        byte[] imageBytes = new byte[imageSize];
+                        totalRead = 0;
+                        while (totalRead < imageSize)
+                        {
+                            int bytesRead = await networkStream.ReadAsync(imageBytes, totalRead, (int)(imageSize - totalRead), cancellationToken);
+                            if (bytesRead == 0)
+                            {
+                                throw new Exception("Connexion fermée avant de recevoir toute l'image.");
+                            }
+                            totalRead += bytesRead;
+                        }
+
+                        using (MemoryStream ms = new MemoryStream(imageBytes))
+                        {
+                            Image receivedImage = Image.FromStream(ms);
+                            DisplayImage(receivedImage);
+                        }
+
+                        UpdateStatus(true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    tbCom.LogError("Erreur : " + ex.Message);
+                    UpdateStatus(false);
+
+                    attempt++;
+                    if (maxReconnectAttempts > 0 && attempt >= maxReconnectAttempts)
                     {
-                        Image receivedImage = Image.FromStream(ms);
-                        DisplayImage(receivedImage);
+                        tbCom.LogError("Nombre maximal de tentatives de reconnexion atteint.");
+                        break;
+                    }
+
+                    tbCom.LogInfo($"Nouvelle tentative de connexion dans {reconnectInterval.TotalSeconds} secondes...");
+                    await Task.Delay(reconnectInterval, cancellationToken);
+                }
+                finally
+                {
+                    if (tcpClient != null)
+                    {
+                        tcpClient.Close();
+                        tbCom.LogInfo("Connexion fermée.");
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                tbCom.LogError("Erreur : " + ex.Message);
+        }
 
-                isConnected = false;
-                this.Invoke((MethodInvoker)(() =>
-                {
-                    statusIndicator.BackColor = Color.Red;
-                    toolStripStatusLabel.Text = "État : Déconnecté";
-                }));
-            }
-            finally
+        private void UpdateStatus(bool isConnected)
+        {
+            this.Invoke((MethodInvoker)(() =>
             {
-                if (tcpClient != null)
-                {
-                    tcpClient.Close();
-                    tcpClient = null;
-                    tbCom.LogInfo("Connexion fermée.");
-                }
-            }
+                toolStripStatus.Text = isConnected ? "État : Connecté" : "État : Déconnecté";
+                toolStripStatus.ForeColor = isConnected ? Color.Green : Color.Red;
+
+            }));
         }
 
         private void DisplayImage(Image receivedImage)
@@ -258,9 +243,6 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-
-                  // ajout  traitement
-
                     int couleur = (int)ClImage.valeurChamp(clImage.ClPtr, 0);   // Couleur détectée
                     int forme = (int)ClImage.valeurChamp(clImage.ClPtr, 1);     // Forme détectée
                     int posX = (int)ClImage.valeurChamp(clImage.ClPtr, 2);      // Position X
@@ -296,7 +278,12 @@ namespace Client
                     m_ipAdrDistante = dialog.SelectedIPAddress;
                     tbCom.LogInfo("Adresse IP du serveur mise à jour : " + m_ipAdrDistante);
 
-                    Task.Run(() => InitClientTCP());
+                    reconnectCancellationTokenSource?.Cancel();
+
+                    reconnectCancellationTokenSource = new CancellationTokenSource();
+                    var token = reconnectCancellationTokenSource.Token;
+
+                    Task.Run(() => InitClientTCPAsync(token), token);
                 }
                 else
                 {
@@ -305,33 +292,27 @@ namespace Client
             }
         }
 
-        private void quitterToolStripMenuItem1_Click(object sender, EventArgs e)
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            this.Close();
+            reconnectCancellationTokenSource?.Cancel();
+            base.OnFormClosing(e);
         }
 
-        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
+        private void quitterToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            string color = "Rouge";
-            string shape = "Triangle";
-            int x = 300;
-            int y = 200;
-
-            AddRobotObject(color, shape, x, y);
+            reconnectCancellationTokenSource?.Cancel();
+            this.Close();
         }
 
         private void AddRobotObject(string color, string shape, int x, int y)
         {
             var robotObject = new RobotObject(color, shape, x, y);
+            string key = robotObject.Key;
 
-            if (localObjects.ContainsKey(robotObject.Id))
+            if (localObjects.TryAdd(key, robotObject))
             {
-                tbCom.LogInfo($"Objet avec l'ID {robotObject.Id} existe déjà. Ignoré.");
-                return;
-            }
+                tbCom.LogInfo($"Ajout de l'objet {color}, {shape}, {x}, {y} avec clé '{key}'.");
 
-            if (localObjects.TryAdd(robotObject.Id, robotObject))
-            {
                 string robotObjectJson = robotObject.ToString();
                 tbCom.LogInfo($"Serialized RobotObject: {robotObjectJson}");
 
@@ -355,25 +336,43 @@ namespace Client
 
                         tbCom.LogInfo($"Réponse du serveur : {response}");
 
-                        if (response.Equals("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
+                        if (response.StartsWith("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
                         {
-                            tbCom.LogInfo($"Objet {robotObject.Id} ajouté avec succès.");
+                            tbCom.LogInfo($"Objet '{key}' ajouté avec succès.");
+                        }
+                        else if (response.StartsWith("OBJET EXISTE DÉJÀ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            tbCom.LogInfo($"Objet '{key}' existe déjà.");
                         }
                         else
                         {
-                            tbCom.LogError($"Erreur lors de l'ajout de l'objet {robotObject.Id} : {response}");
+                            tbCom.LogError($"Erreur lors de l'ajout de l'objet '{key}' : {response}");
+                            // Si l'ajout a échoué, retirer l'objet de la collection locale
+                            localObjects.TryRemove(key, out _);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    tbCom.LogError($"Erreur lors de l'envoi de l'objet : {ex.Message}");
+                    tbCom.LogError($"Erreur lors de l'envoi de l'objet '{key}' : {ex.Message}");
+                    // Si une erreur survient, retirer l'objet de la collection locale
+                    localObjects.TryRemove(key, out _);
                 }
             }
             else
             {
-                tbCom.LogError($"Échec de l'ajout de l'objet {robotObject.Id} à la collection locale.");
+                //tbCom.LogInfo($"Objet {color}, {shape}, {x}, {y} avec clé '{key}' existe déjà. Ignoré.");
             }
+        }
+
+
+        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string color = "Rouge";
+            string shape = "Triangle";
+            int x = 300;
+            int y = 200;
+            AddRobotObject(color, shape, x, y);
         }
     }
 }

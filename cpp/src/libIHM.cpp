@@ -15,6 +15,7 @@ ClibIHM::ClibIHM() {
 
 	this->nbDataImg = 0;
 	this->dataFromImg.clear();
+	this->dataObject.clear();
 	this->imgPt = NULL;
 }
 
@@ -212,20 +213,6 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
-//void ClibIHM::runProcessCap()
-//{
-//	//Seuillage
-//	int seuilBas = 0;
-//	int seuilHaut = 255;
-//
-//	CImageNdg imgSeuil = this->imgNdgPt->seuillage("otsu", seuilBas, seuilHaut);
-//
-//	this->ecrireChamp(0, seuilBas);
-//	this->ecrireChamp(1, seuilHaut);
-//
-//	this->writeBinaryImage(imgSeuil);
-//	this->persitData(this->imgNdgPt, COULEUR::RVB);
-//}
 // projet vision
  // Reconnaissance de couleur
 void ClibIHM::runProcessCap() {
@@ -254,7 +241,6 @@ void ClibIHM::runProcessCap() {
 		<< ", Forme : " << shapeResult
 		<< ", Position : (" << posX << ", " << posY << ")" << std::endl;
 }
-
 
 // Compare l'image traitee et la ground truth pour afficher les ressemblances et differences
 void ClibIHM::compare(ClibIHM* pImgGt)
@@ -304,7 +290,7 @@ void ClibIHM::score(ClibIHM* pImgGt)
 
 		double score = img.indicateurPerformance(GT, "iou");
 
-		this->dataFromImg.at(0) = floor(score * 10000) / 100;
+		this->ecrireChamp(0, floor(score * 10000) / 100);
 	});
 
 	std::thread th2([&] {
@@ -313,7 +299,7 @@ void ClibIHM::score(ClibIHM* pImgGt)
 
 		double score = imgClasse.vinet(img, GT);
 
-		this->dataFromImg.at(1) = floor(score * 10000) / 100;
+		this->ecrireChamp(1, floor(score * 10000) / 100);
 	
 	});
 	
@@ -367,5 +353,7 @@ ClibIHM::~ClibIHM() {
 	if (imgPt)
 		(*this->imgPt).~CImageCouleur(); 
 	this->dataFromImg.clear();
+	this->dataObject.clear();
+
 }
 

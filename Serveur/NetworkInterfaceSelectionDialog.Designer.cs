@@ -104,7 +104,6 @@ namespace Serveur
         #endregion
 
         private System.Windows.Forms.ListView listViewInterfaces;
-        private System.Windows.Forms.Button btnOK;
         private System.Windows.Forms.Button btnCancel;
     }
 }
