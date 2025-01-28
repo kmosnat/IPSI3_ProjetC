@@ -213,267 +213,136 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
-void ClibIHM::connectedComponentLabeling(CImageNdg& binaryImg, std::vector<std::vector<int>>& labels) {
-	int rows = binaryImg.lireHauteur();
-	int cols = binaryImg.lireLargeur(); // Assurez-vous que CImageNdg a une méthode getCols()
-	labels.assign(rows, std::vector<int>(cols, 0));
+void ClibIHM::runProcessCap() {
+	CImageNdg binaryImg = this->imgNdgPt->filtrage("moyennage", 3, 3, "disk");
 
-	std::map<int, Label> labelMap;
-	int nextLabel = 1;
+	int seuilBas = 70;
+	int seuilHaut = 255;
+	CImageNdg moy = binaryImg.seuillage("moyenne", seuilBas, seuilHaut);
 
-	// Première passe
-	for (int y = 0; y < rows; y++) {
-		for (int x = 0; x < cols; x++) {
-			if (binaryImg(y, x) == 1) { // Supposons que les bouchons sont marqués par 1
-				std::vector<int> neighbors;
-				// Vérifier les voisins (8-connectivité)
-				for (int dy = -1; dy <= 0; dy++) {
-					for (int dx = -1; dx <= 1; dx++) {
-						if (dy == 0 && dx == 1) continue; // Exclure les pixels à droite
-						int ny = y + dy;
-						int nx = x + dx;
-						if (ny >= 0 && ny < rows && nx >= 0 && nx < cols) {
-							if (binaryImg(ny, nx) == 1 && labels[ny][nx] > 0) {
-								neighbors.push_back(labels[ny][nx]);
-							}
-						}
-					}
-				}
+	CImageNdg trueRes;
+	std::vector<Bouchon> bouchons = extractBouchons(moy, trueRes);
 
-				if (neighbors.empty()) {
-					labels[y][x] = nextLabel;
-					labelMap[nextLabel] = Label{ nextLabel, 0 };
-					nextLabel++;
-				}
-				else {
-					int minLabel = *std::min_element(neighbors.begin(), neighbors.end());
-					labels[y][x] = minLabel;
-					for (int lbl : neighbors) {
-						if (lbl != minLabel) {
-							int root1 = findRoot(lbl, labelMap);
-							int root2 = findRoot(minLabel, labelMap);
-							if (root1 != root2) {
-								// Union par rang
-								if (labelMap[root1].rank < labelMap[root2].rank) {
-									labelMap[root1].parent = root2;
-								}
-								else {
-									labelMap[root2].parent = root1;
-									if (labelMap[root1].rank == labelMap[root2].rank) {
-										labelMap[root1].rank++;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+	for (const auto& bouchon : bouchons) {
+
+		std::ostringstream oss;
+		oss << bouchon.forme << ", "
+			<< bouchon.couleur << ", "
+			<< bouchon.centroidX_mm << ", "
+			<< bouchon.centroidY_mm;
+
+		this->ecrireObject(bouchon.label, _strdup(oss.str().c_str()));
 	}
 
-	// Deuxième passe
-	for (int y = 0; y < rows; y++) {
-		for (int x = 0; x < cols; x++) {
-			if (labels[y][x] > 0) {
-				labels[y][x] = findRoot(labels[y][x], labelMap);
-			}
-		}
-	}
+	this->writeBinaryImage(trueRes);
+
+	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
-// Méthodes d'extraction
-std::vector<Bouchon> ClibIHM::extractBouchons(const std::vector<std::vector<int>>& labels) {
-	std::map<int, Bouchon> bouchonMap;
-
-	int rows = labels.size();
-	int cols = labels[0].size();
-
-	for (int y = 0; y < rows; y++) {
-		for (int x = 0; x < cols; x++) {
-			if (labels[y][x] > 0) {
-				int lbl = labels[y][x];
-				if (bouchonMap.find(lbl) == bouchonMap.end()) {
-					bouchonMap[lbl] = Bouchon{ lbl, {}, 0.0, 0.0, "", "" };
-				}
-				bouchonMap[lbl].pixels.emplace_back(y, x);
-				bouchonMap[lbl].centroidX += x;
-				bouchonMap[lbl].centroidY += y;
-			}
-		}
-	}
-
+std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes)
+{
 	std::vector<Bouchon> bouchons;
-	for (auto& pair : bouchonMap) {
-		int lbl = pair.first;
-		Bouchon& bouchon = pair.second;
 
-		int numPixels = bouchon.pixels.size();
-		if (numPixels > 0) { // Assurez-vous de ne pas diviser par zéro
-			bouchon.centroidX /= numPixels;
-			bouchon.centroidY /= numPixels;
+	CImageClasse imgClasse(img, "V8");
+
+	CImageClasse filtre = imgClasse.filtrage("taille", 5000, 30000, false);
+
+	trueRes = filtre.toNdg();
+
+	std::vector<SIGNATURE_Forme> labels = filtre.signatures();
+
+	int nbBouchons = static_cast<int>(labels.size()) - 1;
+	this->ecrireChamp(0, nbBouchons);
+	this->dataObject.resize(nbBouchons);
+
+	// Dimensions de l'image
+	int largeur = trueRes.lireLargeur();  
+	int hauteur = trueRes.lireHauteur();
+
+	// Hypothèse : rayon bouchon = 150 mm
+	float physicalRadiusMm = 150.0f;
+	float imageRadiusPx = static_cast<float>(min(largeur, hauteur)) / 2.0f;
+	float globalFacteurConversion = physicalRadiusMm / imageRadiusPx;
+
+	// Centre (en pixels)
+	float centerX = static_cast<float>(largeur) / 2.0f;
+	float centerY = static_cast<float>(hauteur) / 2.0f;
+
+	for (int i = 1; i < static_cast<int>(labels.size()); ++i)
+	{
+		Bouchon bouchon;
+		bouchon.label = i - 1;
+
+		float objX_px = static_cast<float>(labels[i].centreGravite_j);
+		float objY_px = static_cast<float>(labels[i].centreGravite_i);
+
+		
+		std::vector<Direction> directions = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
+
+		std::vector<float> rayons;
+		rayons.reserve(directions.size());
+
+		int x0 = static_cast<int>(objX_px);
+		int y0 = static_cast<int>(objY_px);
+
+		for (const auto& dir : directions)
+		{
+			int x = x0;
+			int y = y0;
+			float rayon = 0.0f;
+
+			while (x >= 0 && x < largeur && y >= 0 && y < hauteur)
+			{
+				// Si on tombe sur le fond (valeur 0) on arrête
+				if (trueRes(x, y) == 0) {
+					break;
+				}
+				x += dir.dx;
+				y += dir.dy;
+				rayon += 1.0f;
+			}
+			rayons.push_back(rayon);
 		}
+
+		float rayonP_px = 0.0f;
+		if (!rayons.empty()) {
+			float sum = 0.0f;
+			for (float r : rayons) sum += r;
+			rayonP_px = sum / static_cast<float>(rayons.size());
+		}
+		else {
+			rayonP_px = 1.0f; // Evite la division par 0
+		}
+
+		float facteurConversion = globalFacteurConversion;
+
+		// Position en mm (origine = centre image)
+		float realX_mm = (objX_px - centerX) * facteurConversion;
+		float realY_mm = (objY_px - centerY) * facteurConversion;
+
+		// Rayon en mm
+		float rayonP_mm = rayonP_px * facteurConversion;
+
+		// Renseignement du bouchon
+		bouchon.centroidX_mm = realX_mm;
+		bouchon.centroidY_mm = realY_mm;
+		bouchon.rayon_mm = rayonP_mm;
+
 		bouchons.push_back(bouchon);
 	}
 
 	return bouchons;
 }
 
-void ClibIHM::runProcessCap() {
-	// Étape 1: Prétraitement
-	this->filter("median", 3, "V8");
-
-	// Étape 2: Binarisation
-	CImageNdg binaryImg = this->toBinaire();
-
-	// Étape 3: Étiquetage des composantes connexes
-	std::vector<std::vector<int>> labels;
-	connectedComponentLabeling(binaryImg, labels);
-
-	// Étape 4: Extraction des bouchons
-	std::vector<Bouchon> bouchons = extractBouchons(labels);
-
-	// Étape 5: Analyse des formes
-	for (auto& bouchon : bouchons) {
-		bouchon.forme = determineShapeAdvanced(bouchon);
-	}
-
-	// Étape 6: Analyse des couleurs
-	analyzeColors(bouchons);
-
-	// Étape 7: Stockage des informations
-	this->dataObject.resize(bouchons.size());
-	for (size_t i = 0; i < bouchons.size(); ++i) {
-		std::ostringstream oss;
-		oss << "Bouchon " << i + 1 << ": "
-			<< "Forme=" << bouchons[i].forme << ", "
-			<< "Couleur=" << bouchons[i].couleur << ", "
-			<< "Position=(" << static_cast<int>(bouchons[i].centroidX) << ", "
-			<< static_cast<int>(bouchons[i].centroidY) << ")";
-		this->ecrireObject(i, _strdup(oss.str().c_str()));
-	}
-
-	// Étape 8: Persistance des données
-	this->persitData(this->imgNdgPt, COULEUR::RVB);
-}
-
-// Implémentation des autres méthodes...
-
-// Exemple pour isCircle
-bool ClibIHM::isCircle(const Bouchon& bouchon) {
-	double perimeter = 0.0;
-	double area = bouchon.pixels.size();
-	// Calculer le périmètre (approximatif)
-	for (size_t i = 0; i < bouchon.pixels.size(); i++) {
-		int y = bouchon.pixels[i].first;
-		int x = bouchon.pixels[i].second;
-		// Vérifier si le pixel a au moins un voisin noir (0)
-		bool isEdge = false;
-		for (int dy = -1; dy <= 1 && !isEdge; dy++) {
-			for (int dx = -1; dx <= 1 && !isEdge; dx++) {
-				if (dy == 0 && dx == 0) continue;
-				int ny = y + dy;
-				int nx = x + dx;
-				if (ny >= 0 && ny < NbLig && nx >= 0 && nx < NbCol) {
-					if (imgNdgPt->operator()(ny, nx) == 0) {
-						isEdge = true;
-					}
-				}
-				else {
-					isEdge = true;
-				}
-			}
-		}
-		if (isEdge) perimeter++;
-	}
-
-	double circularity = 4 * acos(-1) * (area / (perimeter * perimeter));
-	// La circularité d'un cercle parfait est 1
-	return (circularity > 0.75); // Seuil à ajuster
-}
-
-// Implémentation simplifiée de isHeart
-bool ClibIHM::isHeart(const Bouchon& bouchon) {
-	// Cette méthode nécessite une heuristique spécifique. Voici une approche simplifiée:
-	// Vérifier la présence de pixels concaves ou d'un certain nombre de points sur la ligne médiane
-	// Retourne vrai si une forme de cœur est détectée
-
-	// Placeholder: Implémentez une méthode plus robuste si nécessaire
-	return false;
-}
 
 std::string ClibIHM::determineShape(const Bouchon& bouchon) {
-	// Calculer l'encombrement
-	if (bouchon.pixels.empty()) {
-		return "Inconnu";
-	}
-
-	int minY = bouchon.pixels[0].first, maxY = bouchon.pixels[0].first;
-	int minX = bouchon.pixels[0].second, maxX = bouchon.pixels[0].second;
-
-	for (const auto& pixel : bouchon.pixels) {
-		int y = pixel.first;
-		int x = pixel.second;
-		if (y < minY) minY = y;
-		if (y > maxY) maxY = y;
-		if (x < minX) minX = x;
-		if (x > maxX) maxX = x;
-	}
-
-	int width = maxX - minX + 1;
-	int height = maxY - minY + 1;
-	double aspectRatio = static_cast<double>(width) / height;
-
-	// Approximations basées sur l'aspect ratio et la circularité
-	if (isCircle(bouchon)) {
-		return "Cercle";
-	}
-
-	// Ratio pour différencier les carrés des rectangles
-	if (aspectRatio > 0.9 && aspectRatio < 1.1) {
-		return "Carré";
-	}
-
-	// Détection du triangle basé sur la hauteur
-	if (height > width) {
-		return "Triangle";
-	}
-
+	
 	return "Inconnu";
 }
 
 
-std::string ClibIHM::determineShapeAdvanced(const Bouchon& bouchon) {
-	if (isCircle(bouchon)) {
-		return "Cercle";
-	}
-	std::string shape = determineShape(bouchon);
-	if (shape == "Inconnu") {
-		if (isHeart(bouchon)) {
-			return "Cœur";
-		}
-	}
-	return shape;
-}
-
 std::string ClibIHM::determineColor(const Bouchon& bouchon) {
-	if (bouchon.pixels.empty()) {
-		return "Inconnu";
-	}
-
-	long sumGray = 0;
-	for (const auto& pixel : bouchon.pixels) {
-		int y = pixel.first;
-		int x = pixel.second;
-		sumGray += this->imgNdgPt->operator()(y, x);
-	}
-	double avgGray = static_cast<double>(sumGray) / bouchon.pixels.size();
-
-	// Définir des seuils pour différentes "couleurs" en niveaux de gris
-	if (avgGray > 220) return "Jaune";
-	if (avgGray > 180) return "Orange";
-	if (avgGray > 140) return "Vert Foncé";
-	if (avgGray > 100) return "Rose";
-	if (avgGray > 60) return "Bleu";
+	
 	return "Noir";
 }
 
@@ -485,7 +354,6 @@ void ClibIHM::analyzeColors(std::vector<Bouchon>& bouchons) {
 }
 
 
-// Compare l'image traitee et la ground truth pour afficher les ressemblances et differences
 void ClibIHM::compare(ClibIHM* pImgGt)
 {
 	CImageCouleur out(NbLig, NbCol);

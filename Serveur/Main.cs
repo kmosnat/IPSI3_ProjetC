@@ -95,8 +95,11 @@ namespace Serveur
         {
             UpdateRobotStateMachine();
 
+
             try
             {
+                robot.Connect();
+                tbCom.LogInfo($"{!robot.IsConnected()}");
                 if (!robot.IsConnected())
                 {
                     // Robot déconnecté
@@ -210,6 +213,10 @@ namespace Serveur
                     calibrationStatus.Visible = true;
                     isBlinking = false;
                 }
+            }
+            finally
+            {
+                robot.Disconnect();
             }
         }
 

@@ -390,6 +390,18 @@ CImageNdg CImageNdg::seuillage(const std::string& methode, int& seuilBas, int& s
 					seuilBas = i;
 			}
 		}
+		else {
+				if (methode.compare("moyenne") == 0) {
+					out.m_sNom = this->lireNom() + "SeMoy";
+					seuilBas = this->signatures().moyenne;
+					seuilHaut = 255;
+				}
+				if (methode.compare("mediane") == 0) {
+					out.m_sNom = this->lireNom() + "SeMed";
+					seuilBas = this->signatures().mediane;
+					seuilHaut = 255;
+				}
+			}
 
 		// fin recherche valeur seuil 
 

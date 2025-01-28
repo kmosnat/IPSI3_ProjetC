@@ -135,6 +135,7 @@ namespace Serveur
             this.lblPitch = new System.Windows.Forms.Label();
             this.lblYaw = new System.Windows.Forms.Label();
             this.panelCalibration = new System.Windows.Forms.Panel();
+            this.moveRobotTest = new System.Windows.Forms.Button();
             this.calibrationStatus = new System.Windows.Forms.Label();
             this.calibrationButton = new System.Windows.Forms.Button();
             this.gbReferencePoints = new System.Windows.Forms.GroupBox();
@@ -145,7 +146,6 @@ namespace Serveur
             this.tbCom = new System.Windows.Forms.TextBox();
             this.timAcq = new System.Windows.Forms.Timer(this.components);
             this.mainSplit = new System.Windows.Forms.SplitContainer();
-            this.moveRobotTest = new System.Windows.Forms.Button();
             this.navBar.SuspendLayout();
             this.gbCamera.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.btnSearchCamera)).BeginInit();
@@ -184,7 +184,7 @@ namespace Serveur
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
             this.navBar.Padding = new System.Windows.Forms.Padding(8, 2, 0, 2);
-            this.navBar.Size = new System.Drawing.Size(1686, 40);
+            this.navBar.Size = new System.Drawing.Size(1686, 48);
             this.navBar.TabIndex = 0;
             // 
             // serveurTCPToolStripMenuItem
@@ -246,14 +246,14 @@ namespace Serveur
             // ethernetToolStripMenuItem
             // 
             this.ethernetToolStripMenuItem.Name = "ethernetToolStripMenuItem";
-            this.ethernetToolStripMenuItem.Size = new System.Drawing.Size(359, 44);
+            this.ethernetToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
             this.ethernetToolStripMenuItem.Text = "Ethernet";
             this.ethernetToolStripMenuItem.Click += new System.EventHandler(this.ethernetToolStripMenuItem_Click);
             // 
             // hotspotToolStripMenuItem
             // 
             this.hotspotToolStripMenuItem.Name = "hotspotToolStripMenuItem";
-            this.hotspotToolStripMenuItem.Size = new System.Drawing.Size(359, 44);
+            this.hotspotToolStripMenuItem.Size = new System.Drawing.Size(237, 44);
             this.hotspotToolStripMenuItem.Text = "Hotspot";
             this.hotspotToolStripMenuItem.Click += new System.EventHandler(this.hotspotToolStripMenuItem_Click);
             // 
@@ -399,7 +399,7 @@ namespace Serveur
             this.dgvObjects.Margin = new System.Windows.Forms.Padding(4);
             this.dgvObjects.Name = "dgvObjects";
             this.dgvObjects.RowHeadersWidth = 82;
-            this.dgvObjects.Size = new System.Drawing.Size(612, 755);
+            this.dgvObjects.Size = new System.Drawing.Size(612, 747);
             this.dgvObjects.TabIndex = 0;
             // 
             // rightSplit
@@ -417,8 +417,8 @@ namespace Serveur
             // rightSplit.Panel2
             // 
             this.rightSplit.Panel2.Controls.Add(this.tabControlBottom);
-            this.rightSplit.Size = new System.Drawing.Size(1070, 1087);
-            this.rightSplit.SplitterDistance = 519;
+            this.rightSplit.Size = new System.Drawing.Size(1070, 1079);
+            this.rightSplit.SplitterDistance = 515;
             this.rightSplit.SplitterWidth = 6;
             this.rightSplit.TabIndex = 0;
             // 
@@ -429,7 +429,7 @@ namespace Serveur
             this.pbImage.Location = new System.Drawing.Point(0, 0);
             this.pbImage.Margin = new System.Windows.Forms.Padding(4);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(1070, 519);
+            this.pbImage.Size = new System.Drawing.Size(1070, 515);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 0;
             this.pbImage.TabStop = false;
@@ -443,7 +443,7 @@ namespace Serveur
             this.tabControlBottom.Margin = new System.Windows.Forms.Padding(4);
             this.tabControlBottom.Name = "tabControlBottom";
             this.tabControlBottom.SelectedIndex = 0;
-            this.tabControlBottom.Size = new System.Drawing.Size(1070, 562);
+            this.tabControlBottom.Size = new System.Drawing.Size(1070, 558);
             this.tabControlBottom.TabIndex = 0;
             // 
             // RobotPage
@@ -452,7 +452,7 @@ namespace Serveur
             this.RobotPage.Location = new System.Drawing.Point(8, 39);
             this.RobotPage.Name = "RobotPage";
             this.RobotPage.Padding = new System.Windows.Forms.Padding(3);
-            this.RobotPage.Size = new System.Drawing.Size(1054, 515);
+            this.RobotPage.Size = new System.Drawing.Size(1054, 511);
             this.RobotPage.TabIndex = 1;
             this.RobotPage.Text = "Robot";
             this.RobotPage.UseVisualStyleBackColor = true;
@@ -474,7 +474,7 @@ namespace Serveur
             this.tableLayoutRobot.RowCount = 2;
             this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
             this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 60F));
-            this.tableLayoutRobot.Size = new System.Drawing.Size(1048, 509);
+            this.tableLayoutRobot.Size = new System.Drawing.Size(1048, 505);
             this.tableLayoutRobot.TabIndex = 0;
             // 
             // gbJointInfo
@@ -490,7 +490,7 @@ namespace Serveur
             this.gbJointInfo.Location = new System.Drawing.Point(3, 3);
             this.gbJointInfo.Name = "gbJointInfo";
             this.gbJointInfo.Padding = new System.Windows.Forms.Padding(5);
-            this.gbJointInfo.Size = new System.Drawing.Size(518, 197);
+            this.gbJointInfo.Size = new System.Drawing.Size(518, 196);
             this.gbJointInfo.TabIndex = 2;
             this.gbJointInfo.TabStop = false;
             this.gbJointInfo.Text = "Informations des Joints";
@@ -568,7 +568,7 @@ namespace Serveur
             this.gbRealPosition.Location = new System.Drawing.Point(527, 3);
             this.gbRealPosition.Name = "gbRealPosition";
             this.gbRealPosition.Padding = new System.Windows.Forms.Padding(5);
-            this.gbRealPosition.Size = new System.Drawing.Size(518, 197);
+            this.gbRealPosition.Size = new System.Drawing.Size(518, 196);
             this.gbRealPosition.TabIndex = 3;
             this.gbRealPosition.TabStop = false;
             this.gbRealPosition.Text = "Positions Réelles";
@@ -639,11 +639,21 @@ namespace Serveur
             this.panelCalibration.Controls.Add(this.calibrationStatus);
             this.panelCalibration.Controls.Add(this.calibrationButton);
             this.panelCalibration.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panelCalibration.Location = new System.Drawing.Point(3, 206);
+            this.panelCalibration.Location = new System.Drawing.Point(3, 205);
             this.panelCalibration.Name = "panelCalibration";
             this.panelCalibration.Padding = new System.Windows.Forms.Padding(10);
-            this.panelCalibration.Size = new System.Drawing.Size(518, 300);
+            this.panelCalibration.Size = new System.Drawing.Size(518, 297);
             this.panelCalibration.TabIndex = 6;
+            // 
+            // moveRobotTest
+            // 
+            this.moveRobotTest.Location = new System.Drawing.Point(170, 196);
+            this.moveRobotTest.Name = "moveRobotTest";
+            this.moveRobotTest.Size = new System.Drawing.Size(181, 60);
+            this.moveRobotTest.TabIndex = 6;
+            this.moveRobotTest.Text = "Test Mouvement";
+            this.moveRobotTest.UseVisualStyleBackColor = true;
+            this.moveRobotTest.Click += new System.EventHandler(this.moveRobotTest_Click);
             // 
             // calibrationStatus
             // 
@@ -652,7 +662,7 @@ namespace Serveur
             this.calibrationStatus.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.calibrationStatus.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
             this.calibrationStatus.ForeColor = System.Drawing.Color.White;
-            this.calibrationStatus.Location = new System.Drawing.Point(173, 53);
+            this.calibrationStatus.Location = new System.Drawing.Point(170, 28);
             this.calibrationStatus.Name = "calibrationStatus";
             this.calibrationStatus.Padding = new System.Windows.Forms.Padding(10);
             this.calibrationStatus.Size = new System.Drawing.Size(157, 52);
@@ -662,7 +672,7 @@ namespace Serveur
             // calibrationButton
             // 
             this.calibrationButton.Font = new System.Drawing.Font("Segoe UI", 8F);
-            this.calibrationButton.Location = new System.Drawing.Point(144, 156);
+            this.calibrationButton.Location = new System.Drawing.Point(151, 115);
             this.calibrationButton.Name = "calibrationButton";
             this.calibrationButton.Size = new System.Drawing.Size(231, 50);
             this.calibrationButton.TabIndex = 2;
@@ -677,9 +687,9 @@ namespace Serveur
             this.gbReferencePoints.Controls.Add(this.lbReferencePoints);
             this.gbReferencePoints.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
-            this.gbReferencePoints.Location = new System.Drawing.Point(527, 206);
+            this.gbReferencePoints.Location = new System.Drawing.Point(527, 205);
             this.gbReferencePoints.Name = "gbReferencePoints";
-            this.gbReferencePoints.Size = new System.Drawing.Size(518, 300);
+            this.gbReferencePoints.Size = new System.Drawing.Size(518, 297);
             this.gbReferencePoints.TabIndex = 4;
             this.gbReferencePoints.TabStop = false;
             this.gbReferencePoints.Text = "Points de Référence";
@@ -698,7 +708,7 @@ namespace Serveur
             // btnSaveRef2
             // 
             this.btnSaveRef2.Font = new System.Drawing.Font("Segoe UI", 8F);
-            this.btnSaveRef2.Location = new System.Drawing.Point(274, 53);
+            this.btnSaveRef2.Location = new System.Drawing.Point(301, 53);
             this.btnSaveRef2.Name = "btnSaveRef2";
             this.btnSaveRef2.Size = new System.Drawing.Size(195, 99);
             this.btnSaveRef2.TabIndex = 1;
@@ -711,7 +721,7 @@ namespace Serveur
             this.lbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 8F);
             this.lbReferencePoints.FormattingEnabled = true;
             this.lbReferencePoints.ItemHeight = 30;
-            this.lbReferencePoints.Location = new System.Drawing.Point(6, 158);
+            this.lbReferencePoints.Location = new System.Drawing.Point(22, 170);
             this.lbReferencePoints.Name = "lbReferencePoints";
             this.lbReferencePoints.Size = new System.Drawing.Size(474, 124);
             this.lbReferencePoints.TabIndex = 4;
@@ -749,7 +759,7 @@ namespace Serveur
             // mainSplit
             // 
             this.mainSplit.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mainSplit.Location = new System.Drawing.Point(0, 40);
+            this.mainSplit.Location = new System.Drawing.Point(0, 48);
             this.mainSplit.Margin = new System.Windows.Forms.Padding(4);
             this.mainSplit.Name = "mainSplit";
             // 
@@ -763,19 +773,9 @@ namespace Serveur
             // mainSplit.Panel2
             // 
             this.mainSplit.Panel2.Controls.Add(this.rightSplit);
-            this.mainSplit.Size = new System.Drawing.Size(1686, 1087);
+            this.mainSplit.Size = new System.Drawing.Size(1686, 1079);
             this.mainSplit.SplitterDistance = 612;
             this.mainSplit.TabIndex = 0;
-            // 
-            // moveRobotTest
-            // 
-            this.moveRobotTest.Location = new System.Drawing.Point(173, 222);
-            this.moveRobotTest.Name = "moveRobotTest";
-            this.moveRobotTest.Size = new System.Drawing.Size(181, 60);
-            this.moveRobotTest.TabIndex = 6;
-            this.moveRobotTest.Text = "Test Mouvement";
-            this.moveRobotTest.UseVisualStyleBackColor = true;
-            this.moveRobotTest.Click += new System.EventHandler(this.moveRobotTest_Click);
             // 
             // Main
             // 

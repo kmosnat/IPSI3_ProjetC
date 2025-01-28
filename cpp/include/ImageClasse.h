@@ -55,6 +55,12 @@ typedef struct {
 	int			rectEnglob_Bj;
 	REGION		region;
 	float		perimetre; // au sens V8
+	double lambda1; // + grande valeur propre
+	double lambda2; // + petite valeur propre
+	double V1i; // vecteur propre principal
+	double V1j;
+	double V2i; // vecteur propre secondaire
+	double V2j;
 } SIGNATURE_Forme;
 
 typedef struct {

@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -152,7 +152,7 @@ CImageClasse::CImageClasse(const CImageNdg& im, std::string choix) {
 		}	
 	} 
   
-	// actualisation de la table d'équivalence
+	// actualisation de la table d'Ã©quivalence
 	for (int kk=1;kk<k;kk++) {
 		int m = kk;
 		while (tableEtiquette[m] != m) 
@@ -165,11 +165,11 @@ CImageClasse::CImageClasse(const CImageNdg& im, std::string choix) {
 	for (int kk=0;kk<k;kk++)
 		etiquettes[kk] = 0;
 
-	// histo pour repérer les trous
+	// histo pour repÃ©rer les trous
 	for (int kk=1;kk<k;kk++)
 		etiquettes[tableEtiquette[kk]]++;
 
-	// on remet à jour les index (etiquetage définitif hors trou)
+	// on remet Ã  jour les index (etiquetage dÃ©finitif hors trou)
 	etiquettes[0] = 0;
 	int compt = 1;
 	for (int kk=1;kk<k;kk++) {
@@ -185,8 +185,8 @@ CImageClasse::CImageClasse(const CImageNdg& im, std::string choix) {
 	delete [] etiquettes;
 	delete [] tableEtiquette;
 
-	// création image labélisée
-	// suppression des 2 lignes et 2 colonnes artificiellement créées
+	// crÃ©ation image labÃ©lisÃ©e
+	// suppression des 2 lignes et 2 colonnes artificiellement crÃ©Ã©es
 
 	for (i=0,ii=1; i < this->lireHauteur(); i++, ii++)  
 		for (j=0,jj=1; j < this->lireLargeur(); j++, jj++)
@@ -210,7 +210,7 @@ CImageClasse::CImageClasse(const CImageClasse& in, std::string choix, std::strin
 			memcpy(this->m_pucPixel,in.m_pucPixel,in.lireNbPixels()*sizeof(unsigned long));
 	}
 	else { 
-		// détection cas objets/fond ou ND, présence ou non d'une classe à 0
+		// dÃ©tection cas objets/fond ou ND, prÃ©sence ou non d'une classe Ã  0
 
 		bool objetsFond = false;
 		int pix=0;
@@ -219,7 +219,7 @@ CImageClasse::CImageClasse(const CImageClasse& in, std::string choix, std::strin
 			pix++;
 		}
 
-		if (objetsFond) { // cas présence fond à 0
+		if (objetsFond) { // cas prÃ©sence fond Ã  0
 
 			CImageNdg im(in.lireHauteur(),in.lireLargeur());
 			for (int i=0;i<in.lireNbPixels();i++)
@@ -232,7 +232,7 @@ CImageClasse::CImageClasse(const CImageClasse& in, std::string choix, std::strin
 
 			memcpy(this->m_pucPixel,out.m_pucPixel,out.lireNbPixels()*sizeof(unsigned long));
 		}
-		else { // cas nuées dynamiques donc ré-étiquetage classe après classe
+		else { // cas nuÃ©es dynamiques donc rÃ©-Ã©tiquetage classe aprÃ¨s classe
 			this->m_iHauteur   = in.lireHauteur();
 			this->m_iLargeur   = in.lireLargeur();
 			this->m_sNom       = in.lireNom()+"RE";
@@ -254,7 +254,7 @@ CImageClasse::CImageClasse(const CImageClasse& in, std::string choix, std::strin
 
 				this->ecrireNbRegions(this->lireNbRegions()+inter.lireNbRegions());
 			}
-		std::cout << this->lireNbRegions() << " nouvelles régions connexes dans l'image..." << std::endl;
+		std::cout << this->lireNbRegions() << " nouvelles rÃ©gions connexes dans l'image..." << std::endl;
 		}
 	}
 }
@@ -269,11 +269,11 @@ CImageClasse::CImageClasse(const CImageNdg& im, int nbClusters, std::string choi
 
 
 	// contiendra la somme des elements de la classe
-	// pour pouvoir calculer le centre de gravité !
+	// pour pouvoir calculer le centre de gravitÃ© !
 	std::vector<unsigned long> sommeClasses;
 
 	// contiendra le nombre des elements de la classe
-	// pour pouvoir calculer le centre de gravité !
+	// pour pouvoir calculer le centre de gravitÃ© !
 	std::vector<unsigned long> nbEltsClasses;
 
 	// contiendra le centre de chaque classe
@@ -284,7 +284,7 @@ CImageClasse::CImageClasse(const CImageNdg& im, int nbClusters, std::string choi
 	std::vector<int> lut;
 
 	// allocation de k+1 classes
-	// volonté d'affecter l'indice i à la classe i
+	// volontÃ© d'affecter l'indice i Ã  la classe i
 	nbEltsClasses.resize(nbClusters+1); 
 	for (int i=1;i<=nbClusters;i++)
 		nbEltsClasses[i]=0;
@@ -303,7 +303,7 @@ CImageClasse::CImageClasse(const CImageNdg& im, int nbClusters, std::string choi
 	mean /= this->lireNbPixels();
 
 	// nb de niveaux de gris dans image initiale
-	// si k supérieur, alors on diminue le nb de classes en sortie : nbClasses
+	// si k supÃ©rieur, alors on diminue le nb de classes en sortie : nbClasses
 	int nbLevels=0;
 	for (int i=0;i<256;i++)
 		if (h[i]) nbLevels++;
@@ -312,7 +312,7 @@ CImageClasse::CImageClasse(const CImageNdg& im, int nbClusters, std::string choi
 	m_lNbRegions = nbClasses;
 
 
-	if (strcmp(choix.c_str(),"aleatoire") == 0) { // tirage aléatoire des germes initiaux 
+	if (strcmp(choix.c_str(),"aleatoire") == 0) { // tirage alÃ©atoire des germes initiaux 
 		srand((unsigned)time( NULL ));	
 		indexClasses.resize(nbClasses+1);
 
@@ -328,7 +328,7 @@ CImageClasse::CImageClasse(const CImageNdg& im, int nbClusters, std::string choi
 			}
 		}
 	}
-	else if (strcmp(choix.c_str(),"regulier") == 0) { // intervalles réguliers entre germes 
+	else if (strcmp(choix.c_str(),"regulier") == 0) { // intervalles rÃ©guliers entre germes 
 		indexClasses.resize(nbClasses+1);
 		// recherche du min et du max
 		int min = 0, max = 255;
@@ -355,7 +355,7 @@ CImageClasse::CImageClasse(const CImageNdg& im, int nbClusters, std::string choi
 	bool change = true ;
 
 	while ( (!nbTours) ||  ((change) && ( nbTours < MAX_ITER))) {
-		// Remise à zéro à chaque tour 
+		// Remise Ã  zÃ©ro Ã  chaque tour 
 		for (int i=1;i<=nbClasses;i++) {
 			nbEltsClasses[i]=0;
 			sommeClasses[i]=0L;
@@ -411,11 +411,11 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 
 
 	// contiendra la somme des elements de la classe
-	// pour pouvoir calculer le centre de gravité !
+	// pour pouvoir calculer le centre de gravitÃ© !
 	std::vector<unsigned long> sommeClasses;
 
 	// contiendra le nombre des elements de la classe
-	// pour pouvoir calculer le centre de gravité !
+	// pour pouvoir calculer le centre de gravitÃ© !
 	std::vector<unsigned long> nbEltsClasses;
 
 	// contiendra le centre de chaque classe
@@ -426,7 +426,7 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 	std::vector<int> lut;
 
 	// allocation de k+1 classes
-	// volonté d'affecter l'indice i à la classe i
+	// volontÃ© d'affecter l'indice i Ã  la classe i
 	nbEltsClasses.resize(nbClusters+1); 
 	for (int i=1;i<=nbClusters;i++)
 		nbEltsClasses[i]=0;
@@ -434,7 +434,7 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 	for (int i=1;i<=nbClusters;i++)
 		sommeClasses[i]=0L;
 
-	// extraction plan H pour optimisation basée histogramme 
+	// extraction plan H pour optimisation basÃ©e histogramme 
 
 	CImageCouleur hsv = im.conversion("HSV");
 
@@ -449,7 +449,7 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 	mean /= this->lireNbPixels();
 
 	// nb de niveaux de gris dans image initiale
-	// si k supérieur, alors on diminue le nb de classes en sortie : nbClasses
+	// si k supÃ©rieur, alors on diminue le nb de classes en sortie : nbClasses
 	int nbLevels=0;
 	for (int i=0;i<256;i++)
 		if (h[i]) nbLevels++;
@@ -457,7 +457,7 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 	nbClasses=min(nbClusters,nbLevels);
 	m_lNbRegions = nbClasses;
 
-	if (strcmp(choix.c_str(),"aleatoire") == 0) { // tirage aléatoire des germes initiaux 
+	if (strcmp(choix.c_str(),"aleatoire") == 0) { // tirage alÃ©atoire des germes initiaux 
 		srand((unsigned)time( NULL ));	
 		indexClasses.resize(nbClasses+1);
 
@@ -473,7 +473,7 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 			}
 		}
 	}
-	else if (strcmp(choix.c_str(),"regulier") == 0) { // intervalles réguliers entre germes 
+	else if (strcmp(choix.c_str(),"regulier") == 0) { // intervalles rÃ©guliers entre germes 
 		indexClasses.resize(nbClasses+1);
 		// recherche du min et du max
 		int min = 0, max = 255;
@@ -500,7 +500,7 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 	bool change = true ;
 
 	while ( (!nbTours) ||  ((change) && ( nbTours < MAX_ITER))) {
-		// Remise à zéro à chaque tour 
+		// Remise Ã  zÃ©ro Ã  chaque tour 
 		for (int i=1;i<=nbClasses;i++) {
 			nbEltsClasses[i]=0;
 			sommeClasses[i]=0L;
@@ -543,7 +543,7 @@ CImageClasse::CImageClasse(const CImageCouleur& im, int nbClusters, std::string 
 		this->operator()(i) = lut[hsv(i)[plan]]; 
 }
 
-CImageClasse::CImageClasse(const CImageNdg& im, const std::vector<int>& germes, double tolerance) // croissance région avec ensemble de germes sous la forme x0,y0,x1,y1,x2,y2 etc
+CImageClasse::CImageClasse(const CImageNdg& im, const std::vector<int>& germes, double tolerance) // croissance rÃ©gion avec ensemble de germes sous la forme x0,y0,x1,y1,x2,y2 etc
 {
 	this->m_iHauteur = im.lireHauteur();
 	this->m_iLargeur = im.lireLargeur();
@@ -685,7 +685,7 @@ CImageClasse::CImageClasse(const CImageNdg& im, const std::vector<int>& germes, 
 
 		std::cout << "Croissance stable apres " << nbTours << " iterations pour germe " << cr/2 << " ..." << std::endl;
 
-		// on revient à la taille d'origine
+		// on revient Ã  la taille d'origine
 		for (int i = 1; i < growing.lireHauteur() - 1; i++)
 			for (int j = 1; j < growing.lireLargeur() - 1; j++)
 				if ((growing(i, j) >= 1) && (this->operator()(i - 1, j - 1)==0))
@@ -744,7 +744,7 @@ std::vector<SIGNATURE_Ndg> CImageClasse::signatures(const CImageNdg& img, bool e
 	std::vector<SIGNATURE_Ndg> tab;
 
 	if (this->lireNbRegions() > 0) {
-		tab.resize(this->lireNbRegions()+1); // gestion du fond éventuel, cas des objets, vide si nuées dynamiques
+		tab.resize(this->lireNbRegions()+1); // gestion du fond Ã©ventuel, cas des objets, vide si nuÃ©es dynamiques
 		
 		for (int k=0;k<(int)tab.size();k++) {
 			tab[k].moyenne = 0;
@@ -839,7 +839,7 @@ CImageCouleur CImageClasse::affichage(const std::vector<SIGNATURE_Ndg>& tab, int
 	CImageCouleur out(this->lireHauteur(),this->lireLargeur());
 	out.ecrireNom(this->lireNom() + "_Contours");
 
-		// mettre à jour 
+		// mettre Ã  jour 
 
 		CImageClasse contours(this->lireHauteur()+2,this->lireLargeur()+2);
 		CImageClasse contoursC(this->lireHauteur()+2,this->lireLargeur()+2);
@@ -901,7 +901,7 @@ CImageCouleur CImageClasse::affichage(const std::vector<SIGNATURE_Couleur>& tab,
 	return out;
 }
 
-// région par région
+// rÃ©gion par rÃ©gion
 CImageClasse CImageClasse::selection(const std::string& methode, int classe) {
 
 	CImageClasse out(this->lireHauteur(),this->lireLargeur());
@@ -920,7 +920,7 @@ CImageClasse CImageClasse::selection(const std::string& methode, int classe) {
 	return out;
 }
 
-// filtrage selon critères taille, bords, etc
+// filtrage selon critÃ¨res taille, bords, etc
 CImageClasse CImageClasse::filtrage(const std::string& methode, int tMin, int tMax, bool miseAZero) {
 
 	CImageClasse out(this->lireHauteur(),this->lireLargeur());
@@ -965,7 +965,7 @@ CImageClasse CImageClasse::filtrage(const std::string& methode, int tMin, int tM
 				out2(i) = lut[this->operator ()(i)]; 
 			}
 
-			if (!surface[0]) { // cas ND -> suppression des pixels à 0 par propagation locale, aucunement similarité
+			if (!surface[0]) { // cas ND -> suppression des pixels Ã  0 par propagation locale, aucunement similaritÃ©
 				bool onContinue = true;
 				int step=1;
 				while (onContinue) 	{
@@ -1010,7 +1010,7 @@ CImageClasse CImageClasse::filtrage(const std::string& methode, int tMin, int tM
 				}
 			}
 
-		// mise à jour des classes
+		// mise Ã  jour des classes
 
 		std::vector<unsigned long> renumerotation;
 		renumerotation.resize(out.lireNbRegions()+1,0);
@@ -1073,6 +1073,7 @@ std::vector<SIGNATURE_Forme> CImageClasse::signatures(bool enregistrementCSV) {
 		for (int k=0;k<(int)tab.size();k++) {
 			tab[k].centreGravite_i = 0;
 			tab[k].centreGravite_j = 0;
+			/*
 			tab[k].surface = 0;
 			tab[k].premierPt_i = -1;
 			tab[k].premierPt_j = -1;
@@ -1082,6 +1083,7 @@ std::vector<SIGNATURE_Forme> CImageClasse::signatures(bool enregistrementCSV) {
 			tab[k].rectEnglob_Bj = 0;
 			tab[k].rectEnglob_Hi = this->lireHauteur()-1;
 			tab[k].rectEnglob_Hj = this->lireLargeur()-1;
+			*/
 		}
 
 		for (int i=0;i<this->lireHauteur();i++)
@@ -1091,6 +1093,7 @@ std::vector<SIGNATURE_Forme> CImageClasse::signatures(bool enregistrementCSV) {
 				tab[this->operator()(i, j)].centreGravite.y += i;
 				tab[this->operator()(i, j)].centreGravite.x += j;
 				tab[this->operator()(i,j)].surface += 1;
+				/*
 				if (tab[this->operator()(i,j)].premierPt_i == -1)
 					tab[this->operator()(i,j)].premierPt_i = i;
 				if (tab[this->operator()(i,j)].premierPt_j == -1)
@@ -1103,6 +1106,7 @@ std::vector<SIGNATURE_Forme> CImageClasse::signatures(bool enregistrementCSV) {
 				tab[this->operator()(i, j)].region.y = min(j, tab[this->operator()(i, j)].region.y);
 				tab[this->operator()(i, j)].region.width = max(i, tab[this->operator()(i, j)].region.width);
 				tab[this->operator()(i, j)].region.height = max(j, tab[this->operator()(i, j)].region.height);
+				*/
 				}
 
 		for (int k=0;k<(int)tab.size();k++) 
@@ -1112,7 +1116,7 @@ std::vector<SIGNATURE_Forme> CImageClasse::signatures(bool enregistrementCSV) {
 			}
 
 
-		CImageClasse agrandie(this->lireHauteur()+2,this->lireLargeur()+2); // bords à 0 pour bonne gestion des contours des objets
+		CImageClasse agrandie(this->lireHauteur()+2,this->lireLargeur()+2); // bords Ã  0 pour bonne gestion des contours des objets
 		agrandie.ecrireNbRegions(this->lireNbRegions());
 		CImageClasse copie(this->lireHauteur(),this->lireLargeur());
 		copie.ecrireNbRegions(this->lireNbRegions());
@@ -1153,16 +1157,16 @@ std::vector<SIGNATURE_Forme> CImageClasse::signatures(bool enregistrementCSV) {
 						int maxV = max(agrandie(i-1,j),agrandie(i+1,j));
 						int minV4 = min(minH,minV);
 						int maxV4 = max(maxH,maxV);
-						if (!( (agrandie(i,j) == minV4) && (agrandie(i,j) == maxV4) )) // pixel différent de ses voisins
+						if (!( (agrandie(i,j) == minV4) && (agrandie(i,j) == maxV4) )) // pixel diffÃ©rent de ses voisins
 							copie(i-1,j-1)=0;
 					}
 
 				for (int pix=0;pix<lireNbPixels();pix++)
 					copie(pix) = this->operator()(pix) - copie(pix);
 		}
-		// 	copie -> image des bords intérieurs des objets
+		// 	copie -> image des bords intÃ©rieurs des objets
 		
-		// parcours dans sens jusqu'à rejoindre point initial ou "stabilisation" au même point
+		// parcours dans sens jusqu'Ã  rejoindre point initial ou "stabilisation" au mÃªme point
 
 		for (int num = 1; num <= this->lireNbRegions();num++) {
 			int pIniti = tab[num].premierPt_i;
@@ -1235,7 +1239,7 @@ std::vector<SIGNATURE_Forme> CImageClasse::signatures(bool enregistrementCSV) {
 			}
 		}
 
-		// calcul du périmètre
+		// calcul du pÃ©rimÃ¨tre
 
 		for (int num = 1; num <= this->lireNbRegions();num++) {
 			for (int code=0;code<(int)tab[num].codeFreeman.size();code++) {
@@ -1291,7 +1295,7 @@ float CImageClasse::localIoU(CImageNdg test, CImageNdg ref, REGION reg)
 float CImageClasse::vinet(CImageNdg img, CImageNdg GT) {
 	int nt = 0, nr = 0;
 
-	// Récupérer les signatures de l'image et du ground truth
+	// RÃ©cupÃ©rer les signatures de l'image et du ground truth
 	std::vector<SIGNATURE_Forme> st = signatures();
 	nt = st.size();  
 
@@ -1299,7 +1303,7 @@ float CImageClasse::vinet(CImageNdg img, CImageNdg GT) {
 	std::vector<SIGNATURE_Forme> sr = GTClasse.signatures();
 	nr = sr.size(); 
 
-	// Déterminer le nombre minimum de signatures entre l'image et le ground truth
+	// DÃ©terminer le nombre minimum de signatures entre l'image et le ground truth
 	int nm = min(nt, nr);
 	float totalArea = 0;
 	float score = 0;
@@ -1383,7 +1387,7 @@ CImageNdg CImageClasse::mutation(const std::string& methode) // ou "troncature" 
 	return out;
 }
 
-// cellules de Voronoï
+// cellules de VoronoÃ¯
 CImageClasse CImageClasse::cellules()
 {
 
@@ -1526,13 +1530,14 @@ CImageClasse CImageClasse::cellules()
 			}
 		}
 
-		// on revient à la taille d'origine
+		// on revient Ã  la taille d'origine
 		for (int i = 1; i < growing.lireHauteur() - 1; i++)
 			for (int j = 1; j < growing.lireLargeur() - 1; j++)
 				out(i - 1, j - 1) = growing(i,j);
 
 		return out;
 }
+
 
 std::vector<SIGNATURE_Cellule> CImageClasse::sigCellules(const CImageNdg& img, bool enregistrementCSV)
 {

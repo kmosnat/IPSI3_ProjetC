@@ -21,11 +21,16 @@ enum class COULEUR
 
 struct Bouchon {
 	int label;
-	std::vector<std::pair<int, int>> pixels;
-	double centroidX;
-	double centroidY;
+	double centroidX_mm;
+	double centroidY_mm;
+	double rayon_mm;
 	std::string forme;
 	std::string couleur;
+};
+
+struct Direction { 
+	int dx; 
+	int dy; 
 };
 
 // Déclaration de la structure Label
@@ -108,31 +113,12 @@ public:
 
 private:
 
+	std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes);
 
-	// Méthodes d'étiquetage
-	void connectedComponentLabeling(CImageNdg& binaryImg, std::vector<std::vector<int>>& labels);
-
-	// Méthodes d'extraction
-	std::vector<Bouchon> extractBouchons(const std::vector<std::vector<int>>& labels);
-
-	// Méthodes d'analyse des formes
-	bool isCircle(const Bouchon& bouchon);
-	std::string determineShape(const Bouchon& bouchon);
-	bool isHeart(const Bouchon& bouchon);
-	std::string determineShapeAdvanced(const Bouchon& bouchon);
-
-	// Méthodes d'analyse des couleurs
+	std::string ClibIHM::determineShape(const Bouchon& bouchon);
 	std::string determineColor(const Bouchon& bouchon);
 	void analyzeColors(std::vector<Bouchon>& bouchons);
 
-	// Méthodes utilitaires
-	int findRoot(int label, std::map<int, Label>& labels) {
-		while (labels[label].parent != label) {
-			labels[label].parent = labels[labels[label].parent].parent; // Path compression
-			label = labels[label].parent;
-		}
-		return label;
-	}
 };
 
 

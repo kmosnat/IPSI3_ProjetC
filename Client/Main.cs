@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 
 using Utils;
 using System.Threading;
+using System.Globalization;
 
 namespace Client
 {
@@ -257,10 +258,25 @@ namespace Client
 
                             string color = parts[0].Trim();
                             string shape = parts[1].Trim();
-                            if (!int.TryParse(parts[2].Trim(), out int x) ||
-                                !int.TryParse(parts[3].Trim(), out int y))
+                            string xStr = parts[2].Trim();
+                            string yStr = parts[3].Trim();
+
+                            tbCom.LogInfo($"Couleur: {color}");
+                            tbCom.LogInfo($"Forme: {shape}");
+                            tbCom.LogInfo($"X: {xStr}");
+                            tbCom.LogInfo($"Y: {yStr}");
+
+                            float x, y;
+
+                            if (!float.TryParse(xStr, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
                             {
-                                tbCom.LogError($"Coordonnées invalides dans l'objet : {objectInfo}");
+                                tbCom.LogError($"Erreur de parsing de la coordonnée X : {xStr}");
+                                continue;
+                            }
+
+                            if (!float.TryParse(yStr, NumberStyles.Float, CultureInfo.InvariantCulture, out y))
+                            {
+                                tbCom.LogError($"Erreur de parsing de la coordonnée Y : {yStr}");
                                 continue;
                             }
 
@@ -338,7 +354,7 @@ namespace Client
             this.Close();
         }
 
-        private void AddRobotObject(string color, string shape, int x, int y)
+        private void AddRobotObject(string color, string shape, float x, float y)
         {
             var robotObject = new RobotObject(color, shape, x, y);
             string key = robotObject.Key;

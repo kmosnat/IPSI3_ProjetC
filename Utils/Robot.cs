@@ -39,10 +39,10 @@ namespace Utils
         public string Shape { get; set; }
 
         [JsonProperty("X")]
-        public int X { get; set; }
+        public float X { get; set; }
 
         [JsonProperty("Y")]
-        public int Y { get; set; }
+        public float Y { get; set; }
 
         // Propriété pour générer une clé unique basée sur les propriétés de l'objet
         [JsonIgnore]
@@ -51,13 +51,13 @@ namespace Utils
         // Méthode pour générer la clé unique
         private string GenerateKey()
         {
-            int roundedX = (X / 10) * 10;
-            int roundedY = (Y / 10) * 10;
+            int roundedX = ((int)X / 50) * 50;
+            int roundedY = ((int)Y / 50) * 50;
             return $"{Color.ToLower()}_{Shape.ToLower()}_{roundedX}_{roundedY}";
         }
 
         // Constructeur pour création d'un nouvel objet avec un ID unique
-        public RobotObject(string color, string shape, int x, int y)
+        public RobotObject(string color, string shape, float x, float y)
         {
             Id = Guid.NewGuid();
             Color = color;
@@ -68,7 +68,7 @@ namespace Utils
 
         // Constructeur pour parsing d'un objet reçu avec un ID
         [JsonConstructor]
-        public RobotObject(Guid id, string color, string shape, int x, int y)
+        public RobotObject(Guid id, string color, string shape, float x, float y)
         {
             Id = id;
             Color = color;
