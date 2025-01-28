@@ -52,6 +52,9 @@ namespace Client
             if (m_ipAdrDistante == null)
             {
                 tbCom.LogError("Adresse IP non définie. Veuillez entrer l'adresse IP du serveur.");
+
+                
+
                 return;
             }
 
@@ -240,68 +243,31 @@ namespace Client
 
                     clImage.ProcessCapPtr();
 
-                    int objectCount = (int)clImage.ObjetLibValeurChamp(0);
+                    int couleur = (int)ClImage.valeurChamp(clImage.ClPtr, 0);   // Couleur détectée
+                    int forme = (int)ClImage.valeurChamp(clImage.ClPtr, 1);     // Forme détectée
+                    int posX = (int)ClImage.valeurChamp(clImage.ClPtr, 2);      // Position X
+                    int posY = (int)ClImage.valeurChamp(clImage.ClPtr, 3);      // Position Y
 
-                    for (int i = 0; i < objectCount; i++)
-                    {
-                        try
-                        {
-                            string objectInfo = clImage.ObjetLibObjectChamp(i);
+                    // Affichage des résultats dans une zone locale (par exemple, `tbCom` dans le client)
+                    tbCom.LogInfo("===== Résultats reçus du traitement =====.");
+                    tbCom.LogInfo("Couleur détectée : {couleur}.");
+                    tbCom.LogInfo("Forme détectée   : {forme}.");
+                    tbCom.LogInfo("Position X       : {posX}.");
+                    tbCom.LogInfo("Position Y       : {posY}.");
 
-                            var parts = objectInfo.Split(',');
-                            if (parts.Length != 4)
-                            {
-                                tbCom.LogError($"Format d'objet invalide : {objectInfo}");
-                                continue;
-                            }
-
-                            string color = parts[0].Trim();
-                            string shape = parts[1].Trim();
-                            if (!int.TryParse(parts[2].Trim(), out int x) ||
-                                !int.TryParse(parts[3].Trim(), out int y))
-                            {
-                                tbCom.LogError($"Coordonnées invalides dans l'objet : {objectInfo}");
-                                continue;
-                            }
-
-                            // Normaliser les valeurs avant d'ajouter
-                            color = color.ToLowerInvariant().Trim();
-                            shape = shape.ToLowerInvariant().Trim();
-
-                            AddRobotObject(color, shape, x, y);
-                        }
-                        catch (Exception ex)
-                        {
-                            tbCom.LogError($"Erreur lors de l'extraction d'un objet : {ex.Message}");
-                        }
-                    }
                 }
-
-                unsafe
-                {
-                    byte* destPtr = (byte*)scan0.ToPointer();
-
-                    for (int y = 0; y < height; y++)
-                    {
-                        Marshal.Copy(imageData, y * packedStride, new IntPtr(destPtr + y * stride), packedStride);
-                    }
-                }
-
-                bitmap.UnlockBits(bitmapData);
-                bitmapData = null;
 
                 return bitmap;
             }
-            catch
+            finally
             {
-                if (bitmapData != null)
-                {
-                    bitmap.UnlockBits(bitmapData);
-                }
-                bitmap.Dispose();
-                throw;
+                bitmap.UnlockBits(bitmapData);
             }
+
+
+
         }
+
 
         private void serveurToolStripMenuItem_Click(object sender, EventArgs e)
         {
