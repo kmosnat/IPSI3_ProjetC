@@ -252,8 +252,6 @@ namespace Client
                         {
                             string objectInfo = clImage.ObjetLibObjectChamp(i);
 
-                            tbCom.LogInfo($"Objet détecté : {objectInfo}");
-
                             var parts = objectInfo.Split(',');
 
                             // Vérifier le nombre de parties après le split
@@ -269,10 +267,6 @@ namespace Client
                             string xStr = parts[2].Trim();
                             string yStr = parts[3].Trim();
 
-                            tbCom.LogInfo($"Couleur: {color}");
-                            tbCom.LogInfo($"Forme: {shape}");
-                            tbCom.LogInfo($"X: {xStr}");
-                            tbCom.LogInfo($"Y: {yStr}");
 
                             // Tenter de parser les coordonnées
                             float x, y;
@@ -290,7 +284,6 @@ namespace Client
                                 continue;
                             }
 
-                            tbCom.LogInfo($"Coordonnées parsées - X: {x}, Y: {y}");
 
                             // Normaliser les valeurs avant d'ajouter
                             color = color.ToLowerInvariant().Trim();
