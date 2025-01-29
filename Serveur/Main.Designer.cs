@@ -63,8 +63,6 @@ namespace Serveur
         private Label lblYaw;
 
         private GroupBox gbReferencePoints;
-        private Button btnSaveRef1;
-        private Button btnSaveRef2;
         private ListBox lbReferencePoints;
         private Button calibrationButton;
         private Label calibrationStatus;
@@ -139,8 +137,6 @@ namespace Serveur
             this.calibrationStatus = new System.Windows.Forms.Label();
             this.calibrationButton = new System.Windows.Forms.Button();
             this.gbReferencePoints = new System.Windows.Forms.GroupBox();
-            this.btnSaveRef1 = new System.Windows.Forms.Button();
-            this.btnSaveRef2 = new System.Windows.Forms.Button();
             this.lbReferencePoints = new System.Windows.Forms.ListBox();
             this.tabLogs = new System.Windows.Forms.TabPage();
             this.tbCom = new System.Windows.Forms.TextBox();
@@ -317,11 +313,11 @@ namespace Serveur
             // lblNomCamera
             // 
             this.lblNomCamera.AutoSize = true;
-            this.lblNomCamera.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblNomCamera.Location = new System.Drawing.Point(252, 120);
+            this.lblNomCamera.Font = new System.Drawing.Font("Segoe UI", 7F);
+            this.lblNomCamera.Location = new System.Drawing.Point(366, 65);
             this.lblNomCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblNomCamera.Name = "lblNomCamera";
-            this.lblNomCamera.Size = new System.Drawing.Size(237, 37);
+            this.lblNomCamera.Size = new System.Drawing.Size(170, 25);
             this.lblNomCamera.TabIndex = 0;
             this.lblNomCamera.Text = "Caméra : inconnue";
             // 
@@ -341,11 +337,11 @@ namespace Serveur
             // lblAdrIP
             // 
             this.lblAdrIP.AutoSize = true;
-            this.lblAdrIP.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblAdrIP.Location = new System.Drawing.Point(253, 49);
+            this.lblAdrIP.Font = new System.Drawing.Font("Segoe UI", 7F);
+            this.lblAdrIP.Location = new System.Drawing.Point(366, 129);
             this.lblAdrIP.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblAdrIP.Name = "lblAdrIP";
-            this.lblAdrIP.Size = new System.Drawing.Size(236, 37);
+            this.lblAdrIP.Size = new System.Drawing.Size(165, 25);
             this.lblAdrIP.TabIndex = 1;
             this.lblAdrIP.Text = "Adresse IP : 0.0.0.0";
             // 
@@ -662,7 +658,7 @@ namespace Serveur
             this.calibrationStatus.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.calibrationStatus.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
             this.calibrationStatus.ForeColor = System.Drawing.Color.White;
-            this.calibrationStatus.Location = new System.Drawing.Point(170, 28);
+            this.calibrationStatus.Location = new System.Drawing.Point(194, 39);
             this.calibrationStatus.Name = "calibrationStatus";
             this.calibrationStatus.Padding = new System.Windows.Forms.Padding(10);
             this.calibrationStatus.Size = new System.Drawing.Size(157, 52);
@@ -682,8 +678,6 @@ namespace Serveur
             // 
             // gbReferencePoints
             // 
-            this.gbReferencePoints.Controls.Add(this.btnSaveRef1);
-            this.gbReferencePoints.Controls.Add(this.btnSaveRef2);
             this.gbReferencePoints.Controls.Add(this.lbReferencePoints);
             this.gbReferencePoints.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
@@ -694,36 +688,14 @@ namespace Serveur
             this.gbReferencePoints.TabStop = false;
             this.gbReferencePoints.Text = "Points de Référence";
             // 
-            // btnSaveRef1
-            // 
-            this.btnSaveRef1.Font = new System.Drawing.Font("Segoe UI", 8F);
-            this.btnSaveRef1.Location = new System.Drawing.Point(31, 53);
-            this.btnSaveRef1.Name = "btnSaveRef1";
-            this.btnSaveRef1.Size = new System.Drawing.Size(193, 99);
-            this.btnSaveRef1.TabIndex = 0;
-            this.btnSaveRef1.Text = "Enregistrer Réf 1";
-            this.btnSaveRef1.UseVisualStyleBackColor = true;
-            this.btnSaveRef1.Click += new System.EventHandler(this.btnSaveRef1_Click);
-            // 
-            // btnSaveRef2
-            // 
-            this.btnSaveRef2.Font = new System.Drawing.Font("Segoe UI", 8F);
-            this.btnSaveRef2.Location = new System.Drawing.Point(278, 53);
-            this.btnSaveRef2.Name = "btnSaveRef2";
-            this.btnSaveRef2.Size = new System.Drawing.Size(195, 99);
-            this.btnSaveRef2.TabIndex = 1;
-            this.btnSaveRef2.Text = "Enregistrer Réf 2";
-            this.btnSaveRef2.UseVisualStyleBackColor = true;
-            this.btnSaveRef2.Click += new System.EventHandler(this.btnSaveRef2_Click);
-            // 
             // lbReferencePoints
             // 
             this.lbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 8F);
             this.lbReferencePoints.FormattingEnabled = true;
             this.lbReferencePoints.ItemHeight = 30;
-            this.lbReferencePoints.Location = new System.Drawing.Point(13, 170);
+            this.lbReferencePoints.Location = new System.Drawing.Point(13, 50);
             this.lbReferencePoints.Name = "lbReferencePoints";
-            this.lbReferencePoints.Size = new System.Drawing.Size(460, 124);
+            this.lbReferencePoints.Size = new System.Drawing.Size(460, 244);
             this.lbReferencePoints.TabIndex = 4;
             // 
             // tabLogs

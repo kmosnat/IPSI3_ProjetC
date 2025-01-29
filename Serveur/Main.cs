@@ -935,15 +935,6 @@ namespace Serveur
             }
         }
 
-        private void btnSaveRef1_Click(object sender, EventArgs e)
-        {
-          
-        }
-
-        private void btnSaveRef2_Click(object sender, EventArgs e)
-        {
-           
-        }
 
         private void moveRobotTest_Click(object sender, EventArgs e)
         {
