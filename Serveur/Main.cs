@@ -5,7 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;           
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -98,8 +98,6 @@ namespace Serveur
 
             try
             {
-                robot.Connect();
-                tbCom.LogInfo($"{!robot.IsConnected()}");
                 if (!robot.IsConnected())
                 {
                     // Robot déconnecté
