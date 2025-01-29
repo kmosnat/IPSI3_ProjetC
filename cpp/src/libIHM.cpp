@@ -245,7 +245,7 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 
 	CImageClasse imgClasse(img, "V8");
 
-	CImageClasse filtre = imgClasse.filtrage("taille", 5000, 30000, false);
+	CImageClasse filtre = imgClasse.filtrage("taille", 1, 70000, false);
 
 	trueRes = filtre.toNdg();
 

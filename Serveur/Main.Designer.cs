@@ -106,12 +106,12 @@ namespace Serveur
             this.imageTestToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitApp = new System.Windows.Forms.ToolStripMenuItem();
             this.gbCamera = new System.Windows.Forms.GroupBox();
-            this.lblNomCamera = new System.Windows.Forms.Label();
-            this.lblAdrIP = new System.Windows.Forms.Label();
-            this.lblConnectionCamera = new System.Windows.Forms.Label();
             this.btnSearchCamera = new System.Windows.Forms.PictureBox();
             this.btnStartAcquisition = new System.Windows.Forms.PictureBox();
+            this.lblNomCamera = new System.Windows.Forms.Label();
             this.btnStopAcquisition = new System.Windows.Forms.PictureBox();
+            this.lblAdrIP = new System.Windows.Forms.Label();
+            this.lblConnectionCamera = new System.Windows.Forms.Label();
             this.flowButtons = new System.Windows.Forms.FlowLayoutPanel();
             this.lblRobotState = new System.Windows.Forms.Label();
             this.dgvObjects = new System.Windows.Forms.DataGridView();
@@ -192,7 +192,7 @@ namespace Serveur
             this.startTCP,
             this.stopTCP});
             this.serveurTCPToolStripMenuItem.Name = "serveurTCPToolStripMenuItem";
-            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(162, 38);
+            this.serveurTCPToolStripMenuItem.Size = new System.Drawing.Size(162, 36);
             this.serveurTCPToolStripMenuItem.Text = "Serveur TCP";
             // 
             // startTCP
@@ -216,7 +216,7 @@ namespace Serveur
             this.afficherLAdresseIPToolStripMenuItem,
             this.robotToolStripMenuItem});
             this.réseauToolStripMenuItem.Name = "réseauToolStripMenuItem";
-            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 38);
+            this.réseauToolStripMenuItem.Size = new System.Drawing.Size(109, 36);
             this.réseauToolStripMenuItem.Text = "Réseau";
             // 
             // NetworkInterfaceSelection
@@ -259,14 +259,14 @@ namespace Serveur
             // imageTestToolStripMenuItem
             // 
             this.imageTestToolStripMenuItem.Name = "imageTestToolStripMenuItem";
-            this.imageTestToolStripMenuItem.Size = new System.Drawing.Size(100, 38);
+            this.imageTestToolStripMenuItem.Size = new System.Drawing.Size(100, 36);
             this.imageTestToolStripMenuItem.Text = "Image";
             this.imageTestToolStripMenuItem.Click += new System.EventHandler(this.imageTestToolStripMenuItem_Click);
             // 
             // exitApp
             // 
             this.exitApp.Name = "exitApp";
-            this.exitApp.Size = new System.Drawing.Size(109, 38);
+            this.exitApp.Size = new System.Drawing.Size(109, 36);
             this.exitApp.Text = "Quitter";
             this.exitApp.Click += new System.EventHandler(this.quitterToolStripMenuItem_Click);
             // 
@@ -287,42 +287,6 @@ namespace Serveur
             this.gbCamera.TabIndex = 1;
             this.gbCamera.TabStop = false;
             this.gbCamera.Text = "Caméra";
-            // 
-            // lblNomCamera
-            // 
-            this.lblNomCamera.AutoSize = true;
-            this.lblNomCamera.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblNomCamera.Location = new System.Drawing.Point(252, 120);
-            this.lblNomCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.lblNomCamera.Name = "lblNomCamera";
-            this.lblNomCamera.Size = new System.Drawing.Size(237, 37);
-            this.lblNomCamera.TabIndex = 0;
-            this.lblNomCamera.Text = "Caméra : inconnue";
-            // 
-            // lblAdrIP
-            // 
-            this.lblAdrIP.AutoSize = true;
-            this.lblAdrIP.Font = new System.Drawing.Font("Segoe UI", 10F);
-            this.lblAdrIP.Location = new System.Drawing.Point(253, 49);
-            this.lblAdrIP.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.lblAdrIP.Name = "lblAdrIP";
-            this.lblAdrIP.Size = new System.Drawing.Size(236, 37);
-            this.lblAdrIP.TabIndex = 1;
-            this.lblAdrIP.Text = "Adresse IP : 0.0.0.0";
-            // 
-            // lblConnectionCamera
-            // 
-            this.lblConnectionCamera.AutoSize = true;
-            this.lblConnectionCamera.BackColor = System.Drawing.Color.Red;
-            this.lblConnectionCamera.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.lblConnectionCamera.ForeColor = System.Drawing.Color.White;
-            this.lblConnectionCamera.Location = new System.Drawing.Point(29, 48);
-            this.lblConnectionCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.lblConnectionCamera.Name = "lblConnectionCamera";
-            this.lblConnectionCamera.Padding = new System.Windows.Forms.Padding(6);
-            this.lblConnectionCamera.Size = new System.Drawing.Size(180, 49);
-            this.lblConnectionCamera.TabIndex = 2;
-            this.lblConnectionCamera.Text = "Déconnecté";
             // 
             // btnSearchCamera
             // 
@@ -350,6 +314,17 @@ namespace Serveur
             this.btnStartAcquisition.TabStop = false;
             this.btnStartAcquisition.Click += new System.EventHandler(this.btnStartAcquisition_Click);
             // 
+            // lblNomCamera
+            // 
+            this.lblNomCamera.AutoSize = true;
+            this.lblNomCamera.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblNomCamera.Location = new System.Drawing.Point(252, 120);
+            this.lblNomCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblNomCamera.Name = "lblNomCamera";
+            this.lblNomCamera.Size = new System.Drawing.Size(237, 37);
+            this.lblNomCamera.TabIndex = 0;
+            this.lblNomCamera.Text = "Caméra : inconnue";
+            // 
             // btnStopAcquisition
             // 
             this.btnStopAcquisition.Cursor = System.Windows.Forms.Cursors.Hand;
@@ -362,6 +337,31 @@ namespace Serveur
             this.btnStopAcquisition.TabIndex = 2;
             this.btnStopAcquisition.TabStop = false;
             this.btnStopAcquisition.Click += new System.EventHandler(this.btnStopAcquisition_Click);
+            // 
+            // lblAdrIP
+            // 
+            this.lblAdrIP.AutoSize = true;
+            this.lblAdrIP.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblAdrIP.Location = new System.Drawing.Point(253, 49);
+            this.lblAdrIP.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblAdrIP.Name = "lblAdrIP";
+            this.lblAdrIP.Size = new System.Drawing.Size(236, 37);
+            this.lblAdrIP.TabIndex = 1;
+            this.lblAdrIP.Text = "Adresse IP : 0.0.0.0";
+            // 
+            // lblConnectionCamera
+            // 
+            this.lblConnectionCamera.AutoSize = true;
+            this.lblConnectionCamera.BackColor = System.Drawing.Color.Red;
+            this.lblConnectionCamera.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblConnectionCamera.ForeColor = System.Drawing.Color.White;
+            this.lblConnectionCamera.Location = new System.Drawing.Point(29, 48);
+            this.lblConnectionCamera.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblConnectionCamera.Name = "lblConnectionCamera";
+            this.lblConnectionCamera.Padding = new System.Windows.Forms.Padding(6);
+            this.lblConnectionCamera.Size = new System.Drawing.Size(180, 49);
+            this.lblConnectionCamera.TabIndex = 2;
+            this.lblConnectionCamera.Text = "Déconnecté";
             // 
             // flowButtons
             // 
@@ -526,7 +526,7 @@ namespace Serveur
             // 
             this.lblJoint4Position.AutoSize = true;
             this.lblJoint4Position.Font = new System.Drawing.Font("Segoe UI", 8F);
-            this.lblJoint4Position.Location = new System.Drawing.Point(255, 60);
+            this.lblJoint4Position.Location = new System.Drawing.Point(279, 60);
             this.lblJoint4Position.Name = "lblJoint4Position";
             this.lblJoint4Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint4Position.TabIndex = 3;
@@ -536,7 +536,7 @@ namespace Serveur
             // 
             this.lblJoint5Position.AutoSize = true;
             this.lblJoint5Position.Font = new System.Drawing.Font("Segoe UI", 8F);
-            this.lblJoint5Position.Location = new System.Drawing.Point(255, 100);
+            this.lblJoint5Position.Location = new System.Drawing.Point(279, 100);
             this.lblJoint5Position.Name = "lblJoint5Position";
             this.lblJoint5Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint5Position.TabIndex = 4;
@@ -546,7 +546,7 @@ namespace Serveur
             // 
             this.lblJoint6Position.AutoSize = true;
             this.lblJoint6Position.Font = new System.Drawing.Font("Segoe UI", 8F);
-            this.lblJoint6Position.Location = new System.Drawing.Point(255, 140);
+            this.lblJoint6Position.Location = new System.Drawing.Point(279, 140);
             this.lblJoint6Position.Name = "lblJoint6Position";
             this.lblJoint6Position.Size = new System.Drawing.Size(194, 30);
             this.lblJoint6Position.TabIndex = 5;
@@ -733,7 +733,7 @@ namespace Serveur
             this.tabLogs.Margin = new System.Windows.Forms.Padding(4);
             this.tabLogs.Name = "tabLogs";
             this.tabLogs.Padding = new System.Windows.Forms.Padding(12, 10, 12, 10);
-            this.tabLogs.Size = new System.Drawing.Size(1054, 516);
+            this.tabLogs.Size = new System.Drawing.Size(999, 516);
             this.tabLogs.TabIndex = 0;
             this.tabLogs.Text = "Logs";
             this.tabLogs.UseVisualStyleBackColor = true;
@@ -748,7 +748,7 @@ namespace Serveur
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(1030, 496);
+            this.tbCom.Size = new System.Drawing.Size(975, 496);
             this.tbCom.TabIndex = 0;
             // 
             // timAcq
