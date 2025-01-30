@@ -24,10 +24,10 @@
     <ClCompile Include="..\cpp\src\ImageDouble.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\cpp\src\ImageNdg.cpp">
+    <ClCompile Include="..\cpp\src\libIHM.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\cpp\src\libIHM.cpp">
+    <ClCompile Include="..\cpp\src\ImageNdg.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>

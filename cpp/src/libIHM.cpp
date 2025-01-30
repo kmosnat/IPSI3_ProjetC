@@ -214,14 +214,16 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 }
 
 void ClibIHM::runProcessCap() {
-	CImageNdg binaryImg = this->imgNdgPt->filtrage("moyennage", 3, 3, "disk");
+	CImageNdg binaryImg = this->imgNdgPt->filtrage("moyennage", 5, 5, "disk");
 
-	int seuilBas = 70;
+	int seuilBas = 60;
 	int seuilHaut = 255;
-	CImageNdg moy = binaryImg.seuillage("moyenne", seuilBas, seuilHaut);
+	CImageNdg bin = binaryImg.seuillage("manuel", seuilBas, seuilHaut);
+
+	//Morpho et Remplissage de composantes connexes
 
 	CImageNdg trueRes;
-	std::vector<Bouchon> bouchons = extractBouchons(moy, trueRes);
+	std::vector<Bouchon> bouchons = extractBouchons(bin, trueRes);
 
 	for (const auto& bouchon : bouchons) {
 
