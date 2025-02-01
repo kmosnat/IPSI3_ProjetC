@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Drawing;
 using Newtonsoft.Json;
 
 namespace Utils
@@ -48,12 +47,16 @@ namespace Utils
         [JsonIgnore]
         public string Key => GenerateKey();
 
-        // Méthode pour générer la clé unique
+        // Méthode pour générer la clé unique améliorée
         private string GenerateKey()
         {
-            int roundedX = ((int)X / 50) * 50;
-            int roundedY = ((int)Y / 50) * 50;
-            return $"{Color.ToLower()}_{Shape.ToLower()}_{roundedX}_{roundedY}";
+            const float tolerance = 100.0f;
+            // Quantifier les positions X et Y selon la tolérance
+            float quantizedX = (float)Math.Round(X / tolerance) * tolerance;
+            float quantizedY = (float)Math.Round(Y / tolerance) * tolerance;
+
+            // On utilise ToLowerInvariant() et Trim() pour standardiser les chaînes
+            return $"{Color.Trim().ToLowerInvariant()}_{Shape.Trim().ToLowerInvariant()}_{quantizedX:F1}_{quantizedY:F1}";
         }
 
         // Constructeur pour création d'un nouvel objet avec un ID unique

@@ -26,7 +26,7 @@ ClibIHM::ClibIHM(int nbChamps, byte* data, int stride, int nbLig, int nbCol)
 		throw std::invalid_argument("Aucune Data");
 	}
 
-    // Initialisation des variables
+	// Initialisation des variables
 	nbDataImg = nbChamps;
 	dataFromImg.resize(nbChamps);
 	this->data = data;
@@ -34,16 +34,16 @@ ClibIHM::ClibIHM(int nbChamps, byte* data, int stride, int nbLig, int nbCol)
 	this->NbCol = nbCol;
 	this->stride = stride;
 
-    // Initialisation des images
+	// Initialisation des images
 	imgPt = new CImageCouleur(nbLig, nbCol);
 	imgNdgPt = new CImageNdg(nbLig, nbCol);
 
-    // Vérification de l'allocation
+	// Vérification de l'allocation
 	if (!imgPt) {
 		throw std::runtime_error("Erreur allocation CImageCouleur");
 	}
 
-    // Récupération des valeurs des pixels
+	// Récupération des valeurs des pixels
 	byte* pixPtr = this->data;
 
 	for (int y = 0; y < nbLig; y++)
@@ -205,7 +205,7 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 
 	this->writeBinaryImage(trueRes);
 
-    // Calcul du score et comparaison
+	// Calcul du score et comparaison
 	this->score(pImgGt);
 	this->compare(pImgGt);
 
@@ -213,137 +213,238 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
+// Exemple de version sécurisée de runProcessCap() et extractBouchons()
+
 void ClibIHM::runProcessCap() {
-	CImageNdg binaryImg = this->imgNdgPt->filtrage("moyennage", 3, 3, "disk");
+	try {
+		// Vérifier que le pointeur sur l'image est valide
+		if (this->imgNdgPt == nullptr) {
+			std::cerr << "Erreur: imgNdgPt est nul." << std::endl;
+			return;
+		}
 
-	int seuilBas = 70;
-	int seuilHaut = 255;
-	CImageNdg moy = binaryImg.seuillage("moyenne", seuilBas, seuilHaut);
+		// Filtrage de l'image
+		CImageNdg binaryImg;
+		try {
+			binaryImg = this->imgNdgPt->filtrage("moyennage", 3, 3, "disk");
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors du filtrage: " << ex.what() << std::endl;
+			return;
+		}
 
-	CImageNdg trueRes;
-	std::vector<Bouchon> bouchons = extractBouchons(moy, trueRes);
+		int seuilBas = 200;
+		int seuilHaut = 255;
+		CImageNdg man;
+		try {
+			man = binaryImg.seuillage("manuel", seuilBas, seuilHaut);
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors du seuillage: " << ex.what() << std::endl;
+			return;
+		}
 
-	for (const auto& bouchon : bouchons) {
+		CImageNdg trueRes;
+		
+		try {
+			std::vector<Bouchon> bouchons = extractBouchons(man, trueRes);
+			for (const auto& bouchon : bouchons) {
+				std::ostringstream oss;
+				oss << bouchon.forme << ", "
+					<< bouchon.couleur << ", "
+					<< bouchon.centroidX_mm << ", "
+					<< bouchon.centroidY_mm;
+				char* s = _strdup(oss.str().c_str());
+				this->ecrireObject(bouchon.label, s);
+				free(s);
+			}
+		}
+		catch (const std::exception &ex) {
+			std::cerr << "Erreur lors de l'extraction des objets: " << ex.what() << std::endl;
+		}
+		
+		try {
+			this->writeBinaryImage(trueRes);
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors de l'écriture de l'image binaire: " << ex.what() << std::endl;
+		}
 
-		std::ostringstream oss;
-		oss << bouchon.forme << ", "
-			<< bouchon.couleur << ", "
-			<< bouchon.centroidX_mm << ", "
-			<< bouchon.centroidY_mm;
-
-		this->ecrireObject(bouchon.label, _strdup(oss.str().c_str()));
+		try {
+			this->persitData(this->imgNdgPt, COULEUR::RVB);
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors de la persistance des données: " << ex.what() << std::endl;
+		}
 	}
-
-	this->writeBinaryImage(trueRes);
-
-	this->persitData(this->imgNdgPt, COULEUR::RVB);
+	catch (const std::exception& ex) {
+		std::cerr << "Exception dans runProcessCap: " << ex.what() << std::endl;
+	}
+	catch (...) {
+		std::cerr << "Exception inconnue dans runProcessCap." << std::endl;
+	}
 }
 
 std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes)
 {
 	std::vector<Bouchon> bouchons;
+	try {
+		// Création de l'objet de classification
+		CImageClasse imgClasse(img, "V8");
+		CImageClasse filtre = imgClasse.filtrage("taille", 5000, 10000, false);
+		trueRes = filtre.toNdg();
 
-	CImageClasse imgClasse(img, "V8");
+		std::vector<SIGNATURE_Forme> labels = filtre.signatures();
+		if (labels.empty()) {
+			std::cerr << "Aucune signature détectée." << std::endl;
+			return bouchons;
+		}
 
-	CImageClasse filtre = imgClasse.filtrage("taille", 1, 70000, false);
+		int nbBouchons = static_cast<int>(labels.size()) - 1;
+		this->ecrireChamp(0, nbBouchons);
+		this->dataObject.resize(nbBouchons);
 
-	trueRes = filtre.toNdg();
+		// Dimensions de l'image
+		int largeur = trueRes.lireLargeur();
+		int hauteur = trueRes.lireHauteur();
 
-	std::vector<SIGNATURE_Forme> labels = filtre.signatures();
+		// Vérification des dimensions
+		if (largeur <= 0 || hauteur <= 0) {
+			std::cerr << "Dimensions invalides : " << largeur << "x" << hauteur << std::endl;
+			return bouchons;
+		}
 
-	int nbBouchons = static_cast<int>(labels.size()) - 1;
-	this->ecrireChamp(0, nbBouchons);
-	this->dataObject.resize(nbBouchons);
-
-	// Dimensions de l'image
-	int largeur = trueRes.lireLargeur();  
-	int hauteur = trueRes.lireHauteur();
-
-	// Hypothèse : rayon bouchon = 150 mm
-	float physicalRadiusMm = 150.0f;
-	float imageRadiusPx = static_cast<float>(min(largeur, hauteur)) / 2.0f;
-	float globalFacteurConversion = physicalRadiusMm / imageRadiusPx;
-
-	// Centre (en pixels)
-	float centerX = static_cast<float>(largeur) / 2.0f;
-	float centerY = static_cast<float>(hauteur) / 2.0f;
-
-	for (int i = 1; i < static_cast<int>(labels.size()); ++i)
-	{
-		Bouchon bouchon;
-		bouchon.label = i - 1;
-
-		float objX_px = static_cast<float>(labels[i].centreGravite_j);
-		float objY_px = static_cast<float>(labels[i].centreGravite_i);
-
-		
-		std::vector<Direction> directions = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
-
-		std::vector<float> rayons;
-		rayons.reserve(directions.size());
-
-		int x0 = static_cast<int>(objX_px);
-		int y0 = static_cast<int>(objY_px);
-
-		for (const auto& dir : directions)
-		{
-			int x = x0;
-			int y = y0;
-			float rayon = 0.0f;
-
-			while (x >= 0 && x < largeur && y >= 0 && y < hauteur)
-			{
-				// Si on tombe sur le fond (valeur 0) on arrête
-				if (trueRes(x, y) == 0) {
-					break;
-				}
-				x += dir.dx;
-				y += dir.dy;
-				rayon += 1.0f;
+		// Lambda d'accès sécurisé aux pixels en vérifiant les bornes
+		auto safeGetPixel = [&](int x, int y) -> int {
+			if (x < 0 || x >= largeur || y < 0 || y >= hauteur)
+				return 0;
+			try {
+				return trueRes(y, x);
 			}
-			rayons.push_back(rayon);
+			catch (...) {
+				return 0;
+			}
+			};
+
+		// Paramètres de conversion (rayon physique du bouchon, etc.)
+		float physicalRadiusMm = 175.0f;
+		float imageRadiusPx = static_cast<float>(min(largeur, hauteur)) / 2.0f;
+		float globalFacteurConversion = physicalRadiusMm / imageRadiusPx;
+
+		// Centre de l'image (en pixels)
+		float centerX = static_cast<float>(largeur) / 2.0f;
+		float centerY = static_cast<float>(hauteur) / 2.0f;
+
+		// Parcours des labels (en ignorant le label à l'indice 0, supposé invalide)
+		for (int i = 1; i < static_cast<int>(labels.size()); ++i)
+		{
+			try {
+				Bouchon bouchon;
+				bouchon.label = i - 1;
+
+				float objX_px = static_cast<float>(labels[i].centreGravite_j);
+				float objY_px = static_cast<float>(labels[i].centreGravite_i);
+
+				// Calcul des rayons dans 4 directions
+				std::vector<Direction> directions = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
+				std::vector<float> rayons;
+				rayons.reserve(directions.size());
+
+				int x0 = static_cast<int>(objX_px);
+				int y0 = static_cast<int>(objY_px);
+
+				for (const auto& dir : directions)
+				{
+					int x = x0;
+					int y = y0;
+					float rayon = 0.0f;
+
+					while (x >= 0 && x < largeur && y >= 0 && y < hauteur)
+					{
+						int pixelValue = safeGetPixel(x, y);
+						if (pixelValue == 0) {
+							break;
+						}
+						x += dir.dx;
+						y += dir.dy;
+						rayon += 1.0f;
+					}
+					rayons.push_back(rayon);
+				}
+
+				float rayonP_px = 0.0f;
+				if (!rayons.empty()) {
+					float sum = 0.0f;
+					for (float r : rayons)
+						sum += r;
+					rayonP_px = sum / static_cast<float>(rayons.size());
+				}
+				else {
+					rayonP_px = 1.0f; // Pour éviter la division par 0
+				}
+
+				float facteurConversion = globalFacteurConversion;
+				float realX_mm = (objX_px - centerX) * facteurConversion;
+				float realY_mm = (objY_px - centerY) * facteurConversion;
+				float rayonP_mm = rayonP_px * facteurConversion;
+
+				bouchon.centroidX_mm = realX_mm;
+				bouchon.centroidY_mm = realY_mm;
+				bouchon.rayon_mm = rayonP_mm;
+
+				bouchon.forme = determineShape(bouchon);
+				bouchon.couleur = determineColor(bouchon);
+
+				bouchons.push_back(bouchon);
+			}
+			catch (const std::exception& ex) {
+				std::cerr << "Erreur lors du traitement du bouchon à l'indice " << i
+					<< " : " << ex.what() << std::endl;
+				continue;
+			}
+			catch (...) {
+				std::cerr << "Erreur inconnue lors du traitement du bouchon à l'indice " << i << std::endl;
+				continue;
+			}
 		}
-
-		float rayonP_px = 0.0f;
-		if (!rayons.empty()) {
-			float sum = 0.0f;
-			for (float r : rayons) sum += r;
-			rayonP_px = sum / static_cast<float>(rayons.size());
-		}
-		else {
-			rayonP_px = 1.0f; // Evite la division par 0
-		}
-
-		float facteurConversion = globalFacteurConversion;
-
-		// Position en mm (origine = centre image)
-		float realX_mm = (objX_px - centerX) * facteurConversion;
-		float realY_mm = (objY_px - centerY) * facteurConversion;
-
-		// Rayon en mm
-		float rayonP_mm = rayonP_px * facteurConversion;
-
-		// Renseignement du bouchon
-		bouchon.centroidX_mm = realX_mm;
-		bouchon.centroidY_mm = realY_mm;
-		bouchon.rayon_mm = rayonP_mm;
-
-		bouchons.push_back(bouchon);
 	}
-
+	catch (const std::exception& ex) {
+		std::cerr << "Erreur dans extractBouchons: " << ex.what() << std::endl;
+	}
+	catch (...) {
+		std::cerr << "Erreur inconnue dans extractBouchons." << std::endl;
+	}
 	return bouchons;
 }
 
 
 std::string ClibIHM::determineShape(const Bouchon& bouchon) {
-	
+	CImageNdg img;
+	try {
+		img = this->imgNdgPt->filtrage();
+	}
+	catch (const std::exception& ex) {
+		std::cerr << "Erreur lors du filtrage: " << ex.what() << std::endl;
+		return "Inconnu";
+	}
+
+
 	return "Inconnu";
 }
 
 
 std::string ClibIHM::determineColor(const Bouchon& bouchon) {
-	
-	return "Noir";
+	CImageNdg binaryImg;
+	try {
+		binaryImg = this->imgNdgPt->filtrage();
+	}
+	catch (const std::exception& ex) {
+		std::cerr << "Erreur lors du filtrage: " << ex.what() << std::endl;
+		return "Inconnu";
+	}
+
+
+	return "Inconnu";
 }
 
 
@@ -396,13 +497,13 @@ void ClibIHM::score(ClibIHM* pImgGt)
 	CImageNdg GT = pImgGt->toBinaire();
 	GT.ecrireBinaire(true);
 
-    // Création et démarrage des threads pour calculer les scores
+	// Création et démarrage des threads pour calculer les scores
 	std::thread th1([&] {
 
 		double score = img.indicateurPerformance(GT, "iou");
 
 		this->ecrireChamp(0, floor(score * 10000) / 100);
-	});
+		});
 
 	std::thread th2([&] {
 		// Score de Vinet
@@ -411,9 +512,9 @@ void ClibIHM::score(ClibIHM* pImgGt)
 		double score = imgClasse.vinet(img, GT);
 
 		this->ecrireChamp(1, floor(score * 10000) / 100);
-	
-	});
-	
+
+		});
+
 	th1.join();
 	th2.join();
 }
@@ -460,9 +561,9 @@ void ClibIHM::persitData(CImageNdg* pImg, COULEUR color)
 
 // Destructeur
 ClibIHM::~ClibIHM() {
-	
+
 	if (imgPt)
-		(*this->imgPt).~CImageCouleur(); 
+		(*this->imgPt).~CImageCouleur();
 	this->dataFromImg.clear();
 	this->dataObject.clear();
 

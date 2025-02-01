@@ -57,7 +57,23 @@ namespace Utils
         {
             if (modbusClient != null && modbusClient.Connected)
             {
-                modbusClient.WriteSingleCoil(116, true);
+                modbusClient.WriteSingleCoil(51, true);
+            }
+        }
+
+        public void openGripper()
+        {
+            if (modbusClient != null && modbusClient.Connected)
+            {
+                modbusClient.WriteSingleCoil(51, true);
+            }
+        }
+
+        public void closeGripper()
+        {
+            if (modbusClient != null && modbusClient.Connected)
+            {
+                modbusClient.WriteSingleCoil(114, false);
             }
         }
 
