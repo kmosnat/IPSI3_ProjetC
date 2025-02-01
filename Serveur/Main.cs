@@ -843,7 +843,6 @@ namespace Serveur
                 if (parts.Length != 2)
                     throw new FormatException("Commande ADD_OBJECT mal formatée.");
                 var objectData = parts[1].Trim();
-                // Conversion depuis la chaîne JSON en instance de RobotObject
                 var robotObject = RobotObject.FromString(objectData);
                 if (serverState == ServerState.Calibration || serverState == ServerState.Wait)
                 {
@@ -853,8 +852,6 @@ namespace Serveur
                 }
                 else if (serverState == ServerState.Ready)
                 {
-                    // Les positions d'objet provenant de la caméra sont en mm.
-                    // Il faut les convertir en m avant de les transformer par l'affine de calibration.
                     float xRobot = (_scaleX * (robotObject.X / 1000f)) + _offsetX;
                     float yRobot = (_scaleY * (robotObject.Y / 1000f)) + _offsetY;
                     var calibratedObject = new RobotObject(robotObject.Color, robotObject.Shape, xRobot, yRobot);
