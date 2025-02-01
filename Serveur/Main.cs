@@ -20,7 +20,7 @@ namespace Serveur
 {
     public partial class Main : Form
     {
-        // Propriétés caméra (inchangées)
+        // Propriétés caméra
         private smcs.IDevice _device;
         private Rectangle _imageRect;
         private PixelFormat _pixelFormat;
@@ -56,6 +56,8 @@ namespace Serveur
         // Nouveaux contrôles UI et données
         private BindingList<RobotObject> robotObjectsList = new BindingList<RobotObject>();
         private ServerState serverState = ServerState.Wait;
+
+        // Calibration
         private List<(float xCam, float yCam, float xRob, float yRob)> calibrationPoints = new List<(float, float, float, float)>();
         private (float xCam, float yCam, float xRob, float yRob)? _calibPoint1 = null;
         private (float xCam, float yCam, float xRob, float yRob)? _calibPoint2 = null;
@@ -202,12 +204,14 @@ namespace Serveur
                 }
                 robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
                 tbCom.LogInfo("Robot déplacé à la position de calibration 1.", LogSource.Serveur);
-                var (xCam, yCam) = RequestCoordinatesFromClient();
+                var (xCam_mm, yCam_mm) = RequestCoordinatesFromClient();
+                float xCam = xCam_mm / 1000f;
+                float yCam = yCam_mm / 1000f;
                 RobotPose rp = robot.GetCurrentPose();
                 _refZ = rp.Z; _refRoll = rp.Roll; _refPitch = rp.Pitch; _refYaw = rp.Yaw;
                 _calibPoint1 = (xCam, yCam, rp.X, rp.Y);
                 calibrationPoints.Add(_calibPoint1.Value);
-                tbCom.LogInfo($"Point 1 enregistré : Caméra ({xCam}, {yCam}), Robot ({rp.X}, {rp.Y})", LogSource.Serveur);
+                tbCom.LogInfo($"Point 1 enregistré : Caméra ({xCam} m, {yCam} m), Robot ({rp.X} m, {rp.Y} m)", LogSource.Serveur);
                 serverState = ServerState.Wait;
                 currentCalibrationStep = CalibrationStep.Point2;
                 tbCom.LogInfo("Calibration Point 2 : Cliquez sur 'Confirmer Point 2' après placement.", LogSource.Serveur);
@@ -240,11 +244,13 @@ namespace Serveur
                 }
                 robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
                 tbCom.LogInfo("Robot déplacé à la position de calibration 2.", LogSource.Serveur);
-                var (xCam, yCam) = RequestCoordinatesFromClient();
+                var (xCam_mm, yCam_mm) = RequestCoordinatesFromClient();
+                float xCam = xCam_mm / 1000f;
+                float yCam = yCam_mm / 1000f;
                 RobotPose rp = robot.GetCurrentPose();
                 _calibPoint2 = (xCam, yCam, rp.X, rp.Y);
                 calibrationPoints.Add(_calibPoint2.Value);
-                tbCom.LogInfo($"Point 2 enregistré : Caméra ({xCam}, {yCam}), Robot ({rp.X}, {rp.Y})", LogSource.Serveur);
+                tbCom.LogInfo($"Point 2 enregistré : Caméra ({xCam} m, {yCam} m), Robot ({rp.X} m, {rp.Y} m)", LogSource.Serveur);
                 var p1 = _calibPoint1.Value;
                 var p2 = _calibPoint2.Value;
                 if (Math.Abs(p2.xCam - p1.xCam) < 1e-6 || Math.Abs(p2.yCam - p1.yCam) < 1e-6)
@@ -837,19 +843,20 @@ namespace Serveur
                 if (parts.Length != 2)
                     throw new FormatException("Commande ADD_OBJECT mal formatée.");
                 var objectData = parts[1].Trim();
-                tbCom.LogInfo($"Données JSON reçues : {objectData}", LogSource.Serveur);
+                // Conversion depuis la chaîne JSON en instance de RobotObject
                 var robotObject = RobotObject.FromString(objectData);
                 if (serverState == ServerState.Calibration || serverState == ServerState.Wait)
                 {
-                    tbCom.LogInfo("En mode calibration ou en attente, l'objet est ignoré.", LogSource.Serveur);
                     string response = "CALIBRATION_IN_PROGRESS\n";
                     byte[] responseBytes = Encoding.UTF8.GetBytes(response);
                     networkStream.Write(responseBytes, 0, responseBytes.Length);
                 }
                 else if (serverState == ServerState.Ready)
                 {
-                    float xRobot = (robotObject.X * _scaleX) + _offsetX;
-                    float yRobot = (robotObject.Y * _scaleY) + _offsetY;
+                    // Les positions d'objet provenant de la caméra sont en mm.
+                    // Il faut les convertir en m avant de les transformer par l'affine de calibration.
+                    float xRobot = (_scaleX * (robotObject.X / 1000f)) + _offsetX;
+                    float yRobot = (_scaleY * (robotObject.Y / 1000f)) + _offsetY;
                     var calibratedObject = new RobotObject(robotObject.Color, robotObject.Shape, xRobot, yRobot);
                     objectBuffer.Enqueue(calibratedObject);
                     InvokeIfNeeded(() => robotObjectsList.Add(calibratedObject));

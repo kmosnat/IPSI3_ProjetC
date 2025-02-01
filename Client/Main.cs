@@ -230,8 +230,6 @@ namespace Client
                                     tbCom.LogError($"Erreur lors du traitement de l'image : {ex.Message}");
                                 }
                             }, cancellationToken);
-
-                            await Task.Delay(1000, cancellationToken);
                         }
                     }
                 }
