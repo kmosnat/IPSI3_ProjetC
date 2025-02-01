@@ -466,6 +466,10 @@ namespace Serveur
                             return bitmap;
                         }
                     }
+                    lock (_lastFrameLock)
+                    {
+                        return _lastFrame != null ? (Bitmap)_lastFrame.Clone() : null;
+                    }
                 }
                 else
                 {
@@ -474,7 +478,6 @@ namespace Serveur
                     return testImage;
                 }
             }
-            return null;
         }
 
         private Bitmap GenerateTestImage()
@@ -518,7 +521,7 @@ namespace Serveur
                         _lastFrame = (Bitmap)bitmap.Clone();
                     }
                 }
-                else
+                else if (_device == null || !_device.IsConnected())
                 {
                     Bitmap testImage = GenerateTestImage();
                     SetPictureBoxImage(testImage);
@@ -529,6 +532,7 @@ namespace Serveur
                 tbCom.LogError("Erreur timAcq : " + ex.Message, LogSource.Serveur);
             }
         }
+
 
         private void SetPictureBoxImage(Bitmap bitmap)
         {

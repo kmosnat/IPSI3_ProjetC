@@ -291,7 +291,7 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 	try {
 		// Création de l'objet de classification
 		CImageClasse imgClasse(img, "V8");
-		CImageClasse filtre = imgClasse.filtrage("taille", 5000, 10000, false);
+		CImageClasse filtre = imgClasse.filtrage("taille", 5000, 70000, false);
 		trueRes = filtre.toNdg();
 
 		std::vector<SIGNATURE_Forme> labels = filtre.signatures();
