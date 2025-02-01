@@ -31,10 +31,15 @@ namespace Client
         private TcpListener calibrationListener;
         private CancellationTokenSource calibrationListenerCts;
 
+        private int seuilValue;   
+        private int filtreValue;
+
         public Client()
         {
             InitializeComponent();
             m_numPort = 8001;
+            seuilValue = trackBarSeuil.Value;
+            filtreValue = trackBarFiltre.Value;
         }
 
         protected override async void OnLoad(EventArgs e)
@@ -316,7 +321,7 @@ namespace Client
                 using (ClImage clImage = new ClImage())
                 {
                     clImage.ObjetLibDataImgPtr(3, Marshal.UnsafeAddrOfPinnedArrayElement(imageData, 0), packedStride, height, width);
-                    clImage.ProcessCapPtr();
+                    clImage.ProcessCapPtr(seuilValue, filtreValue);
                     _lastFrameDetections.Clear();
                     int objectCount = (int)clImage.ObjetLibValeurChamp(0);
                     for (int i = 0; i < objectCount; i++)
@@ -369,6 +374,16 @@ namespace Client
                 bitmap.Dispose();
                 throw;
             }
+        }
+
+        private void trackBarFiltre_Scroll(object sender, EventArgs e)
+        {
+            filtreValue = trackBarFiltre.Value;
+        }
+
+        private void trackBarSeuil_Scroll(object sender, EventArgs e)
+        {
+            seuilValue = trackBarSeuil.Value;
         }
 
         private void serveurToolStripMenuItem_Click(object sender, EventArgs e)
@@ -447,10 +462,6 @@ namespace Client
             }
         }
 
-        private void testObjectToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            AddRobotObject("Rouge", "Triangle", 300, 200);
-        }
 
         #endregion
     }

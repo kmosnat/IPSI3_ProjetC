@@ -215,7 +215,7 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 
 // Exemple de version sécurisée de runProcessCap() et extractBouchons()
 
-void ClibIHM::runProcessCap() {
+void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 	try {
 		// Vérifier que le pointeur sur l'image est valide
 		if (this->imgNdgPt == nullptr) {
@@ -233,11 +233,10 @@ void ClibIHM::runProcessCap() {
 			return;
 		}
 
-		int seuilBas = 200;
 		int seuilHaut = 255;
 		CImageNdg man;
 		try {
-			man = binaryImg.seuillage("manuel", seuilBas, seuilHaut);
+			man = binaryImg.seuillage("manuel", threshold, seuilHaut);
 		}
 		catch (const std::exception& ex) {
 			std::cerr << "Erreur lors du seuillage: " << ex.what() << std::endl;
@@ -247,7 +246,7 @@ void ClibIHM::runProcessCap() {
 		CImageNdg trueRes;
 		
 		try {
-			std::vector<Bouchon> bouchons = extractBouchons(man, trueRes);
+			std::vector<Bouchon> bouchons = extractBouchons(man, trueRes, sizeMin);
 			for (const auto& bouchon : bouchons) {
 				std::ostringstream oss;
 				oss << bouchon.forme << ", "
@@ -285,13 +284,13 @@ void ClibIHM::runProcessCap() {
 	}
 }
 
-std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes)
+std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes, int sizeMin)
 {
 	std::vector<Bouchon> bouchons;
 	try {
 		// Création de l'objet de classification
 		CImageClasse imgClasse(img, "V8");
-		CImageClasse filtre = imgClasse.filtrage("taille", 5000, 70000, false);
+		CImageClasse filtre = imgClasse.filtrage("taille", sizeMin, 70000, false);
 		trueRes = filtre.toNdg();
 
 		std::vector<SIGNATURE_Forme> labels = filtre.signatures();

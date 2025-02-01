@@ -30,7 +30,7 @@ namespace Client
         public static extern IntPtr process(IntPtr pImg, IntPtr pImgGt);
 
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
-        public static extern IntPtr processCap(IntPtr pImg);
+        public static extern IntPtr processCap(IntPtr pImg, int threshold, int sizeMin);
 
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern double valeurChamp(IntPtr pImg, int i);
@@ -70,12 +70,12 @@ namespace Client
             return process(ClPtr, pImgGt);
         }
 
-        public IntPtr ProcessCapPtr()
+        public IntPtr ProcessCapPtr(int threshold, int sizeMin)
         {
             if (ClPtr == IntPtr.Zero)
                 throw new InvalidOperationException("L'objet ClibIHM n'est pas initialisé.");
 
-            return processCap(ClPtr);
+            return processCap(ClPtr, threshold, sizeMin);
         }
 
         public double ObjetLibValeurChamp(int i)

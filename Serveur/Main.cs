@@ -1044,45 +1044,5 @@ namespace Serveur
 
         #endregion
 
-        private void imageTestToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            using (OpenFileDialog ofd = new OpenFileDialog())
-            {
-                ofd.Filter = "Fichiers images|*.jpg;*.jpeg;*.png;*.bmp|Tous les fichiers|*.*";
-                if (ofd.ShowDialog() == DialogResult.OK)
-                {
-                    try
-                    {
-                        _customTestImage = new Bitmap(ofd.FileName);
-                        pbImage.Image = _customTestImage;
-                        tbCom.LogInfo($"Image de test chargée depuis {ofd.FileName}.", LogSource.Serveur);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("Erreur lors du chargement de l'image : " + ex.Message,
-                            "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-            }
-        }
-
-        private void moveRobotTest_Click(object sender, EventArgs e)
-        {
-            if (!_robotConnected)
-            {
-                tbCom.LogError("Le robot n'est pas connecté, impossible de bouger.", LogSource.Serveur);
-                return;
-            }
-            try
-            {
-                RobotPose currentPose = robot.GetCurrentPose();
-                tbCom.LogInfo($"Pose courante => {currentPose}", LogSource.Serveur);
-                robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
-            }
-            catch (Exception ex)
-            {
-                tbCom.LogError("Erreur Modbus: " + ex.Message, LogSource.Serveur);
-            }
-        }
     }
 }

@@ -104,7 +104,7 @@ public:
 	_declspec(dllexport) void filter(std::string methode, int kernel, std::string str);
 	_declspec(dllexport) void runProcess(ClibIHM* pImgGt);
 
-	_declspec(dllexport) void runProcessCap();
+	_declspec(dllexport) void runProcessCap(int threshold, int sizeMin);
 
 	_declspec(dllexport) void compare(ClibIHM* pImgGt);
 	_declspec(dllexport) void score(ClibIHM* pImgGt);
@@ -113,7 +113,7 @@ public:
 
 private:
 
-	std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes);
+	std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes, int sizeMin);
 
 	std::string ClibIHM::determineShape(const Bouchon& bouchon);
 	std::string determineColor(const Bouchon& bouchon);
@@ -157,12 +157,12 @@ extern "C" _declspec(dllexport) ClibIHM* process(ClibIHM* pImg, ClibIHM* pImgGt)
 	return pImgGt;
 }
 
-extern "C" _declspec(dllexport) ClibIHM * processCap(ClibIHM * pImg)
+extern "C" _declspec(dllexport) ClibIHM * processCap(ClibIHM * pImg, int threshold, int sizeMin)
 {
 	if (pImg == nullptr)
 		return nullptr;
 
-	pImg->runProcessCap();
+	pImg->runProcessCap(threshold, sizeMin);
 	return pImg;
 }
 
