@@ -58,7 +58,6 @@ namespace Client
             // 
             // navBar
             // 
-            this.navBar.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
             this.navBar.ImageScalingSize = new System.Drawing.Size(32, 32);
             this.navBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.serveurToolStripMenuItem,
@@ -66,28 +65,29 @@ namespace Client
             this.quitterToolStripMenuItem1});
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
-            this.navBar.Size = new System.Drawing.Size(1169, 40);
+            this.navBar.Padding = new System.Windows.Forms.Padding(4, 1, 0, 1);
+            this.navBar.Size = new System.Drawing.Size(779, 26);
             this.navBar.TabIndex = 0;
             this.navBar.Text = "menuStrip1";
             // 
             // serveurToolStripMenuItem
             // 
             this.serveurToolStripMenuItem.Name = "serveurToolStripMenuItem";
-            this.serveurToolStripMenuItem.Size = new System.Drawing.Size(115, 36);
+            this.serveurToolStripMenuItem.Size = new System.Drawing.Size(72, 24);
             this.serveurToolStripMenuItem.Text = "Serveur";
             this.serveurToolStripMenuItem.Click += new System.EventHandler(this.serveurToolStripMenuItem_Click);
             // 
             // testObjectToolStripMenuItem
             // 
             this.testObjectToolStripMenuItem.Name = "testObjectToolStripMenuItem";
-            this.testObjectToolStripMenuItem.Size = new System.Drawing.Size(153, 36);
+            this.testObjectToolStripMenuItem.Size = new System.Drawing.Size(97, 24);
             this.testObjectToolStripMenuItem.Text = "Test Object";
             this.testObjectToolStripMenuItem.Click += new System.EventHandler(this.testObjectToolStripMenuItem_Click);
             // 
             // quitterToolStripMenuItem1
             // 
             this.quitterToolStripMenuItem1.Name = "quitterToolStripMenuItem1";
-            this.quitterToolStripMenuItem1.Size = new System.Drawing.Size(109, 36);
+            this.quitterToolStripMenuItem1.Size = new System.Drawing.Size(69, 24);
             this.quitterToolStripMenuItem1.Text = "Quitter";
             this.quitterToolStripMenuItem1.Click += new System.EventHandler(this.quitterToolStripMenuItem1_Click);
             // 
@@ -102,23 +102,21 @@ namespace Client
             this.mainTableLayoutPanel.Controls.Add(this.pbImage, 1, 1);
             this.mainTableLayoutPanel.Controls.Add(this.statusStrip, 0, 2);
             this.mainTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mainTableLayoutPanel.Location = new System.Drawing.Point(0, 40);
-            this.mainTableLayoutPanel.Margin = new System.Windows.Forms.Padding(4);
+            this.mainTableLayoutPanel.Location = new System.Drawing.Point(0, 26);
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
             this.mainTableLayoutPanel.RowCount = 3;
-            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 31F));
+            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
-            this.mainTableLayoutPanel.Size = new System.Drawing.Size(1169, 847);
+            this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.mainTableLayoutPanel.Size = new System.Drawing.Size(779, 542);
             this.mainTableLayoutPanel.TabIndex = 1;
             // 
             // lblLogs
             // 
             this.lblLogs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lblLogs.Location = new System.Drawing.Point(4, 0);
-            this.lblLogs.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblLogs.Location = new System.Drawing.Point(3, 0);
             this.lblLogs.Name = "lblLogs";
-            this.lblLogs.Size = new System.Drawing.Size(459, 31);
+            this.lblLogs.Size = new System.Drawing.Size(305, 20);
             this.lblLogs.TabIndex = 0;
             this.lblLogs.Text = "Log";
             this.lblLogs.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -126,10 +124,9 @@ namespace Client
             // lblPreview
             // 
             this.lblPreview.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.lblPreview.Location = new System.Drawing.Point(471, 0);
-            this.lblPreview.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblPreview.Location = new System.Drawing.Point(314, 0);
             this.lblPreview.Name = "lblPreview";
-            this.lblPreview.Size = new System.Drawing.Size(694, 31);
+            this.lblPreview.Size = new System.Drawing.Size(462, 20);
             this.lblPreview.TabIndex = 1;
             this.lblPreview.Text = "Aperçu de l\'image :";
             this.lblPreview.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -137,24 +134,24 @@ namespace Client
             // tbCom
             // 
             this.tbCom.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tbCom.Location = new System.Drawing.Point(4, 35);
-            this.tbCom.Margin = new System.Windows.Forms.Padding(4);
+            this.tbCom.Location = new System.Drawing.Point(3, 23);
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(459, 778);
+            this.tbCom.Size = new System.Drawing.Size(305, 484);
             this.tbCom.TabIndex = 2;
+            this.tbCom.TextChanged += new System.EventHandler(this.tbCom_TextChanged);
             // 
             // pbImage
             // 
             this.pbImage.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pbImage.Location = new System.Drawing.Point(471, 35);
-            this.pbImage.Margin = new System.Windows.Forms.Padding(4);
+            this.pbImage.Location = new System.Drawing.Point(314, 23);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(694, 778);
+            this.pbImage.Size = new System.Drawing.Size(462, 484);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 3;
             this.pbImage.TabStop = false;
+            this.pbImage.Click += new System.EventHandler(this.pbImage_Click);
             // 
             // statusStrip
             // 
@@ -164,9 +161,10 @@ namespace Client
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(32, 32);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripStatus});
-            this.statusStrip.Location = new System.Drawing.Point(0, 817);
+            this.statusStrip.Location = new System.Drawing.Point(0, 510);
             this.statusStrip.Name = "statusStrip";
-            this.statusStrip.Size = new System.Drawing.Size(1169, 30);
+            this.statusStrip.Padding = new System.Windows.Forms.Padding(1, 0, 9, 0);
+            this.statusStrip.Size = new System.Drawing.Size(779, 32);
             this.statusStrip.TabIndex = 4;
             this.statusStrip.Text = "statusStrip1";
             // 
@@ -174,18 +172,17 @@ namespace Client
             // 
             this.toolStripStatus.ForeColor = System.Drawing.Color.Red;
             this.toolStripStatus.Name = "toolStripStatus";
-            this.toolStripStatus.Size = new System.Drawing.Size(201, 20);
+            this.toolStripStatus.Size = new System.Drawing.Size(125, 26);
             this.toolStripStatus.Text = "État : Déconnecté";
             // 
             // Client
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1169, 887);
+            this.ClientSize = new System.Drawing.Size(779, 568);
             this.Controls.Add(this.mainTableLayoutPanel);
             this.Controls.Add(this.navBar);
             this.MainMenuStrip = this.navBar;
-            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Client";
             this.Text = "Couleur - Client";
             this.navBar.ResumeLayout(false);

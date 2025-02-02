@@ -12,7 +12,7 @@ using System.Collections.Concurrent;
 
 using Utils;
 using System.Threading;
-
+using System.Linq;
 namespace Client
 {
     public partial class Client : Form
@@ -21,7 +21,6 @@ namespace Client
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
         private ConcurrentDictionary<string, RobotObject> localObjects = new ConcurrentDictionary<string, RobotObject>();
-
         private readonly TimeSpan reconnectInterval = TimeSpan.FromSeconds(5);
         private readonly int maxReconnectAttempts = 0; // 0 pour illimité
         private CancellationTokenSource reconnectCancellationTokenSource;
@@ -46,7 +45,54 @@ namespace Client
             }
             return BitConverter.ToUInt32(bytes, 0);
         }
+        //ajout pour charger l'image
+        //ajout à enlever
+        // ajout conversion couleur
+        private Bitmap ConvertToColor(Bitmap grayscaleImage)
+        {
+            Bitmap colorImage = new Bitmap(grayscaleImage.Width, grayscaleImage.Height);
+            for (int y = 0; y < grayscaleImage.Height; y++)
+            {
+                for (int x = 0; x < grayscaleImage.Width; x++)
+                {
+                    Color pixelColor = grayscaleImage.GetPixel(x, y);
+                    int gray = pixelColor.R; // Puisque c'est en niveaux de gris, R=G=B
+                    Color newColor = Color.FromArgb(gray, gray, gray); // Conversion en couleur
+                    colorImage.SetPixel(x, y, newColor);
+                }
+            }
+            return colorImage;
+        }
 
+        private string GetLatestImagePath(string folderPath)
+        {
+            try
+            {
+                if (!Directory.Exists(folderPath))
+                {
+                    tbCom.LogError("Le dossier d'images n'existe pas.");
+                    return null;
+                }
+
+                var files = Directory.GetFiles(folderPath, "*.*")
+                    .Where(f => f.EndsWith(".png") || f.EndsWith(".jpg") || f.EndsWith(".bmp"))
+                    .OrderByDescending(f => File.GetLastWriteTime(f))
+                    .ToList();
+
+                if (files.Count == 0)
+                {
+                    tbCom.LogError("Aucune image trouvée dans le dossier.");
+                    return null;
+                }
+
+                return files.First();
+            }
+            catch (Exception ex)
+            {
+                tbCom.LogError("Erreur lors du chargement de l'image : " + ex.Message);
+                return null;
+            }
+        }
         private async Task InitClientTCPAsync(CancellationToken cancellationToken)
         {
             if (m_ipAdrDistante == null)
@@ -173,100 +219,90 @@ namespace Client
             }));
         }
 
-        private void DisplayImage(Image receivedImage)
+      
+        private void DisplayImage(Image img)
         {
-            try
+            if (img == null)
             {
-                Image processedImage = ProcessImage(receivedImage);
+                tbCom.LogError("🔴 L'image est nulle.");
+                return;
+            }
 
-                this.Invoke((MethodInvoker)(() =>
-                {
-                    if (this.pbImage.Image != null)
-                    {
-                        this.pbImage.Image.Dispose();
-                    }
-                    this.pbImage.Image = processedImage;
-                }));
-            }
-            catch (Exception ex)
+            tbCom.LogInfo($"🖼️ Image affichée : {img.Width}x{img.Height} | Pixel (0,0) : {((Bitmap)img).GetPixel(0, 0)}");
+
+            this.Invoke((MethodInvoker)(() =>
             {
-                Console.WriteLine("Erreur lors de l'affichage de l'image : " + ex.Message);
-            }
-            finally
-            {
-                receivedImage.Dispose();
-            }
+                pbImage.Image = null;  // Nettoyer avant d'afficher une nouvelle image
+                pbImage.BackColor = Color.White;  // Mettre un fond blanc pour forcer un rafraîchissement
+                pbImage.Image = new Bitmap(img);
+                pbImage.SizeMode = PictureBoxSizeMode.StretchImage;
+                pbImage.Refresh();
+                pbImage.Invalidate();
+                pbImage.Update();
+                this.Refresh();
+            }));
+
+            tbCom.LogInfo("✅ Image affichée avec succès.");
         }
 
-        private Image ProcessImage(Image inputImage)
+        // 🔹 Déclarations des méthodes de la DLL
+        [DllImport("libIHM.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr objetLibDataImg(int nbChamps, byte[] data, int stride, int nbLig, int nbCol);
+
+        [DllImport("libIHM.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr processCap(IntPtr obj);
+
+        [DllImport("libIHM.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void destroyClibIHM(IntPtr obj);
+
+        [DllImport("libIHM.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr valeurObject(IntPtr pImg, int i);
+
+        [DllImport("libIHM.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int valeurChamp(IntPtr pImg, int i);
+        // fin ajout à enlever
+
+        // Fonction qui traite l'image et affiche les résultats
+        private Image ProcessImage(Image receivedImage)
         {
-            Bitmap bitmap = new Bitmap(inputImage.Width, inputImage.Height, PixelFormat.Format24bppRgb);
-            using (Graphics g = Graphics.FromImage(bitmap))
+            tbCom.LogInfo(" ProcessImage() a bien été appelée !");
+
+            // Charger l’image depuis le disque (si nécessaire)
+            string imagePath = GetLatestImagePath(@"C:\Users\diarr\OneDrive\Documents\IPSI3\ProjetReconnaissanceCouleur\image");
+
+            if (string.IsNullOrEmpty(imagePath))
             {
-                g.DrawImage(inputImage, 0, 0);
+                tbCom.LogError("Impossible de charger l'image.");
+                return receivedImage; // ⚠️ Retourne l'image d'origine pour éviter un crash
             }
 
-            BitmapData bitmapData = null;
+            Bitmap bitmap = new Bitmap(imagePath);
 
-            try
+            tbCom.LogInfo($"Image chargée depuis {imagePath} : {bitmap.Width}x{bitmap.Height}");
+
+            // 🔹 Vérification si l'image passe bien dans la DLL (traitement)
+            IntPtr objPtr = objetLibDataImg(1, null, 0, bitmap.Height, bitmap.Width);
+            if (objPtr == IntPtr.Zero)
             {
-                Rectangle rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
-                bitmapData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
-
-                int width = bitmapData.Width;
-                int height = bitmapData.Height;
-                int stride = bitmapData.Stride;
-                int bytesPerPixel = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
-                int packedStride = width * bytesPerPixel;
-                byte[] imageData = new byte[height * packedStride];
-
-                IntPtr scan0 = bitmapData.Scan0;
-
-                unsafe
-                {
-                    byte* sourcePtr = (byte*)scan0.ToPointer();
-
-                    for (int y = 0; y < height; y++)
-                    {
-                        Marshal.Copy(new IntPtr(sourcePtr + y * stride), imageData, y * packedStride, packedStride);
-                    }
-                }
-
-                using (ClImage clImage = new ClImage())
-                {
-                    clImage.ObjetLibDataImgPtr(
-                        nbChamps: 3,
-                        data: Marshal.UnsafeAddrOfPinnedArrayElement(imageData, 0),
-                        stride: packedStride,
-                        nbLig: height,
-                        nbCol: width);
-
-                    clImage.ProcessCapPtr();
-
-                    int couleur = (int)ClImage.valeurChamp(clImage.ClPtr, 0);   // Couleur détectée
-                    int forme = (int)ClImage.valeurChamp(clImage.ClPtr, 1);     // Forme détectée
-                    int posX = (int)ClImage.valeurChamp(clImage.ClPtr, 2);      // Position X
-                    int posY = (int)ClImage.valeurChamp(clImage.ClPtr, 3);      // Position Y
-
-                    // Affichage des résultats dans une zone locale (par exemple, `tbCom` dans le client)
-                    tbCom.LogInfo("===== Résultats reçus du traitement =====.");
-                    tbCom.LogInfo("Couleur détectée : {couleur}.");
-                    tbCom.LogInfo("Forme détectée   : {forme}.");
-                    tbCom.LogInfo("Position X       : {posX}.");
-                    tbCom.LogInfo("Position Y       : {posY}.");
-
-                }
-
-                return bitmap;
-            }
-            finally
-            {
-                bitmap.UnlockBits(bitmapData);
+                tbCom.LogError(" Échec de la création de l'objet ClibIHM.");
+                return receivedImage;
             }
 
+            objPtr = processCap(objPtr);
+            if (objPtr == IntPtr.Zero)
+            {
+                tbCom.LogError(" Échec du traitement de l'image.");
+                return receivedImage;
+            }
 
+            tbCom.LogInfo("Traitement terminé, image prête à être affichée.");
 
+            return bitmap; // 🔥 Retourne bien l'image traitée
         }
+
+       
+
+        
 
 
         private void serveurToolStripMenuItem_Click(object sender, EventArgs e)
@@ -374,5 +410,17 @@ namespace Client
             int y = 200;
             AddRobotObject(color, shape, x, y);
         }
+
+        private void tbCom_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void pbImage_Click(object sender, EventArgs e)
+        {
+
+        }
+
+       
     }
 }

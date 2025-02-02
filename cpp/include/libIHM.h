@@ -33,7 +33,13 @@ struct Label {
 	int parent;
 	int rank;
 };
+// ajout
+struct CPoint {
+	int x;
+	int y;
 
+	CPoint(int _x = 0, int _y = 0) : x(_x), y(_y) {}
+};
 
 class ClibIHM {
 
@@ -105,7 +111,8 @@ public:
 	_declspec(dllexport) void score(ClibIHM* pImgGt);
 
 	_declspec(dllexport) void persitData(CImageNdg* pImg, COULEUR couleur);
-
+	// ajout peut être à enlever	
+	_declspec(dllexport) CImageCouleur convertirEnCouleur(const CImageNdg& imgNdg);
 private:
 
 

@@ -9,6 +9,10 @@
 #include <stack>
 
 #include "libIHM.h"
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 
 // Initialisateur par défaut
 ClibIHM::ClibIHM() {
@@ -20,13 +24,25 @@ ClibIHM::ClibIHM() {
 }
 
 // Initialisateur par valeurs
+//modif
 ClibIHM::ClibIHM(int nbChamps, byte* data, int stride, int nbLig, int nbCol)
 {
+	std::cout << "Réception des paramètres dans ClibIHM :" << std::endl;
+	std::cout << " - Nombre de canaux : " << nbChamps << std::endl;
+	std::cout << " - Stride : " << stride << std::endl;
+	std::cout << " - Nombre de lignes : " << nbLig << std::endl;
+	std::cout << " - Nombre de colonnes : " << nbCol << std::endl;
+
 	if (data == nullptr) {
-		throw std::invalid_argument("Aucune Data");
+		std::cerr << "ERREUR : Pointeur de données NULL !" << std::endl;
+		throw std::runtime_error("Pointeur de données invalide.");
 	}
 
-    // Initialisation des variables
+	if (nbLig <= 0 || nbCol <= 0 || stride <= 0) {
+		std::cerr << "ERREUR : Dimensions invalides !" << std::endl;
+		throw std::runtime_error("Dimensions invalides.");
+	}
+
 	nbDataImg = nbChamps;
 	dataFromImg.resize(nbChamps);
 	this->data = data;
@@ -34,34 +50,43 @@ ClibIHM::ClibIHM(int nbChamps, byte* data, int stride, int nbLig, int nbCol)
 	this->NbCol = nbCol;
 	this->stride = stride;
 
-    // Initialisation des images
+	bool estVide = true;
+	for (int i = 0; i < nbLig * nbCol; i++) {
+		if (data[i] != 0) {
+			estVide = false;
+			break;
+		}
+	}
+
+	if (estVide) {
+		std::cerr << "ERREUR : L'image reçue est complètement noire !" << std::endl;
+		throw std::runtime_error("L'image chargée est vide !");
+	}
+
+	std::cout << "Allocation des images..." << std::endl;
 	imgPt = new CImageCouleur(nbLig, nbCol);
 	imgNdgPt = new CImageNdg(nbLig, nbCol);
 
-    // Vérification de l'allocation
-	if (!imgPt) {
-		throw std::runtime_error("Erreur allocation CImageCouleur");
+	if (!imgPt || !imgNdgPt) {
+		std::cerr << "ERREUR : Allocation mémoire échouée !" << std::endl;
+		throw std::runtime_error("Erreur mémoire");
 	}
 
-    // Récupération des valeurs des pixels
+	std::cout << "Chargement des pixels..." << std::endl;
+
 	byte* pixPtr = this->data;
+	for (int y = 0; y < nbLig; y++) {
+		for (int x = 0; x < nbCol; x++) {
+			imgPt->operator()(y, x)[0] = pixPtr[3 * x + 2];
+			imgPt->operator()(y, x)[1] = pixPtr[3 * x + 1];
+			imgPt->operator()(y, x)[2] = pixPtr[3 * x];
 
-	for (int y = 0; y < nbLig; y++)
-	{
-		for (int x = 0; x < nbCol; x++)
-		{
-			// R�cup�ration des valeurs RGB
-			imgPt->operator()(y, x)[0] = pixPtr[3 * x + 2]; // Bleu
-			imgPt->operator()(y, x)[1] = pixPtr[3 * x + 1]; // Vert
-			imgPt->operator()(y, x)[2] = pixPtr[3 * x];     // Rouge
-
-			// Conversion en niveau de gris
 			imgNdgPt->operator()(y, x) = (int)(0.299 * pixPtr[3 * x] + 0.587 * pixPtr[3 * x + 1] + 0.114 * pixPtr[3 * x + 2]);
 		}
-
 		pixPtr += stride;
 	}
 
+	std::cout << "Image correctement chargée en mémoire !" << std::endl;
 }
 
 // Copie d'une image de la classe CImageNdg à une image pointeur ClibIHM
@@ -148,7 +173,7 @@ void ClibIHM::filter(std::string methode, int kernel, std::string str)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
-// Traitement de l'image
+// Projet Traitement de l'image
 void ClibIHM::runProcess(ClibIHM* pImgGt)
 {
 	int seuilBas = 0;
@@ -159,7 +184,7 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	//filtre median
 	this->filter("median", 3, "V8");
 
-	// Cr�ation et d�marrage des threads pour calculer whiteTopHat et inv_whiteTopHat
+	// Creation et demarrage des threads pour calculer whiteTopHat et inv_whiteTopHat
 	std::thread th1([&] {
 		inv_whiteTopHat = this->imgNdgPt->transformation().whiteTopHat("disk", 17);
 		});
@@ -212,37 +237,6 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
-
-// projet vision
- // Reconnaissance de couleur
-void ClibIHM::runProcessCap() {
-	int colorResult = 0;   // Couleur détectée : 0 = aucune, 1 = rouge, etc.
-	int shapeResult = 0;   // Forme détectée : 0 = aucune, 1 = cercle, etc.
-	int posX = -1, posY = -1;
-
-	// Simuler une détection de couleur
-	CImageNdg mask(NbLig, NbCol, 0);
-	for (int y = 0; y < imgNdgPt->lireHauteur(); y++) {
-		for (int x = 0; x < imgNdgPt->lireLargeur(); x++) {
-			int val = imgNdgPt->operator()(y, x);
-			if (val > 100) { // Exemple de seuil pour une couleur détectée
-				mask(y, x) = 255;
-				colorResult = 1; // Rouge détecté
-			}
-		}
-	}
-
-	// Détection de forme
-	CImageClasse formes(mask, "V8");
-
-
-	// Afficher les résultats
-	std::cout << "Couleur : " << colorResult
-		<< ", Forme : " << shapeResult
-		<< ", Position : (" << posX << ", " << posY << ")" << std::endl;
-}
-
-// Compare l'image traitee et la ground truth pour afficher les ressemblances et differences
 void ClibIHM::compare(ClibIHM* pImgGt)
 {
 	CImageCouleur out(NbLig, NbCol);
@@ -268,13 +262,133 @@ void ClibIHM::compare(ClibIHM* pImgGt)
 				out(y, x)[0] = 0;
 				out(y, x)[1] = 0;
 				out(y, x)[2] = 0;
-
 			}
 		}
 	}
 
 	writeImage(pImgGt, out);
 }
+// projet vision
+// modif
+// //problème
+ // Reconnaissance de couleur
+void ClibIHM::runProcessCap() {
+    if (imgPt == nullptr) {
+        throw std::runtime_error("ERREUR : Image couleur non chargée.");
+    }
+
+    std::cout << "Début du traitement d'image pour détection des objets." << std::endl;
+
+    // sEUILLAGE POUR DÉTECTER LES OBJETS**
+    CImageNdg binaryMask(NbLig, NbCol, 0);
+    for (int y = 0; y < NbLig; y++) {
+        for (int x = 0; x < NbCol; x++) {
+            auto& pixel = imgPt->operator()(y, x);
+
+            // Seuillage (Segmentation des objets)
+            if (pixel[0] > 50 || pixel[1] > 50 || pixel[2] > 50) 
+			{
+                binaryMask(y, x) = 255; // Objet
+            } else {
+                binaryMask(y, x) = 0; // Fond
+            }
+        }
+    }
+
+    //  ÉTIQUETAGE DES OBJETS**
+    CImageClasse formes(binaryMask, "V8");
+    int nbRegions = formes.lireNbRegions();
+    std::cout << "Nombre d'objets détectés : " << nbRegions << std::endl;
+
+    if (nbRegions == 0) {
+        std::cerr << "ERREUR : Aucun objet détecté !" << std::endl;
+        return;
+    }
+
+    // CRÉATION D'UNE IMAGE DE SORTIE**
+    CImageCouleur resultImage(NbLig, NbCol);
+
+    // ANALYSE DES FORMES ET COULEURS**
+    for (int regionIndex = 1; regionIndex <= nbRegions; regionIndex++) {
+        float cgX = 0, cgY = 0;
+        int surface = 0;
+
+        // Calcul du centre de gravité et de la surface de l’objet
+        for (int y = 0; y < NbLig; y++) {
+            for (int x = 0; x < NbCol; x++) {
+                if (formes(y, x) == regionIndex) {
+                    cgX += x;
+                    cgY += y;
+                    surface++;
+                }
+            }
+        }
+
+        if (surface == 0) continue;
+
+        int posX = static_cast<int>(cgX / surface);
+        int posY = static_cast<int>(cgY / surface);
+
+        //  DÉTECTION DE LA FORME
+        float perimeter = 0.0f;
+        for (int y = 1; y < NbLig - 1; y++) {
+            for (int x = 1; x < NbCol - 1; x++) {
+                if (formes(y, x) == regionIndex) {
+                    if (formes(y - 1, x) == 0 || formes(y + 1, x) == 0 ||
+                        formes(y, x - 1) == 0 || formes(y, x + 1) == 0) {
+                        perimeter += 1.0f;
+                    }
+                }
+            }
+        }
+
+        float circularity = 4 * M_PI * surface / (perimeter * perimeter);
+        std::string detectedShape = (circularity > 0.8f) ? "Cercle" : (circularity > 0.5f) ? "Carré" : "Triangle";
+
+        // DÉTECTION DE LA COULEUR RGB
+        int totalR = 0, totalG = 0, totalB = 0;
+        for (int y = 0; y < NbLig; y++) {
+            for (int x = 0; x < NbCol; x++) {
+                if (formes(y, x) == regionIndex) {
+                    auto& pixel = imgPt->operator()(y, x);
+                    totalR += pixel[2];  // Rouge
+                    totalG += pixel[1];  // Vert
+                    totalB += pixel[0];  // Bleu
+                }
+            }
+        }
+
+        int avgR = totalR / surface;
+        int avgG = totalG / surface;
+        int avgB = totalB / surface;
+
+        std::string detectedColor;
+        if (avgR > avgG && avgR > avgB) detectedColor = "Rouge";
+        else if (avgG > avgR && avgG > avgB) detectedColor = "Vert";
+        else if (avgB > avgR && avgB > avgG) detectedColor = "Bleu";
+        else detectedColor = "Inconnue";
+
+        //  AFFICHAGE DES RÉSULTATS**
+        std::cout << "Objet " << regionIndex << " : " << detectedShape << " " << detectedColor
+                  << " à (" << posX << "," << posY << ")" << std::endl;
+
+        // COLORATION DES OBJETS SUR L'IMAGE DE SORTIE
+        for (int y = 0; y < NbLig; y++) {
+            for (int x = 0; x < NbCol; x++) {
+                if (formes(y, x) == regionIndex) {
+                    resultImage(y, x)[0] = avgB; // Bleu
+                    resultImage(y, x)[1] = avgG; // Vert
+                    resultImage(y, x)[2] = avgR; // Rouge
+                }
+            }
+        }
+    }
+
+    // AFFICHAGE ET SAUVEGARDE**
+    this->writeImage(this, resultImage);
+    std::cout << "Analyse terminée. Résultats affichés." << std::endl;
+}
+
 
 // Calcul du score en fonction de la ground truth
 void ClibIHM::score(ClibIHM* pImgGt)
@@ -356,4 +470,19 @@ ClibIHM::~ClibIHM() {
 	this->dataObject.clear();
 
 }
+// ajout peut être à enlever
+// Méthode conversion de l'image en niveau de gris
+CImageCouleur ClibIHM::convertirEnCouleur(const CImageNdg& imgNdg) {
+	CImageCouleur imgCouleur(imgNdg.lireHauteur(), imgNdg.lireLargeur());
 
+	for (int y = 0; y < imgNdg.lireHauteur(); y++) {
+		for (int x = 0; x < imgNdg.lireLargeur(); x++) {
+			int valeur = imgNdg(y, x);
+			imgCouleur(y, x)[0] = valeur; // Bleu
+			imgCouleur(y, x)[1] = valeur; // Vert
+			imgCouleur(y, x)[2] = valeur; // Rouge
+		}
+	}
+
+	return imgCouleur;
+}
