@@ -26,6 +26,10 @@ struct Bouchon {
 	double rayon_mm;
 	std::string forme;
 	std::string couleur;
+	float r_top;
+	float r_bottom;
+	float r_left;
+	float r_right;
 };
 
 struct Direction { 
@@ -117,7 +121,6 @@ private:
 
 	std::string ClibIHM::determineShape(const Bouchon& bouchon);
 	std::string determineColor(const Bouchon& bouchon);
-	void analyzeColors(std::vector<Bouchon>& bouchons);
 
 };
 

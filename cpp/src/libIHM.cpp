@@ -217,7 +217,6 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 
 void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 	try {
-		// Vérifier que le pointeur sur l'image est valide
 		if (this->imgNdgPt == nullptr) {
 			std::cerr << "Erreur: imgNdgPt est nul." << std::endl;
 			return;
@@ -249,8 +248,8 @@ void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 			std::vector<Bouchon> bouchons = extractBouchons(man, trueRes, sizeMin);
 			for (const auto& bouchon : bouchons) {
 				std::ostringstream oss;
-				oss << bouchon.forme << ", "
-					<< bouchon.couleur << ", "
+				oss << bouchon.couleur << ", "
+					<< bouchon.forme << ", "
 					<< bouchon.centroidX_mm << ", "
 					<< bouchon.centroidY_mm;
 				char* s = _strdup(oss.str().c_str());
@@ -288,7 +287,6 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 {
 	std::vector<Bouchon> bouchons;
 	try {
-		// Création de l'objet de classification
 		CImageClasse imgClasse(img, "V8");
 		CImageClasse filtre = imgClasse.filtrage("taille", sizeMin, 70000, false);
 		trueRes = filtre.toNdg();
@@ -303,17 +301,14 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 		this->ecrireChamp(0, nbBouchons);
 		this->dataObject.resize(nbBouchons);
 
-		// Dimensions de l'image
 		int largeur = trueRes.lireLargeur();
 		int hauteur = trueRes.lireHauteur();
 
-		// Vérification des dimensions
 		if (largeur <= 0 || hauteur <= 0) {
 			std::cerr << "Dimensions invalides : " << largeur << "x" << hauteur << std::endl;
 			return bouchons;
 		}
 
-		// Lambda d'accès sécurisé aux pixels en vérifiant les bornes
 		auto safeGetPixel = [&](int x, int y) -> int {
 			if (x < 0 || x >= largeur || y < 0 || y >= hauteur)
 				return 0;
@@ -325,16 +320,13 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 			}
 			};
 
-		// Paramètres de conversion (rayon physique du bouchon, etc.)
 		float physicalRadiusMm = 175.0f;
 		float imageRadiusPx = static_cast<float>(min(largeur, hauteur)) / 2.0f;
 		float globalFacteurConversion = physicalRadiusMm / imageRadiusPx;
 
-		// Centre de l'image (en pixels)
 		float centerX = static_cast<float>(largeur) / 2.0f;
 		float centerY = static_cast<float>(hauteur) / 2.0f;
 
-		// Parcours des labels (en ignorant le label à l'indice 0, supposé invalide)
 		for (int i = 1; i < static_cast<int>(labels.size()); ++i)
 		{
 			try {
@@ -352,23 +344,28 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 				int x0 = static_cast<int>(objX_px);
 				int y0 = static_cast<int>(objY_px);
 
-				for (const auto& dir : directions)
+				float r_top = 0.0f, r_bottom = 0.0f, r_left = 0.0f, r_right = 0.0f;
+
+				for (size_t k = 0; k < directions.size(); ++k)
 				{
 					int x = x0;
 					int y = y0;
 					float rayon = 0.0f;
-
 					while (x >= 0 && x < largeur && y >= 0 && y < hauteur)
 					{
 						int pixelValue = safeGetPixel(x, y);
 						if (pixelValue == 0) {
 							break;
 						}
-						x += dir.dx;
-						y += dir.dy;
+						x += directions[k].dx;
+						y += directions[k].dy;
 						rayon += 1.0f;
 					}
 					rayons.push_back(rayon);
+					if (k == 0) r_top = rayon;
+					else if (k == 1) r_bottom = rayon;
+					else if (k == 2) r_left = rayon;
+					else if (k == 3) r_right = rayon;
 				}
 
 				float rayonP_px = 0.0f;
@@ -391,7 +388,21 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 				bouchon.centroidY_mm = realY_mm;
 				bouchon.rayon_mm = rayonP_mm;
 
+				// Stocker les rayons individuels convertis en mm
+				bouchon.r_top = r_top * facteurConversion;
+				bouchon.r_bottom = r_bottom * facteurConversion;
+				bouchon.r_left = r_left * facteurConversion;
+				bouchon.r_right = r_right * facteurConversion;
+
+				// Détermination de la forme
 				bouchon.forme = determineShape(bouchon);
+				if (bouchon.forme.empty()) {
+					std::cerr << "Forme inconnue pour le bouchon " << bouchon.label
+						<< ", image non stockée." << std::endl;
+					continue;
+				}
+
+				// Détermination de la couleur
 				bouchon.couleur = determineColor(bouchon);
 
 				bouchons.push_back(bouchon);
@@ -418,39 +429,48 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 
 
 std::string ClibIHM::determineShape(const Bouchon& bouchon) {
-	CImageNdg img;
-	try {
-		img = this->imgNdgPt->filtrage();
+	// Récupération des rayons individuels (en mm)
+	float r_top = bouchon.r_top;
+	float r_bottom = bouchon.r_bottom;
+	float r_left = bouchon.r_left;
+	float r_right = bouchon.r_right;
+
+	// Calcul de la moyenne des rayons
+	float average = (r_top + r_bottom + r_left + r_right) / 4.0f;
+
+	// Calcul du minimum et du maximum des rayons en utilisant des appels imbriqués
+	float minRay = min(min(r_top, r_bottom), min(r_left, r_right));
+	float maxRay = max(max(r_top, r_bottom), max(r_left, r_right));
+
+	float ratio = (maxRay != 0.0f) ? (minRay / maxRay) : 0.0f;
+
+	//Cercle : les 4 rayons doivent être très proches (ratio élevé)
+	if (ratio > 0.92f) {
+		return "cercle";
 	}
-	catch (const std::exception& ex) {
-		std::cerr << "Erreur lors du filtrage: " << ex.what() << std::endl;
-		return "Inconnu";
+	// Coeur : le rayon en haut est significativement réduit par rapport au rayon en bas,
+	//    avec une symétrie horizontale (différence entre r_left et r_right faible)
+	if ((r_top < 0.65f * r_bottom) && (std::fabs(r_left - r_right) < 0.1f * average)) {
+		return "coeur";
+	}
+	// Triangle : différence significative entre le haut et le bas ou entre la gauche et la droite
+	if ((std::fabs(r_top - r_bottom) > 0.25f * average) ||
+		(std::fabs(r_left - r_right) > 0.25f * average)) {
+		return "triangle";
+	}
+	// Carré : différences faibles entre les rayons opposés (mais non assez homogènes pour un cercle)
+	if ((std::fabs(r_top - r_bottom) < 0.15f * average) &&
+		(std::fabs(r_left - r_right) < 0.15f * average)) {
+		return "carre";
 	}
 
-
-	return "Inconnu";
+	return "";
 }
 
 
 std::string ClibIHM::determineColor(const Bouchon& bouchon) {
-	CImageNdg binaryImg;
-	try {
-		binaryImg = this->imgNdgPt->filtrage();
-	}
-	catch (const std::exception& ex) {
-		std::cerr << "Erreur lors du filtrage: " << ex.what() << std::endl;
-		return "Inconnu";
-	}
 
-
-	return "Inconnu";
-}
-
-
-void ClibIHM::analyzeColors(std::vector<Bouchon>& bouchons) {
-	for (auto& bouchon : bouchons) {
-		bouchon.couleur = determineColor(bouchon);
-	}
+	return "inconnue";
 }
 
 
