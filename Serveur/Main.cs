@@ -202,12 +202,13 @@ namespace Serveur
                     StartCalibration();
                     return;
                 }
-                robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
+                
                 tbCom.LogInfo("Robot déplacé à la position de calibration 1.", LogSource.Serveur);
                 var (xCam_mm, yCam_mm) = RequestCoordinatesFromClient();
                 float xCam = xCam_mm / 1000f;
                 float yCam = yCam_mm / 1000f;
                 RobotPose rp = robot.GetCurrentPose();
+                robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
                 _refZ = rp.Z; _refRoll = rp.Roll; _refPitch = rp.Pitch; _refYaw = rp.Yaw;
                 _calibPoint1 = (xCam, yCam, rp.X, rp.Y);
                 calibrationPoints.Add(_calibPoint1.Value);
@@ -242,12 +243,13 @@ namespace Serveur
                     StartCalibration();
                     return;
                 }
-                robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
+                
                 tbCom.LogInfo("Robot déplacé à la position de calibration 2.", LogSource.Serveur);
                 var (xCam_mm, yCam_mm) = RequestCoordinatesFromClient();
                 float xCam = xCam_mm / 1000f;
                 float yCam = yCam_mm / 1000f;
                 RobotPose rp = robot.GetCurrentPose();
+                robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
                 _calibPoint2 = (xCam, yCam, rp.X, rp.Y);
                 calibrationPoints.Add(_calibPoint2.Value);
                 tbCom.LogInfo($"Point 2 enregistré : Caméra ({xCam} m, {yCam} m), Robot ({rp.X} m, {rp.Y} m)", LogSource.Serveur);
@@ -389,6 +391,7 @@ namespace Serveur
                     {
                         tbCom.LogInfo($"Objet à traiter : {robotObject}", LogSource.Serveur);
                         currentRobotObject = robotObject;
+                        serverState = ServerState.Wait;
                         robotState = RobotState.OnProcess;
                     }
                     break;
@@ -400,7 +403,7 @@ namespace Serveur
                         float yRobot = currentRobotObject.Y;
                         robot.openGripper();
                         robot.MoveToPose(xRobot, yRobot, _refZ, _refRoll, _refPitch, _refYaw);
-                        robot.MoveToPose(xRobot, yRobot, _refZ + 0.1f, _refRoll, _refPitch, _refYaw);
+                        robot.MoveToPose(xRobot, yRobot, _refZ - 0.015f, _refRoll, _refPitch, _refYaw);
                         robot.closeGripper();
                         robot.MoveToPose(xRobot, yRobot, _refZ, _refRoll, _refPitch, _refYaw);
                         robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
@@ -418,6 +421,7 @@ namespace Serveur
                             robotObjectsList.Remove(roToRemove);
                         }
                         robotState = RobotState.Wait;
+                        serverState = ServerState.Ready;
                     }
                     break;
             }

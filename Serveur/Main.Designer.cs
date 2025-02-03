@@ -269,7 +269,7 @@ namespace Serveur
             this.gbCamera.Margin = new System.Windows.Forms.Padding(4);
             this.gbCamera.Name = "gbCamera";
             this.gbCamera.Padding = new System.Windows.Forms.Padding(4);
-            this.gbCamera.Size = new System.Drawing.Size(791, 195);
+            this.gbCamera.Size = new System.Drawing.Size(790, 195);
             this.gbCamera.TabIndex = 1;
             this.gbCamera.TabStop = false;
             this.gbCamera.Text = "Caméra";
@@ -357,7 +357,7 @@ namespace Serveur
             this.flowButtons.Margin = new System.Windows.Forms.Padding(4);
             this.flowButtons.Name = "flowButtons";
             this.flowButtons.Padding = new System.Windows.Forms.Padding(8, 6, 8, 6);
-            this.flowButtons.Size = new System.Drawing.Size(791, 12);
+            this.flowButtons.Size = new System.Drawing.Size(790, 12);
             this.flowButtons.TabIndex = 2;
             // 
             // lblRobotState
@@ -384,7 +384,7 @@ namespace Serveur
             this.dgvObjects.Margin = new System.Windows.Forms.Padding(4);
             this.dgvObjects.Name = "dgvObjects";
             this.dgvObjects.RowHeadersWidth = 82;
-            this.dgvObjects.Size = new System.Drawing.Size(791, 1040);
+            this.dgvObjects.Size = new System.Drawing.Size(790, 1040);
             this.dgvObjects.TabIndex = 0;
             // 
             // rightSplit
@@ -402,7 +402,7 @@ namespace Serveur
             // rightSplit.Panel2
             // 
             this.rightSplit.Panel2.Controls.Add(this.tabControlBottom);
-            this.rightSplit.Size = new System.Drawing.Size(1206, 1304);
+            this.rightSplit.Size = new System.Drawing.Size(1207, 1304);
             this.rightSplit.SplitterDistance = 617;
             this.rightSplit.SplitterWidth = 6;
             this.rightSplit.TabIndex = 0;
@@ -414,7 +414,7 @@ namespace Serveur
             this.pbImage.Location = new System.Drawing.Point(0, 0);
             this.pbImage.Margin = new System.Windows.Forms.Padding(4);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(1206, 617);
+            this.pbImage.Size = new System.Drawing.Size(1207, 617);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 0;
             this.pbImage.TabStop = false;
@@ -428,7 +428,7 @@ namespace Serveur
             this.tabControlBottom.Margin = new System.Windows.Forms.Padding(4);
             this.tabControlBottom.Name = "tabControlBottom";
             this.tabControlBottom.SelectedIndex = 0;
-            this.tabControlBottom.Size = new System.Drawing.Size(1206, 681);
+            this.tabControlBottom.Size = new System.Drawing.Size(1207, 681);
             this.tabControlBottom.TabIndex = 0;
             // 
             // RobotPage
@@ -437,7 +437,7 @@ namespace Serveur
             this.RobotPage.Location = new System.Drawing.Point(8, 39);
             this.RobotPage.Name = "RobotPage";
             this.RobotPage.Padding = new System.Windows.Forms.Padding(3);
-            this.RobotPage.Size = new System.Drawing.Size(1190, 634);
+            this.RobotPage.Size = new System.Drawing.Size(1191, 634);
             this.RobotPage.TabIndex = 1;
             this.RobotPage.Text = "Robot";
             this.RobotPage.UseVisualStyleBackColor = true;
@@ -457,7 +457,7 @@ namespace Serveur
             this.tableLayoutRobot.RowCount = 2;
             this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
             this.tableLayoutRobot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 60F));
-            this.tableLayoutRobot.Size = new System.Drawing.Size(1184, 628);
+            this.tableLayoutRobot.Size = new System.Drawing.Size(1185, 628);
             this.tableLayoutRobot.TabIndex = 0;
             // 
             // gbJointInfo
@@ -551,7 +551,7 @@ namespace Serveur
             this.gbRealPosition.Location = new System.Drawing.Point(595, 3);
             this.gbRealPosition.Name = "gbRealPosition";
             this.gbRealPosition.Padding = new System.Windows.Forms.Padding(5);
-            this.gbRealPosition.Size = new System.Drawing.Size(586, 245);
+            this.gbRealPosition.Size = new System.Drawing.Size(587, 245);
             this.gbRealPosition.TabIndex = 3;
             this.gbRealPosition.TabStop = false;
             this.gbRealPosition.Text = "Positions Réelles";
@@ -664,7 +664,7 @@ namespace Serveur
             this.gbReferencePoints.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold);
             this.gbReferencePoints.Location = new System.Drawing.Point(595, 254);
             this.gbReferencePoints.Name = "gbReferencePoints";
-            this.gbReferencePoints.Size = new System.Drawing.Size(586, 371);
+            this.gbReferencePoints.Size = new System.Drawing.Size(587, 371);
             this.gbReferencePoints.TabIndex = 4;
             this.gbReferencePoints.TabStop = false;
             this.gbReferencePoints.Text = "Points de Référence";
@@ -706,7 +706,7 @@ namespace Serveur
             this.tabLogs.Margin = new System.Windows.Forms.Padding(4);
             this.tabLogs.Name = "tabLogs";
             this.tabLogs.Padding = new System.Windows.Forms.Padding(12, 10, 12, 10);
-            this.tabLogs.Size = new System.Drawing.Size(999, 519);
+            this.tabLogs.Size = new System.Drawing.Size(1191, 634);
             this.tabLogs.TabIndex = 0;
             this.tabLogs.Text = "Logs";
             this.tabLogs.UseVisualStyleBackColor = true;
@@ -721,7 +721,7 @@ namespace Serveur
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(975, 499);
+            this.tbCom.Size = new System.Drawing.Size(1167, 614);
             this.tbCom.TabIndex = 0;
             // 
             // timAcq
@@ -747,7 +747,7 @@ namespace Serveur
             // 
             this.mainSplit.Panel2.Controls.Add(this.rightSplit);
             this.mainSplit.Size = new System.Drawing.Size(2001, 1304);
-            this.mainSplit.SplitterDistance = 791;
+            this.mainSplit.SplitterDistance = 790;
             this.mainSplit.TabIndex = 0;
             // 
             // Main

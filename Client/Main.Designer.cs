@@ -197,7 +197,7 @@ namespace Client
             this.lblFiltre.Name = "lblFiltre";
             this.lblFiltre.Size = new System.Drawing.Size(271, 36);
             this.lblFiltre.TabIndex = 2;
-            this.lblFiltre.Text = "Filtre (1000 - 10000) :";
+            this.lblFiltre.Text = "Filtre (1000 - 50000) :";
             this.lblFiltre.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // trackBarFiltre
@@ -205,7 +205,7 @@ namespace Client
             this.trackBarFiltre.Dock = System.Windows.Forms.DockStyle.Fill;
             this.trackBarFiltre.LargeChange = 1000;
             this.trackBarFiltre.Location = new System.Drawing.Point(290, 55);
-            this.trackBarFiltre.Maximum = 10000;
+            this.trackBarFiltre.Maximum = 50000;
             this.trackBarFiltre.Minimum = 1000;
             this.trackBarFiltre.Name = "trackBarFiltre";
             this.trackBarFiltre.Size = new System.Drawing.Size(1117, 36);
