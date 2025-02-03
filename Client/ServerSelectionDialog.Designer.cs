@@ -32,6 +32,7 @@
             this.lblPrompt = new System.Windows.Forms.Label();
             this.btnOK = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
+            this.local = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // txtIPAddress
@@ -70,12 +71,23 @@
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             // 
+            // local
+            // 
+            this.local.Location = new System.Drawing.Point(84, 174);
+            this.local.Name = "local";
+            this.local.Size = new System.Drawing.Size(166, 39);
+            this.local.TabIndex = 4;
+            this.local.Text = "localhost";
+            this.local.UseVisualStyleBackColor = true;
+            this.local.Click += new System.EventHandler(this.local_Click);
+            // 
             // ServerSelectionDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(394, 197);
+            this.ClientSize = new System.Drawing.Size(348, 224);
             this.ControlBox = false;
+            this.Controls.Add(this.local);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnOK);
             this.Controls.Add(this.lblPrompt);
@@ -93,5 +105,6 @@
         private System.Windows.Forms.Label lblPrompt;
         private System.Windows.Forms.Button btnOK;
         private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.Button local;
     }
 }

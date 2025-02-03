@@ -12,11 +12,12 @@ namespace Serveur
         public IPAddress SelectedIPAddress { get; private set; }
         public string SelectedInterfaceName { get; private set; }
 
+        private Label lblInstruction;
+        private Button btnOk;
+
         public NetworkInterfaceSelectionDialog()
         {
             InitializeComponent();
-
-            // Initialiser la liste des interfaces réseau
             PopulateNetworkInterfaces();
         }
 
@@ -32,21 +33,32 @@ namespace Serveur
 
                 foreach (var ipInfo in ipInfos)
                 {
-                    // Ignorer les adresses de lien local
+                    // Ignorer les adresses APIPA (169.254.x.x)
                     if (!ipInfo.Address.ToString().StartsWith("169.254"))
                     {
-                        string interfaceName = $"{ni.Name} ({ipInfo.Address.ToString()})";
+                        // Préparer l’info à afficher
+                        string interfaceName = ni.Name;
+                        string ipAddress = ipInfo.Address.ToString();
+
+                        // Créer un item pour le ListView
                         ListViewItem item = new ListViewItem(interfaceName);
+                        item.SubItems.Add(ipAddress);
+
+                        // Mettre en Tag l’info utile pour la suite
                         item.Tag = new Tuple<IPAddress, string>(ipInfo.Address, ni.Name);
+
                         listViewInterfaces.Items.Add(item);
                     }
                 }
             }
 
+            // Si aucune interface n’est trouvée, ajouter la Loopback
             if (listViewInterfaces.Items.Count == 0)
             {
-                string interfaceName = "Local (127.0.0.1)";
+                string interfaceName = "Loopback";
+                string ipAddress = "127.0.0.1";
                 ListViewItem item = new ListViewItem(interfaceName);
+                item.SubItems.Add(ipAddress);
                 item.Tag = new Tuple<IPAddress, string>(IPAddress.Loopback, "Loopback");
                 listViewInterfaces.Items.Add(item);
             }
@@ -65,7 +77,12 @@ namespace Serveur
             }
             else
             {
-                MessageBox.Show("Veuillez sélectionner une interface réseau.", "Avertissement", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(
+                    "Veuillez sélectionner une interface réseau.",
+                    "Avertissement",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
             }
         }
 
@@ -74,7 +91,5 @@ namespace Serveur
             this.DialogResult = DialogResult.Cancel;
             this.Close();
         }
-
-
     }
 }

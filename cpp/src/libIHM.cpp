@@ -15,6 +15,7 @@ ClibIHM::ClibIHM() {
 
 	this->nbDataImg = 0;
 	this->dataFromImg.clear();
+	this->dataObject.clear();
 	this->imgPt = NULL;
 }
 
@@ -25,7 +26,7 @@ ClibIHM::ClibIHM(int nbChamps, byte* data, int stride, int nbLig, int nbCol)
 		throw std::invalid_argument("Aucune Data");
 	}
 
-    // Initialisation des variables
+	// Initialisation des variables
 	nbDataImg = nbChamps;
 	dataFromImg.resize(nbChamps);
 	this->data = data;
@@ -33,16 +34,16 @@ ClibIHM::ClibIHM(int nbChamps, byte* data, int stride, int nbLig, int nbCol)
 	this->NbCol = nbCol;
 	this->stride = stride;
 
-    // Initialisation des images
+	// Initialisation des images
 	imgPt = new CImageCouleur(nbLig, nbCol);
 	imgNdgPt = new CImageNdg(nbLig, nbCol);
 
-    // Vérification de l'allocation
+	// Vérification de l'allocation
 	if (!imgPt) {
 		throw std::runtime_error("Erreur allocation CImageCouleur");
 	}
 
-    // Récupération des valeurs des pixels
+	// Récupération des valeurs des pixels
 	byte* pixPtr = this->data;
 
 	for (int y = 0; y < nbLig; y++)
@@ -204,7 +205,7 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 
 	this->writeBinaryImage(trueRes);
 
-    // Calcul du score et comparaison
+	// Calcul du score et comparaison
 	this->score(pImgGt);
 	this->compare(pImgGt);
 
@@ -212,22 +213,267 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
-void ClibIHM::runProcessCap()
-{
-	//Seuillage
-	int seuilBas = 0;
-	int seuilHaut = 255;
+// Exemple de version sécurisée de runProcessCap() et extractBouchons()
 
-	CImageNdg imgSeuil = this->imgNdgPt->seuillage("otsu", seuilBas, seuilHaut);
+void ClibIHM::runProcessCap(int threshold, int sizeMin) {
+	try {
+		if (this->imgNdgPt == nullptr) {
+			std::cerr << "Erreur: imgNdgPt est nul." << std::endl;
+			return;
+		}
 
-	this->ecrireChamp(0, seuilBas);
-	this->ecrireChamp(1, seuilHaut);
+		// Filtrage de l'image
+		CImageNdg binaryImg;
+		try {
+			binaryImg = this->imgNdgPt->filtrage("moyennage", 3, 3, "disk");
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors du filtrage: " << ex.what() << std::endl;
+			return;
+		}
 
-	this->writeBinaryImage(imgSeuil);
-	this->persitData(this->imgNdgPt, COULEUR::RVB);
+		int seuilHaut = 255;
+		CImageNdg man;
+		try {
+			man = binaryImg.seuillage("manuel", threshold, seuilHaut);
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors du seuillage: " << ex.what() << std::endl;
+			return;
+		}
+
+		CImageNdg trueRes;
+		
+		try {
+			std::vector<Bouchon> bouchons = extractBouchons(man, trueRes, sizeMin);
+			for (const auto& bouchon : bouchons) {
+				std::ostringstream oss;
+				oss << bouchon.couleur << ", "
+					<< bouchon.forme << ", "
+					<< bouchon.centroidX_mm << ", "
+					<< bouchon.centroidY_mm;
+				char* s = _strdup(oss.str().c_str());
+				this->ecrireObject(bouchon.label, s);
+				free(s);
+			}
+		}
+		catch (const std::exception &ex) {
+			std::cerr << "Erreur lors de l'extraction des objets: " << ex.what() << std::endl;
+		}
+		
+		try {
+			this->writeBinaryImage(trueRes);
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors de l'écriture de l'image binaire: " << ex.what() << std::endl;
+		}
+
+		try {
+			this->persitData(this->imgNdgPt, COULEUR::RVB);
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "Erreur lors de la persistance des données: " << ex.what() << std::endl;
+		}
+	}
+	catch (const std::exception& ex) {
+		std::cerr << "Exception dans runProcessCap: " << ex.what() << std::endl;
+	}
+	catch (...) {
+		std::cerr << "Exception inconnue dans runProcessCap." << std::endl;
+	}
 }
 
-// Compare l'image traitee et la ground truth pour afficher les ressemblances et differences
+std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes, int sizeMin)
+{
+	std::vector<Bouchon> bouchons;
+	try {
+		CImageClasse imgClasse(img, "V8");
+		CImageClasse filtre = imgClasse.filtrage("taille", sizeMin, 70000, false);
+		trueRes = filtre.toNdg();
+
+		std::vector<SIGNATURE_Forme> labels = filtre.signatures();
+		if (labels.empty()) {
+			std::cerr << "Aucune signature détectée." << std::endl;
+			return bouchons;
+		}
+
+		int nbBouchons = static_cast<int>(labels.size()) - 1;
+		this->ecrireChamp(0, nbBouchons);
+		this->dataObject.resize(nbBouchons);
+
+		int largeur = trueRes.lireLargeur();
+		int hauteur = trueRes.lireHauteur();
+
+		if (largeur <= 0 || hauteur <= 0) {
+			std::cerr << "Dimensions invalides : " << largeur << "x" << hauteur << std::endl;
+			return bouchons;
+		}
+
+		auto safeGetPixel = [&](int x, int y) -> int {
+			if (x < 0 || x >= largeur || y < 0 || y >= hauteur)
+				return 0;
+			try {
+				return trueRes(y, x);
+			}
+			catch (...) {
+				return 0;
+			}
+			};
+
+		float physicalRadiusMm = 175.0f;
+		float imageRadiusPx = static_cast<float>(min(largeur, hauteur)) / 2.0f;
+		float globalFacteurConversion = physicalRadiusMm / imageRadiusPx;
+
+		float centerX = static_cast<float>(largeur) / 2.0f;
+		float centerY = static_cast<float>(hauteur) / 2.0f;
+
+		for (int i = 1; i < static_cast<int>(labels.size()); ++i)
+		{
+			try {
+				Bouchon bouchon;
+				bouchon.label = i - 1;
+
+				float objX_px = static_cast<float>(labels[i].centreGravite_j);
+				float objY_px = static_cast<float>(labels[i].centreGravite_i);
+
+				// Calcul des rayons dans 4 directions
+				std::vector<Direction> directions = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
+				std::vector<float> rayons;
+				rayons.reserve(directions.size());
+
+				int x0 = static_cast<int>(objX_px);
+				int y0 = static_cast<int>(objY_px);
+
+				float r_top = 0.0f, r_bottom = 0.0f, r_left = 0.0f, r_right = 0.0f;
+
+				for (size_t k = 0; k < directions.size(); ++k)
+				{
+					int x = x0;
+					int y = y0;
+					float rayon = 0.0f;
+					while (x >= 0 && x < largeur && y >= 0 && y < hauteur)
+					{
+						int pixelValue = safeGetPixel(x, y);
+						if (pixelValue == 0) {
+							break;
+						}
+						x += directions[k].dx;
+						y += directions[k].dy;
+						rayon += 1.0f;
+					}
+					rayons.push_back(rayon);
+					if (k == 0) r_top = rayon;
+					else if (k == 1) r_bottom = rayon;
+					else if (k == 2) r_left = rayon;
+					else if (k == 3) r_right = rayon;
+				}
+
+				float rayonP_px = 0.0f;
+				if (!rayons.empty()) {
+					float sum = 0.0f;
+					for (float r : rayons)
+						sum += r;
+					rayonP_px = sum / static_cast<float>(rayons.size());
+				}
+				else {
+					rayonP_px = 1.0f; // Pour éviter la division par 0
+				}
+
+				float facteurConversion = globalFacteurConversion;
+				float realX_mm = (objX_px - centerX) * facteurConversion;
+				float realY_mm = (objY_px - centerY) * facteurConversion;
+				float rayonP_mm = rayonP_px * facteurConversion;
+
+				bouchon.centroidX_mm = realX_mm;
+				bouchon.centroidY_mm = realY_mm;
+				bouchon.rayon_mm = rayonP_mm;
+
+				// Stocker les rayons individuels convertis en mm
+				bouchon.r_top = r_top * facteurConversion;
+				bouchon.r_bottom = r_bottom * facteurConversion;
+				bouchon.r_left = r_left * facteurConversion;
+				bouchon.r_right = r_right * facteurConversion;
+
+				// Détermination de la forme
+				bouchon.forme = determineShape(bouchon);
+				if (bouchon.forme.empty()) {
+					std::cerr << "Forme inconnue pour le bouchon " << bouchon.label
+						<< ", image non stockée." << std::endl;
+					continue;
+				}
+
+				// Détermination de la couleur
+				bouchon.couleur = determineColor(bouchon);
+
+				bouchons.push_back(bouchon);
+			}
+			catch (const std::exception& ex) {
+				std::cerr << "Erreur lors du traitement du bouchon à l'indice " << i
+					<< " : " << ex.what() << std::endl;
+				continue;
+			}
+			catch (...) {
+				std::cerr << "Erreur inconnue lors du traitement du bouchon à l'indice " << i << std::endl;
+				continue;
+			}
+		}
+	}
+	catch (const std::exception& ex) {
+		std::cerr << "Erreur dans extractBouchons: " << ex.what() << std::endl;
+	}
+	catch (...) {
+		std::cerr << "Erreur inconnue dans extractBouchons." << std::endl;
+	}
+	return bouchons;
+}
+
+
+std::string ClibIHM::determineShape(const Bouchon& bouchon) {
+	// Récupération des rayons individuels (en mm)
+	float r_top = bouchon.r_top;
+	float r_bottom = bouchon.r_bottom;
+	float r_left = bouchon.r_left;
+	float r_right = bouchon.r_right;
+
+	// Calcul de la moyenne des rayons
+	float average = (r_top + r_bottom + r_left + r_right) / 4.0f;
+
+	// Calcul du minimum et du maximum des rayons en utilisant des appels imbriqués
+	float minRay = min(min(r_top, r_bottom), min(r_left, r_right));
+	float maxRay = max(max(r_top, r_bottom), max(r_left, r_right));
+
+	float ratio = (maxRay != 0.0f) ? (minRay / maxRay) : 0.0f;
+
+	//Cercle : les 4 rayons doivent être très proches (ratio élevé)
+	if (ratio > 0.92f) {
+		return "cercle";
+	}
+	// Coeur : le rayon en haut est significativement réduit par rapport au rayon en bas,
+	//    avec une symétrie horizontale (différence entre r_left et r_right faible)
+	if ((r_top < 0.65f * r_bottom) && (std::fabs(r_left - r_right) < 0.1f * average)) {
+		return "coeur";
+	}
+	// Triangle : différence significative entre le haut et le bas ou entre la gauche et la droite
+	if ((std::fabs(r_top - r_bottom) > 0.25f * average) ||
+		(std::fabs(r_left - r_right) > 0.25f * average)) {
+		return "triangle";
+	}
+	// Carré : différences faibles entre les rayons opposés (mais non assez homogènes pour un cercle)
+	if ((std::fabs(r_top - r_bottom) < 0.15f * average) &&
+		(std::fabs(r_left - r_right) < 0.15f * average)) {
+		return "carre";
+	}
+
+	return "";
+}
+
+
+std::string ClibIHM::determineColor(const Bouchon& bouchon) {
+
+	return "inconnue";
+}
+
+
 void ClibIHM::compare(ClibIHM* pImgGt)
 {
 	CImageCouleur out(NbLig, NbCol);
@@ -270,13 +516,13 @@ void ClibIHM::score(ClibIHM* pImgGt)
 	CImageNdg GT = pImgGt->toBinaire();
 	GT.ecrireBinaire(true);
 
-    // Création et démarrage des threads pour calculer les scores
+	// Création et démarrage des threads pour calculer les scores
 	std::thread th1([&] {
 
 		double score = img.indicateurPerformance(GT, "iou");
 
-		this->dataFromImg.at(0) = floor(score * 10000) / 100;
-	});
+		this->ecrireChamp(0, floor(score * 10000) / 100);
+		});
 
 	std::thread th2([&] {
 		// Score de Vinet
@@ -284,10 +530,10 @@ void ClibIHM::score(ClibIHM* pImgGt)
 
 		double score = imgClasse.vinet(img, GT);
 
-		this->dataFromImg.at(1) = floor(score * 10000) / 100;
-	
-	});
-	
+		this->ecrireChamp(1, floor(score * 10000) / 100);
+
+		});
+
 	th1.join();
 	th2.join();
 }
@@ -334,9 +580,11 @@ void ClibIHM::persitData(CImageNdg* pImg, COULEUR color)
 
 // Destructeur
 ClibIHM::~ClibIHM() {
-	
+
 	if (imgPt)
-		(*this->imgPt).~CImageCouleur(); 
+		(*this->imgPt).~CImageCouleur();
 	this->dataFromImg.clear();
+	this->dataObject.clear();
+
 }
 

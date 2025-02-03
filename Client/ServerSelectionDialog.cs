@@ -40,6 +40,11 @@ namespace Client
             this.Close();
         }
 
- 
+        private void local_Click(object sender, EventArgs e)
+        {
+            SelectedIPAddress = IPAddress.Parse("127.0.0.1");
+            this.DialogResult = DialogResult.OK;
+            this.Close();
+        }
     }
 }
