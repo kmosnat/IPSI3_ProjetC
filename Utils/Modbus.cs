@@ -1,177 +1,226 @@
-﻿using System;
-using EasyModbus;
+﻿using EasyModbus;
+using System;
+using Utils;
 
-namespace Utils
+// Classe pour communiquer avec le robot via Modbus
+public class RobotModbus
 {
-    public class RobotModbusHelper
+    private readonly string ipAddress;
+    private readonly int port;
+    private ModbusClient modbusClient;
+    private readonly object modbusLock = new object();
+
+    // Constructeur
+    public RobotModbus(string ipAddress, int port = 5020)
     {
-        private readonly string ipAddress;
-        private readonly int port;
-        private ModbusClient modbusClient;
+        this.ipAddress = ipAddress;
+        this.port = port;
+    }
 
-        public RobotModbusHelper(string ipAddress, int port = 5020)
+    // Méthode pour se connecter au robot
+    public void Connect()
+    {
+        modbusClient = new ModbusClient(ipAddress, port);
+        modbusClient.ConnectionTimeout = -1;
+        modbusClient.Connect();
+    }
+
+    // Méthode pour se déconnecter du robot
+    public void Disconnect()
+    {
+        if (modbusClient != null && modbusClient.Connected)
         {
-            this.ipAddress = ipAddress;
-            this.port = port;
+            modbusClient.Disconnect();
         }
+    }
 
-        /// <summary>
-        /// Ouvre la connexion Modbus TCP vers le robot.
-        /// </summary>
-        public void Connect()
-        {
-            modbusClient = new ModbusClient(ipAddress, port);
-            modbusClient.Connect();
-        }
+    // Méthode pour vérifier si le robot est connecté
+    public bool IsConnected()
+    {
+        return modbusClient != null && modbusClient.Connected;
+    }
 
-        /// <summary>
-        /// Ferme la connexion Modbus.
-        /// </summary>
-        public void Disconnect()
+    // Méthode pour vérifier si une calibration est nécessaire
+    public bool calibrationNeeded()
+    {
+        lock (modbusLock)
         {
-            if (modbusClient != null && modbusClient.Connected)
+            if (IsConnected())
             {
-                modbusClient.Disconnect();
+                return modbusClient.ReadCoils(115, 1)[0];
+            }
+            return false;
+        }
+    }
+
+    // Méthode pour calibrer le robot
+    public void calibrate()
+    {
+        lock (modbusLock)
+        {
+            if (IsConnected())
+            {
+                modbusClient.WriteSingleCoil(116, true);
             }
         }
+    }
 
-        /// <summary>
-        /// Lit les 6 positions d’articulations (Current Joint State) 
-        /// via Input Registers (adresses 50-61).
-        /// </summary>
-        /// <returns>Tableau de 6 floats contenant les valeurs de chaque joint en radians.</returns>
-        public float[] GetCurrentJointStates()
+    // Méthode pour ouvrir la pince du robot
+    public void openGripper()
+    {
+        lock (modbusLock)
+        {
+            if (IsConnected())
+            {
+                modbusClient.WriteSingleCoil(51, false);
+            }
+        }
+    }
+
+    // Méthode pour fermer la pince du robot
+    public void closeGripper()
+    {
+        lock (modbusLock)
+        {
+            if (IsConnected())
+            {
+                modbusClient.WriteSingleCoil(51, true);
+            }
+        }
+    }
+
+    // Méthode pour obtenir les états actuels des joints du robot
+    public float[] GetCurrentJointStates()
+    {
+        lock (modbusLock)
         {
             float[] joints = new float[6];
-
-            // On va lire chaque paire de registres pour chaque joint
             for (int i = 0; i < 6; i++)
             {
-                int address = 50 + i * 2; // Joint1(50-51), Joint2(52-53), etc.
+                int address = 50 + i * 2;
                 int[] rawData = modbusClient.ReadInputRegisters(address, 2);
                 joints[i] = ConvertRegistersToFloat(rawData);
             }
-
             return joints;
         }
+    }
 
-        /// <summary>
-        /// Lit la pose cartésienne courante (X, Y, Z, Roll, Pitch, Yaw) 
-        /// via Input Registers (adresses 62-73).
-        /// </summary>
-        public RobotPose GetCurrentPose()
+    // Méthode pour obtenir la pose actuelle du robot
+    public RobotPose GetCurrentPose()
+    {
+        lock (modbusLock)
         {
             RobotPose pose = new RobotPose();
 
-            // X : 62-63
+            // X
             int[] rawX = modbusClient.ReadInputRegisters(62, 2);
             pose.X = ConvertRegistersToFloat(rawX);
 
-            // Y : 64-65
+            // Y
             int[] rawY = modbusClient.ReadInputRegisters(64, 2);
             pose.Y = ConvertRegistersToFloat(rawY);
 
-            // Z : 66-67
+            // Z
             int[] rawZ = modbusClient.ReadInputRegisters(66, 2);
             pose.Z = ConvertRegistersToFloat(rawZ);
 
-            // Roll : 68-69
+            // Roll
             int[] rawRoll = modbusClient.ReadInputRegisters(68, 2);
             pose.Roll = ConvertRegistersToFloat(rawRoll);
 
-            // Pitch : 70-71
+            // Pitch
             int[] rawPitch = modbusClient.ReadInputRegisters(70, 2);
             pose.Pitch = ConvertRegistersToFloat(rawPitch);
 
-            // Yaw : 72-73
+            // Yaw
             int[] rawYaw = modbusClient.ReadInputRegisters(72, 2);
             pose.Yaw = ConvertRegistersToFloat(rawYaw);
 
             return pose;
         }
+    }
 
-        /// <summary>
-        /// Exemple de déplacement en coordonnées cartésiennes (X, Y, Z) 
-        /// avec orientation par défaut (si vous n’écrivez pas Roll, Pitch, Yaw).
-        /// moveType = 1 => MOVE_POSE
-        /// 
-        /// Addresses cibles:
-        ///   - Pose Target X : 62-63
-        ///   - Pose Target Y : 64-65
-        ///   - Pose Target Z : 66-67
-        ///   - moveType      : 74 (écriture d’un mot unique)
-        ///   - Start Move    : 113 (coil)
-        ///   - Collision Coil: 117 (coil)
-        /// </summary>
-        public void MoveToPose(float x, float y, float z)
+    // Méthode pour déplacer le robot à une pose donnée
+    public void MoveToPose(float x, float y, float z, float roll, float pitch, float yaw)
+    {
+        lock (modbusLock)
         {
-            // 1 = MOVE_POSE, 0 = MOVE_JOINT
-            int moveType = 1;
+            if (!IsConnected())
+                return;
 
-            // Convertir en registres Modbus
-            int[] xRegisters = ConvertFloatToModbusRegisters(x);
-            int[] yRegisters = ConvertFloatToModbusRegisters(y);
-            int[] zRegisters = ConvertFloatToModbusRegisters(z);
+            const int moveType = 1; // 1 = MOVE_POSE
 
-            // Écrire les coordonnées dans les registres
-            modbusClient.WriteMultipleRegisters(62, xRegisters); // X
-            modbusClient.WriteMultipleRegisters(64, yRegisters); // Y
-            modbusClient.WriteMultipleRegisters(66, zRegisters); // Z
+            try
+            {
+                // Convertir les valeurs float en registres Modbus
+                int[] xRegisters = ConvertFloatToModbusRegisters(x);
+                int[] yRegisters = ConvertFloatToModbusRegisters(y);
+                int[] zRegisters = ConvertFloatToModbusRegisters(z);
+                int[] rollRegisters = ConvertFloatToModbusRegisters(roll);
+                int[] pitchRegisters = ConvertFloatToModbusRegisters(pitch);
+                int[] yawRegisters = ConvertFloatToModbusRegisters(yaw);
 
-            // Écrire le type de mouvement (MOVE_POSE)
-            modbusClient.WriteSingleRegister(74, moveType);
+                // Écrire les valeurs dans les registres Modbus
+                modbusClient.WriteMultipleRegisters(62, xRegisters);  
+                modbusClient.WriteMultipleRegisters(64, yRegisters);  
+                modbusClient.WriteMultipleRegisters(66, zRegisters);  
+                modbusClient.WriteMultipleRegisters(68, rollRegisters);   
+                modbusClient.WriteMultipleRegisters(70, pitchRegisters);  
+                modbusClient.WriteMultipleRegisters(72, yawRegisters);    
 
-            // Vérifier la coil 117 (collisions) et l’annuler si nécessaire
-            bool[] collisions = modbusClient.ReadCoils(117, 1);
-            if (collisions.Length > 0 && collisions[0])
+                // Écrire le type de mouvement
+                modbusClient.WriteSingleRegister(74, moveType);
+                
+                ClearCollisionIfAny();
+
+                // Déclencher le mouvement
+                modbusClient.WriteSingleCoil(113, true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Erreur de communication Modbus : " + ex.Message);
+            }
+        }
+    }
+
+    // Méthode pour detecter une collision 
+    public void ClearCollisionIfAny()
+    {
+        lock (modbusLock)
+        {
+            if (!IsConnected()) return;
+            bool[] collision = modbusClient.ReadCoils(117, 1);
+            if (collision[0])
             {
                 modbusClient.WriteSingleCoil(117, false);
             }
-
-            // Déclencher le mouvement
-            modbusClient.WriteSingleCoil(113, true);
         }
+    }
 
-        /// <summary>
-        /// Convertit un tableau de 2 registres (int) en un float (32 bits).
-        /// Le robot Niryo Ned2 travaille en "Big-Endian par mot".
-        /// </summary>
-        private float ConvertRegistersToFloat(int[] registers)
-        {
-            // registers[0] = mot haut (16 bits), registers[1] = mot bas (16 bits)
-            byte[] bytes = new byte[4];
+    // Méthode pour vérifier si le robot est en mouvement
+    public bool isMoving()
+    {
+        return modbusClient.ReadCoils(113, 1)[0];
+    }
 
-            // Reconstitution Big-Endian par mot
-            bytes[0] = (byte)(registers[1] >> 8);
-            bytes[1] = (byte)(registers[1] & 0xFF);
-            bytes[2] = (byte)(registers[0] >> 8);
-            bytes[3] = (byte)(registers[0] & 0xFF);
+    // Méthode pour convertir des registres Modbus en float
+    float ConvertRegistersToFloat(int[] registers)
+    {
+        byte[] bytes = new byte[4];
+        bytes[0] = (byte)(registers[1] >> 8);
+        bytes[1] = (byte)(registers[1] & 0xFF);
+        bytes[2] = (byte)(registers[0] >> 8);
+        bytes[3] = (byte)(registers[0] & 0xFF);
+        return BitConverter.ToSingle(bytes, 0);
+    }
 
-            return BitConverter.ToSingle(bytes, 0);
-        }
-
-        /// <summary>
-        /// Convertit un float .NET (32 bits) en 2 registres (int) 
-        /// pour l’écriture Modbus (Big-Endian par mot).
-        /// </summary>
-        private int[] ConvertFloatToModbusRegisters(float value)
-        {
-            byte[] bytes = BitConverter.GetBytes(value);
-            if (BitConverter.IsLittleEndian)
-            {
-                // On manipule pour se conformer au Big-Endian par mot
-                // Sur Niryo : mot 0 = 16 bits hauts, mot 1 = 16 bits bas
-                Array.Reverse(bytes);
-            }
-
-            // Découpage en 2 registres 16 bits
-            int highWord = (bytes[0] << 8) | bytes[1];
-            int lowWord = (bytes[2] << 8) | bytes[3];
-
-            // Sur certains robots, il faut éventuellement inverser 
-            // (dans ce cas, tester si c’est lowWord puis highWord).
-            // Ici on assume le mot haut en premier : [0]-[1], puis [2]-[3].
-            return new int[] { highWord, lowWord };
-        }
+    // Méthode pour convertir un float en registres Modbus
+    static int[] ConvertFloatToModbusRegisters(float value)
+    {
+        byte[] bytes = BitConverter.GetBytes(value);
+        int[] registers = new int[2];
+        registers[1] = (bytes[0] << 8 | bytes[1]);
+        registers[0] = (bytes[2] << 8 | bytes[3]);
+        return registers;
     }
 }

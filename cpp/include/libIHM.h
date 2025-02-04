@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <thread>
 #include <vector>
+#include <map>
 
 // Enumération des couleurs
 enum class COULEUR
@@ -16,6 +17,32 @@ enum class COULEUR
 	rouge,
 	vert,
 	bleu
+};
+
+// Structure pour les bouchons
+struct Bouchon {
+	int label;
+	double centroidX_mm;
+	double centroidY_mm;
+	double rayon_mm;
+	std::string forme;
+	std::string couleur;
+	float r_top;
+	float r_bottom;
+	float r_left;
+	float r_right;
+};
+
+// Structure pour les directions
+struct Direction { 
+	int dx; 
+	int dy; 
+};
+
+// Déclaration de la structure Label
+struct Label {
+	int parent;
+	int rank;
 };
 
 
@@ -27,7 +54,8 @@ private:
 
 	// data n�cessaires � l'IHM donc fonction de l'application cibl�e
 	int						nbDataImg; 
-	std::vector<double>		dataFromImg; 
+	std::vector<double>		dataFromImg;
+	std::vector<std::string> dataObject;
 	CImageCouleur* imgPt;        
 	CImageNdg* imgNdgPt;     
 	byte* data;       
@@ -57,12 +85,20 @@ public:
 		return dataFromImg.at(i);
 	}
 
+	_declspec(dllexport) std::string lireObject(int i) const {
+		return dataObject.at(i);
+	}
+
 	_declspec(dllexport) CImageCouleur* imgData() const {
 		return imgPt;
 	}
 
 	_declspec(dllexport) void ecrireChamp(int i, double val) {
 		dataFromImg.at(i) = val;
+	}
+
+	_declspec(dllexport) void ecrireObject(int i, const std::string& val) {
+		dataObject.at(i) = val;
 	}
 
 	_declspec(dllexport) void copyImage(CImageNdg img);
@@ -74,12 +110,20 @@ public:
 	_declspec(dllexport) void filter(std::string methode, int kernel, std::string str);
 	_declspec(dllexport) void runProcess(ClibIHM* pImgGt);
 
-	_declspec(dllexport) void runProcessCap();
+	_declspec(dllexport) void runProcessCap(int threshold, int sizeMin);
 
 	_declspec(dllexport) void compare(ClibIHM* pImgGt);
 	_declspec(dllexport) void score(ClibIHM* pImgGt);
 
 	_declspec(dllexport) void persitData(CImageNdg* pImg, COULEUR couleur);
+
+private:
+
+	std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes, int sizeMin);
+
+	std::string ClibIHM::determineShape(const Bouchon& bouchon);
+	std::string determineColor(const Bouchon& bouchon);
+
 };
 
 
@@ -118,12 +162,13 @@ extern "C" _declspec(dllexport) ClibIHM* process(ClibIHM* pImg, ClibIHM* pImgGt)
 	return pImgGt;
 }
 
-extern "C" _declspec(dllexport) ClibIHM * processCap(ClibIHM * pImg)
+// Pour traiter une image
+extern "C" _declspec(dllexport) ClibIHM * processCap(ClibIHM * pImg, int threshold, int sizeMin)
 {
 	if (pImg == nullptr)
 		return nullptr;
 
-	pImg->runProcessCap();
+	pImg->runProcessCap(threshold, sizeMin);
 	return pImg;
 }
 
@@ -134,6 +179,15 @@ extern "C" _declspec(dllexport) double valeurChamp(ClibIHM* pImg, int i)
 		return 0.0;
 
 	return pImg->lireChamp(i);
+}
+
+// Pour accéder à la valeur d'un champ
+extern "C" _declspec(dllexport) const char* valeurObject(ClibIHM* pImg, int i)
+{
+	if (pImg == nullptr)
+		return "";
+
+	return pImg->lireObject(i).c_str();
 }
 
 //vider la mémoire 

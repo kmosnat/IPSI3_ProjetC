@@ -3,6 +3,7 @@ using System.Windows;
 
 namespace Utils
 {
+    // Enumération pour les sources de log
     public enum LogSource
     {
         Arduino,
@@ -11,6 +12,7 @@ namespace Utils
         Camera
     }
 
+    // Enumération pour les niveaux de log
     public enum LogLevel
     {
         INFO,
@@ -18,6 +20,7 @@ namespace Utils
         ERROR
     }
 
+    // Classe pour représenter un log
     public class Log
     {
         public LogSource Source { get; set; }
@@ -25,6 +28,7 @@ namespace Utils
         public string Message { get; set; }
         public DateTime Time { get; set; }
 
+        // Constructeur
         public Log(LogSource source, LogLevel level, string message)
         {
             Source = source;
@@ -33,11 +37,13 @@ namespace Utils
             Time = DateTime.Now;
         }
 
+        // Méthode retournant une représentation textuelle du log
         public override string ToString()
         {
             return $"{Time}:\n[{Source}][{Level}] - {Message}";
         }
 
+        // Méthode pour afficher le log dans une MessageBox
         public void AppendLog(Action<string> appendAction, LogSource source, LogLevel level, string message)
         {
             var logEntry = new Log(source, level, message);

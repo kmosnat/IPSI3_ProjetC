@@ -6,16 +6,13 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libImage", "libImage\libImage.vcxproj", "{770C2349-B16E-4160-99A4-82042D2D3622}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serveur", "Serveur\Serveur.csproj", "{DA7843B1-1280-433F-A0E1-D856864E548C}"
-	ProjectSection(ProjectDependencies) = postProject
-		{770C2349-B16E-4160-99A4-82042D2D3622} = {770C2349-B16E-4160-99A4-82042D2D3622}
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{E3587DA6-C0D2-447E-97FD-26634282EB1D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{770C2349-B16E-4160-99A4-82042D2D3622} = {770C2349-B16E-4160-99A4-82042D2D3622}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "Utils\Utils.csproj", "{138AD42E-EF78-4DFB-BEB5-3944D434A6FC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Utils", "Utils\Utils.csproj", "{138AD42E-EF78-4DFB-BEB5-3944D434A6FC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

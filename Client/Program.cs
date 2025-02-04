@@ -9,9 +9,6 @@ namespace Client
 {
     internal static class Program
     {
-        /// <summary>
-        /// Point d'entrée principal de l'application.
-        /// </summary>
         [STAThread]
         static void Main()
         {
@@ -23,9 +20,7 @@ namespace Client
 
     public static class TextBoxLogExtensions
     {
-        /// <summary>
-        /// Log d'un message de niveau INFO
-        /// </summary>
+        // Log d'un message de niveau INFO
         public static void LogInfo(this TextBox box, string message, LogSource source = LogSource.Client)
         {
             new Log(source, LogLevel.INFO, message)
@@ -37,9 +32,7 @@ namespace Client
                 );
         }
 
-        /// <summary>
-        /// Log d'un message de niveau WARNING
-        /// </summary>
+        // Log d'un message de niveau WARNING
         public static void LogWarning(this TextBox box, string message, LogSource source = LogSource.Client)
         {
             new Log(source, LogLevel.WARNING, message)
@@ -51,9 +44,7 @@ namespace Client
                 );
         }
 
-        /// <summary>
-        /// Log d'un message de niveau ERROR
-        /// </summary>
+        // Log d'un message de niveau ERROR
         public static void LogError(this TextBox box, string message, LogSource source = LogSource.Client)
         {
             new Log(source, LogLevel.ERROR, message)
