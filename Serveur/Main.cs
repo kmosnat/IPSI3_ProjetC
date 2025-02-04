@@ -35,7 +35,7 @@ namespace Serveur
 
         // Adresses & robot
         private string _ipRobot;
-        private RobotModbusHelper robot;
+        private RobotModbus robot;
         private bool _robotConnected = false;
         private CalibrationStep currentCalibrationStep = CalibrationStep.Point1;
         private bool isBlinking = false;
@@ -78,7 +78,7 @@ namespace Serveur
             _port = 8001;
             InitializeUIState();
             _ipRobot = "169.254.200.200";
-            robot = new RobotModbusHelper(_ipRobot, 5020);
+            robot = new RobotModbus(_ipRobot, 5020);
             ethernetToolStripMenuItem.Enabled = false;
             hotspotToolStripMenuItem.Enabled = true;
 
@@ -98,24 +98,21 @@ namespace Serveur
             NetworkSelection();
         }
 
-        private void Main_FormClosing(object sender, FormClosingEventArgs e)
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
             CloseCamera();
-            StopTCPServer();
+            StopServerInternal();
             DisconnectRobot();
+            base.OnFormClosing(e);
         }
 
-        private void OnClosed(object sender, FormClosedEventArgs e)
-        {
-            CloseCamera();
-            StopTCPServer();
-            DisconnectRobot();
-        }
 
         #region Robot & Calibration
 
         private void StartCalibration()
         {
+            // Initialiser les variables de calibration
             currentCalibrationStep = CalibrationStep.Point1;
             calibrationPoints.Clear();
             _calibrationDone = false;
@@ -131,6 +128,7 @@ namespace Serveur
             {
                 if (!_robotConnected && robot != null)
                 {
+                    // Connexion au robot
                     robot.Connect();
                     _robotConnected = robot.IsConnected();
                     if (_robotConnected)
@@ -151,6 +149,7 @@ namespace Serveur
             {
                 if (_robotConnected && robot != null)
                 {
+                    // Déconnexion du robot
                     robot.Disconnect();
                     tbCom.LogInfo("Robot déconnecté.", LogSource.Serveur);
                 }
@@ -174,6 +173,7 @@ namespace Serveur
             }
             try
             {
+                // Calibrer le robot
                 robot.calibrate();
                 calibrationButton.Enabled = false;
             }
@@ -190,6 +190,7 @@ namespace Serveur
                 tbCom.LogError("Aucune calibration point 1 en cours.", LogSource.Serveur);
                 return;
             }
+            // État de calibration
             serverState = ServerState.Calibration;
             try
             {
@@ -204,18 +205,25 @@ namespace Serveur
                 }
                 
                 tbCom.LogInfo("Robot déplacé à la position de calibration 1.", LogSource.Serveur);
+                // Demander les coordonnées de l'objet à la caméra
                 var (xCam_mm, yCam_mm) = RequestCoordinatesFromClient();
+                // Convertir les coordonnées en mètres
                 float xCam = xCam_mm / 1000f;
                 float yCam = yCam_mm / 1000f;
+                // Obtenir la position actuelle du robot
                 RobotPose rp = robot.GetCurrentPose();
+                // Déplacer le robot à une de départ
                 robot.MoveToPose(-0.012f, -0.172f, 0.206f, 2.90f, 1.49f, 1.41f);
+                // Enregistrer les points de calibration
                 _refZ = rp.Z; _refRoll = rp.Roll; _refPitch = rp.Pitch; _refYaw = rp.Yaw;
                 _calibPoint1 = (xCam, yCam, rp.X, rp.Y);
                 calibrationPoints.Add(_calibPoint1.Value);
                 tbCom.LogInfo($"Point 1 enregistré : Caméra ({xCam} m, {yCam} m), Robot ({rp.X} m, {rp.Y} m)", LogSource.Serveur);
+                // Passer à l'étape suivante
                 serverState = ServerState.Wait;
                 currentCalibrationStep = CalibrationStep.Point2;
                 tbCom.LogInfo("Calibration Point 2 : Cliquez sur 'Confirmer Point 2' après placement.", LogSource.Serveur);
+                // Activer le bouton de calibration 2
                 CalibRef2Butt.Enabled = true;
             }
             catch (Exception ex)
@@ -231,6 +239,7 @@ namespace Serveur
                 tbCom.LogError("Aucune calibration point 2 en cours.", LogSource.Serveur);
                 return;
             }
+            // État de calibration
             serverState = ServerState.Calibration;
             try
             {
@@ -243,7 +252,7 @@ namespace Serveur
                     StartCalibration();
                     return;
                 }
-                
+                // Pareil que pour le point 1
                 tbCom.LogInfo("Robot déplacé à la position de calibration 2.", LogSource.Serveur);
                 var (xCam_mm, yCam_mm) = RequestCoordinatesFromClient();
                 float xCam = xCam_mm / 1000f;
@@ -255,6 +264,7 @@ namespace Serveur
                 tbCom.LogInfo($"Point 2 enregistré : Caméra ({xCam} m, {yCam} m), Robot ({rp.X} m, {rp.Y} m)", LogSource.Serveur);
                 var p1 = _calibPoint1.Value;
                 var p2 = _calibPoint2.Value;
+                // Calculer les paramètres de calibration
                 if (Math.Abs(p2.xCam - p1.xCam) < 1e-6 || Math.Abs(p2.yCam - p1.yCam) < 1e-6)
                     throw new Exception("Points de calibration invalides ou trop proches.");
                 _scaleX = (p2.xRob - p1.xRob) / (p2.xCam - p1.xCam);
@@ -262,10 +272,12 @@ namespace Serveur
                 _scaleY = (p2.yRob - p1.yRob) / (p2.yCam - p1.yCam);
                 _offsetY = p1.yRob - _scaleY * p1.yCam;
                 _calibrationDone = true;
+                // Terminer la calibration
                 serverState = ServerState.Ready;
                 calibrationPoints.Clear();
                 tbCom.LogInfo("Calibration effectuée avec succès.", LogSource.Serveur);
                 currentCalibrationStep = CalibrationStep.None;
+                // Désactiver les boutons de calibration
                 CalibRef1Butt.Enabled = false;
                 CalibRef2Butt.Enabled = false;
                 tbCom.LogInfo("Le serveur est prêt à traiter les objets.", LogSource.Serveur);
@@ -279,9 +291,10 @@ namespace Serveur
         #endregion
 
         #region Mise à jour de l'UI & État du Robot
-
+        // Méthode pour mettre à jour l'UI de manière sécurisée
         private void timerRobotState_Tick(object sender, EventArgs e)
         {
+            // Mettre à jour l'état du robot
             UpdateRobotStateMachine();
             if (!_robotConnected)
             {
@@ -372,7 +385,7 @@ namespace Serveur
                 lblJoint6Position.Text = "Joint 6 Position : Error";
             }
         }
-
+        // Méthode pour mettre à jour l'état de la machine à états du robot
         private void UpdateRobotStateMachine()
         {
             if (serverState == ServerState.Calibration || serverState == ServerState.Wait)
@@ -387,6 +400,7 @@ namespace Serveur
             switch (robotState)
             {
                 case RobotState.Wait:
+                    // Traiter les objets en attente
                     if (objectBuffer.TryDequeue(out RobotObject robotObject))
                     {
                         tbCom.LogInfo($"Objet à traiter : {robotObject}", LogSource.Serveur);
@@ -397,6 +411,7 @@ namespace Serveur
                     break;
                 case RobotState.OnProcess:
                     tbCom.LogInfo("Envoi des informations au robot...", LogSource.Serveur);
+                    // Déplacer le robot pour traiter l'objet
                     moveTask = Task.Run(() =>
                     {
                         float xRobot = currentRobotObject.X;
@@ -412,14 +427,17 @@ namespace Serveur
                     robotState = RobotState.RobotOnMoving;
                     break;
                 case RobotState.RobotOnMoving:
+                    // Vérifier si le robot a terminé le mouvement
                     if (_robotConnected && !robot.isMoving())
                     {
                         tbCom.LogInfo("Mouvement du robot terminé.", LogSource.Serveur);
+                        // Retirer l'objet de la liste
                         var roToRemove = robotObjectsList.FirstOrDefault(ro => ro.Id == currentRobotObject.Id);
                         if (roToRemove != null)
                         {
                             robotObjectsList.Remove(roToRemove);
                         }
+                        // Mettre à jour l'UI
                         robotState = RobotState.Wait;
                         serverState = ServerState.Ready;
                     }
@@ -448,9 +466,10 @@ namespace Serveur
         #endregion
 
         #region Acquisition & Caméra
-
+        // Méthode pour obtenir le prochain frame de la caméra
         private Bitmap GetNextFrame()
         {
+            // Verrouiller l'accès à la caméra pour éviter les conflits d'accès
             lock (_deviceLock)
             {
                 if (_device != null && _device.IsConnected())
@@ -477,13 +496,14 @@ namespace Serveur
                 }
                 else
                 {
+                    // Générer une image de test
                     Bitmap testImage = GenerateTestImage();
                     SetPictureBoxImage(testImage);
                     return testImage;
                 }
             }
         }
-
+        // Méthode pour générer une image de test
         private Bitmap GenerateTestImage()
         {
             if (_customTestImage != null)
@@ -510,7 +530,7 @@ namespace Serveur
                 return null;
             }
         }
-
+        // Timer pour l'acquisition d'images
         private void timAcq_Tick(object sender, EventArgs e)
         {
             try
@@ -537,7 +557,7 @@ namespace Serveur
             }
         }
 
-
+        //Mettre à jour l'image dans le PictureBox
         private void SetPictureBoxImage(Bitmap bitmap)
         {
             if (pbImage.InvokeRequired)
@@ -553,6 +573,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour fermé la connexion à la caméra
         private void CloseCamera()
         {
             timAcq.Stop();
@@ -568,6 +589,7 @@ namespace Serveur
             smcs.CameraSuite.ExitCameraAPI();
         }
 
+        // Méthode pour commencer la recherche de caméra
         private void btnSearchCamera_Click(object sender, EventArgs e)
         {
             if (_cameraSearchCts != null)
@@ -577,6 +599,7 @@ namespace Serveur
             }
             _cameraSearchCts = new CancellationTokenSource();
             var token = _cameraSearchCts.Token;
+            // Recherche de caméra asynchrone
             Task.Run(async () =>
             {
                 while (!token.IsCancellationRequested)
@@ -597,11 +620,13 @@ namespace Serveur
             });
         }
 
+        // Méthode pour essayer de se connecter à la caméra
         private bool TryConnectCamera()
         {
             bool cameraConnected = false;
             try
             {
+                // Initialiser la suite de caméra
                 smcs.CameraSuite.InitCameraAPI();
                 var smcsVisionApi = smcs.CameraSuite.GetCameraAPI();
                 smcsVisionApi.FindAllDevices(3.0);
@@ -622,6 +647,7 @@ namespace Serveur
                             btnStartAcquisition.Enabled = true;
                             btnStartAcquisition.BackColor = Color.LightGreen;
                         });
+                        // Initialiser les paramètres de la caméra
                         _device.SetStringNodeValue("TriggerMode", "Off");
                         _device.SetStringNodeValue("AcquisitionMode", "Continuous");
                         _device.SetIntegerNodeValue("TLParamsLocked", 1);
@@ -653,6 +679,7 @@ namespace Serveur
             return cameraConnected;
         }
 
+        // Méthode pour commencer l'acquisition d'images
         private void btnStartAcquisition_Click(object sender, EventArgs e)
         {
             _isAcquisitionRunning = true;
@@ -664,6 +691,7 @@ namespace Serveur
             tbCom.LogInfo("Acquisition démarrée.", LogSource.Serveur);
         }
 
+        // Méthode pour arrêter l'acquisition d'images
         private void btnStopAcquisition_Click(object sender, EventArgs e)
         {
             if (_isAcquisitionRunning)
@@ -682,6 +710,7 @@ namespace Serveur
 
         #region Serveur TCP
 
+        // Méthode pour démarrer le serveur TCP
         private async Task StartServerAsync()
         {
             lock (_tcpLock)
@@ -737,6 +766,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour arrêter le serveur TCP
         private void StopServerInternal()
         {
             lock (_tcpLock)
@@ -758,43 +788,48 @@ namespace Serveur
             });
         }
 
-        private void StopTCPServer()
-        {
-            StopServerInternal();
-        }
-
+        // Méthode pour démarre le serveur TCP
         private void startTCP_Click(object sender, EventArgs e)
         {
             if (!_isTCPRunning)
             {
+                // Démarrer le serveur TCP
                 Task.Run(() => StartServerAsync());
             }
         }
 
+        // Méthode pour arrêter le serveur TCP
         private void stopTCP_Click(object sender, EventArgs e)
         {
-            StopTCPServer();
+            StopServerInternal();
         }
 
         private void HandleClient(Socket clientSocket, CancellationToken token)
         {
             try
             {
+                // Gérer les requêtes du client
                 using (var networkStream = new NetworkStream(clientSocket))
                 {
+                    // Obtenir l'adresse IP du client
                     _currentClientIPAddress = ((IPEndPoint)clientSocket.RemoteEndPoint).Address;
+                    // Lire la requête du client
                     string request = ReadClientRequest(networkStream);
                     tbCom.LogInfo($"Requête reçue : {request}", LogSource.Client);
+                    // Traiter la requête
                     if (request.StartsWith("GET_IMAGE", StringComparison.OrdinalIgnoreCase))
                     {
+                        // Envoyer les images au client
                         HandleGetImage(networkStream, token, clientSocket);
                     }
                     else if (request.StartsWith("ADD_OBJECT", StringComparison.OrdinalIgnoreCase))
                     {
+                        // Ajouter un objet calibré
                         HandleAddObject(request, networkStream, clientSocket);
                     }
                     else
                     {
+                        // Réponse invalide
                         SendInvalidRequestResponse(networkStream);
                     }
                 }
@@ -820,13 +855,16 @@ namespace Serveur
                         tbCom.LogInfo("Mode Calibration actif : arrêt de l'envoi d'images.");
                         break;
                     }
+                    // Obtenir la prochaine image
                     Bitmap bitmap = GetNextFrame();
                     if (bitmap != null)
                     {
                         byte[] imageBytes = ImageToByteArray(bitmap, ImageFormat.Jpeg);
                         uint imageSize = (uint)imageBytes.Length;
                         byte[] sizeBytes = GetBigEndianBytes(imageSize);
+                        // Envoyer la taille de l'image
                         networkStream.Write(sizeBytes, 0, sizeBytes.Length);
+                        // Envoyer l'image
                         networkStream.Write(imageBytes, 0, imageBytes.Length);
                     }
                     else
@@ -834,7 +872,6 @@ namespace Serveur
                         byte[] sizeBytes = GetBigEndianBytes(0);
                         networkStream.Write(sizeBytes, 0, sizeBytes.Length);
                     }
-                    Thread.Sleep(100);
                 }
             }
             catch (Exception ex)
@@ -843,6 +880,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour ajouter un objet
         private void HandleAddObject(string request, NetworkStream networkStream, Socket clientSocket)
         {
             try
@@ -850,33 +888,27 @@ namespace Serveur
                 var parts = request.Split(new[] { ',' }, 2);
                 if (parts.Length != 2)
                     throw new FormatException("Commande ADD_OBJECT mal formatée.");
+                // Obtenir les données de l'objet
                 var objectData = parts[1].Trim();
                 var robotObject = RobotObject.FromString(objectData);
                 if (serverState == ServerState.Calibration || serverState == ServerState.Wait)
-                {
+                { 
                     string response = "CALIBRATION_IN_PROGRESS\n";
                     byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+                    // Envoyer la réponse au client
                     networkStream.Write(responseBytes, 0, responseBytes.Length);
                 }
                 else if (serverState == ServerState.Ready)
                 {
+                    // Calibrer les coordonnées de l'objet
                     float xRobot = (_scaleX * (robotObject.X / 1000f)) + _offsetX;
                     float yRobot = (_scaleY * (robotObject.Y / 1000f)) + _offsetY;
+                    // Ajouter l'objet calibré à la liste
                     var calibratedObject = new RobotObject(robotObject.Color, robotObject.Shape, xRobot, yRobot);
                     objectBuffer.Enqueue(calibratedObject);
                     InvokeIfNeeded(() => robotObjectsList.Add(calibratedObject));
                     tbCom.LogInfo($"Objet calibré ajouté : {calibratedObject}", LogSource.Serveur);
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            var calibrationCoords = RequestCoordinatesFromClient();
-                        }
-                        catch (Exception ex)
-                        {
-                            tbCom.LogError($"Erreur lors de la demande des coordonnées au client : {ex.Message}", LogSource.Serveur);
-                        }
-                    });
+                    // Envoyer une réponse au client
                     string response = $"OBJET AJOUTÉ - Coordonnées calibrées : X={xRobot}, Y={yRobot}\n";
                     byte[] responseBytes = Encoding.UTF8.GetBytes(response);
                     networkStream.Write(responseBytes, 0, responseBytes.Length);
@@ -891,6 +923,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour lire une requête du client
         private string ReadClientRequest(NetworkStream networkStream)
         {
             var requestBuilder = new StringBuilder();
@@ -905,6 +938,7 @@ namespace Serveur
             return requestBuilder.ToString().Trim();
         }
 
+        // Méthode pour envoyer une réponse de requête invalide
         private void SendInvalidRequestResponse(NetworkStream networkStream)
         {
             string invalidRequest = "Requête invalide.\n";
@@ -913,6 +947,7 @@ namespace Serveur
             tbCom.LogInfo("Requête invalide reçue et réponse envoyée.", LogSource.Client);
         }
 
+        // Méthode pour convertir une image en tableau d'octets
         private byte[] ImageToByteArray(Image image, ImageFormat format)
         {
             using (var ms = new MemoryStream())
@@ -922,6 +957,7 @@ namespace Serveur
             }
         }
 
+        // Méthode pour obtenir les octets en big-endian
         private byte[] GetBigEndianBytes(uint value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
@@ -934,41 +970,46 @@ namespace Serveur
 
         #region Réseau & UI
 
+        // Méthode changer la méthode de connexion au robot (ethernet)
         private void ethernetToolStripMenuItem_Click(object sender, EventArgs e)
         {
             hotspotToolStripMenuItem.Enabled = true;
             ethernetToolStripMenuItem.Enabled = false;
             DisconnectRobot();
             _ipRobot = "169.254.200.200";
-            robot = new RobotModbusHelper(_ipRobot, 5020);
+            robot = new RobotModbus(_ipRobot, 5020);
             tbCom.LogInfo("Adresse IP du robot sélectionnée : " + _ipRobot, LogSource.Serveur);
             ConnectRobot();
         }
 
+        // Méthode pour changer la méthode de connexion au robot (hotspot)
         private void hotspotToolStripMenuItem_Click(object sender, EventArgs e)
         {
             ethernetToolStripMenuItem.Enabled = true;
             hotspotToolStripMenuItem.Enabled = false;
             DisconnectRobot();
             _ipRobot = "10.10.10.10";
-            robot = new RobotModbusHelper(_ipRobot, 5020);
+            robot = new RobotModbus(_ipRobot, 5020);
             tbCom.LogInfo("Adresse IP du robot sélectionnée : " + _ipRobot, LogSource.Serveur);
             ConnectRobot();
         }
 
+        // Méthode pour quitter l'application
         private void quitterToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CloseCamera();
-            StopTCPServer();
+            StopServerInternal();
             DisconnectRobot();
             Close();
         }
 
+        // Méthode pour selectionner l'interface réseau
         private void NetworkInterfaceSelection_Click(object sender, EventArgs e)
         {
             NetworkSelection();
         }
 
+        // Méthode pour initialiser l'état de l'UI
         private void InitializeUIState()
         {
             btnStartAcquisition.Enabled = false;
@@ -980,6 +1021,7 @@ namespace Serveur
             calibrationButton.Enabled = false;
         }
 
+        // Méthode pour sélectionner l'adresse IP
         private void NetworkSelection()
         {
             using (var dialog = new NetworkInterfaceSelectionDialog())
@@ -990,7 +1032,7 @@ namespace Serveur
                     afficherLAdresseIPToolStripMenuItem.Text = $"Adresse IP : {_localIPAddress}";
                     if (_isTCPRunning)
                     {
-                        StopTCPServer();
+                        StopServerInternal();
                         Task.Run(() => StartServerAsync());
                     }
                 }
@@ -1012,6 +1054,7 @@ namespace Serveur
                 action();
         }
 
+        // Méthode pour demander les coordonnées au client
         private (float xCam, float yCam) RequestCoordinatesFromClient()
         {
             if (_currentClientIPAddress == null)

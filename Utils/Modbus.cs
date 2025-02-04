@@ -2,19 +2,22 @@
 using System;
 using Utils;
 
-public class RobotModbusHelper
+// Classe pour communiquer avec le robot via Modbus
+public class RobotModbus
 {
     private readonly string ipAddress;
     private readonly int port;
     private ModbusClient modbusClient;
     private readonly object modbusLock = new object();
 
-    public RobotModbusHelper(string ipAddress, int port = 5020)
+    // Constructeur
+    public RobotModbus(string ipAddress, int port = 5020)
     {
         this.ipAddress = ipAddress;
         this.port = port;
     }
 
+    // Méthode pour se connecter au robot
     public void Connect()
     {
         modbusClient = new ModbusClient(ipAddress, port);
@@ -22,6 +25,7 @@ public class RobotModbusHelper
         modbusClient.Connect();
     }
 
+    // Méthode pour se déconnecter du robot
     public void Disconnect()
     {
         if (modbusClient != null && modbusClient.Connected)
@@ -30,11 +34,13 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour vérifier si le robot est connecté
     public bool IsConnected()
     {
         return modbusClient != null && modbusClient.Connected;
     }
 
+    // Méthode pour vérifier si une calibration est nécessaire
     public bool calibrationNeeded()
     {
         lock (modbusLock)
@@ -47,6 +53,7 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour calibrer le robot
     public void calibrate()
     {
         lock (modbusLock)
@@ -58,6 +65,7 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour ouvrir la pince du robot
     public void openGripper()
     {
         lock (modbusLock)
@@ -69,6 +77,7 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour fermer la pince du robot
     public void closeGripper()
     {
         lock (modbusLock)
@@ -80,6 +89,7 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour obtenir les états actuels des joints du robot
     public float[] GetCurrentJointStates()
     {
         lock (modbusLock)
@@ -95,6 +105,7 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour obtenir la pose actuelle du robot
     public RobotPose GetCurrentPose()
     {
         lock (modbusLock)
@@ -129,6 +140,7 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour déplacer le robot à une pose donnée
     public void MoveToPose(float x, float y, float z, float roll, float pitch, float yaw)
     {
         lock (modbusLock)
@@ -140,6 +152,7 @@ public class RobotModbusHelper
 
             try
             {
+                // Convertir les valeurs float en registres Modbus
                 int[] xRegisters = ConvertFloatToModbusRegisters(x);
                 int[] yRegisters = ConvertFloatToModbusRegisters(y);
                 int[] zRegisters = ConvertFloatToModbusRegisters(z);
@@ -147,17 +160,20 @@ public class RobotModbusHelper
                 int[] pitchRegisters = ConvertFloatToModbusRegisters(pitch);
                 int[] yawRegisters = ConvertFloatToModbusRegisters(yaw);
 
-                modbusClient.WriteMultipleRegisters(62, xRegisters);  // @62-63
-                modbusClient.WriteMultipleRegisters(64, yRegisters);  // @64-65
-                modbusClient.WriteMultipleRegisters(66, zRegisters);  // @66-67
-                modbusClient.WriteMultipleRegisters(68, rollRegisters);   // @68-69
-                modbusClient.WriteMultipleRegisters(70, pitchRegisters);  // @70-71
-                modbusClient.WriteMultipleRegisters(72, yawRegisters);    // @72-73
+                // Écrire les valeurs dans les registres Modbus
+                modbusClient.WriteMultipleRegisters(62, xRegisters);  
+                modbusClient.WriteMultipleRegisters(64, yRegisters);  
+                modbusClient.WriteMultipleRegisters(66, zRegisters);  
+                modbusClient.WriteMultipleRegisters(68, rollRegisters);   
+                modbusClient.WriteMultipleRegisters(70, pitchRegisters);  
+                modbusClient.WriteMultipleRegisters(72, yawRegisters);    
 
+                // Écrire le type de mouvement
                 modbusClient.WriteSingleRegister(74, moveType);
-
+                
                 ClearCollisionIfAny();
 
+                // Déclencher le mouvement
                 modbusClient.WriteSingleCoil(113, true);
             }
             catch (Exception ex)
@@ -167,6 +183,7 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour detecter une collision 
     public void ClearCollisionIfAny()
     {
         lock (modbusLock)
@@ -180,11 +197,13 @@ public class RobotModbusHelper
         }
     }
 
+    // Méthode pour vérifier si le robot est en mouvement
     public bool isMoving()
     {
         return modbusClient.ReadCoils(113, 1)[0];
     }
 
+    // Méthode pour convertir des registres Modbus en float
     float ConvertRegistersToFloat(int[] registers)
     {
         byte[] bytes = new byte[4];
@@ -195,6 +214,7 @@ public class RobotModbusHelper
         return BitConverter.ToSingle(bytes, 0);
     }
 
+    // Méthode pour convertir un float en registres Modbus
     static int[] ConvertFloatToModbusRegisters(float value)
     {
         byte[] bytes = BitConverter.GetBytes(value);

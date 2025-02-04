@@ -86,21 +86,21 @@ namespace Client
             this.quitterToolStripMenuItem1});
             this.navBar.Location = new System.Drawing.Point(0, 0);
             this.navBar.Name = "navBar";
-            this.navBar.Size = new System.Drawing.Size(1456, 45);
+            this.navBar.Size = new System.Drawing.Size(1456, 49);
             this.navBar.TabIndex = 0;
             this.navBar.Text = "Menu principal";
             // 
             // serveurToolStripMenuItem
             // 
             this.serveurToolStripMenuItem.Name = "serveurToolStripMenuItem";
-            this.serveurToolStripMenuItem.Size = new System.Drawing.Size(125, 41);
+            this.serveurToolStripMenuItem.Size = new System.Drawing.Size(125, 45);
             this.serveurToolStripMenuItem.Text = "Serveur";
             this.serveurToolStripMenuItem.Click += new System.EventHandler(this.serveurToolStripMenuItem_Click);
             // 
             // quitterToolStripMenuItem1
             // 
             this.quitterToolStripMenuItem1.Name = "quitterToolStripMenuItem1";
-            this.quitterToolStripMenuItem1.Size = new System.Drawing.Size(120, 41);
+            this.quitterToolStripMenuItem1.Size = new System.Drawing.Size(120, 45);
             this.quitterToolStripMenuItem1.Text = "Quitter";
             this.quitterToolStripMenuItem1.Click += new System.EventHandler(this.quitterToolStripMenuItem1_Click);
             // 
@@ -117,7 +117,7 @@ namespace Client
             this.mainTableLayoutPanel.Controls.Add(this.pbImage, 1, 2);
             this.mainTableLayoutPanel.Controls.Add(this.statusStrip, 0, 3);
             this.mainTableLayoutPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.mainTableLayoutPanel.Location = new System.Drawing.Point(0, 45);
+            this.mainTableLayoutPanel.Location = new System.Drawing.Point(0, 49);
             this.mainTableLayoutPanel.Name = "mainTableLayoutPanel";
             this.mainTableLayoutPanel.Padding = new System.Windows.Forms.Padding(10);
             this.mainTableLayoutPanel.RowCount = 4;
@@ -125,7 +125,7 @@ namespace Client
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 51F));
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.mainTableLayoutPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 55F));
-            this.mainTableLayoutPanel.Size = new System.Drawing.Size(1456, 1120);
+            this.mainTableLayoutPanel.Size = new System.Drawing.Size(1456, 1116);
             this.mainTableLayoutPanel.TabIndex = 1;
             // 
             // groupBoxSliders
@@ -252,7 +252,7 @@ namespace Client
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(564, 828);
+            this.tbCom.Size = new System.Drawing.Size(564, 824);
             this.tbCom.TabIndex = 3;
             // 
             // pbImage
@@ -262,7 +262,7 @@ namespace Client
             this.pbImage.Location = new System.Drawing.Point(589, 222);
             this.pbImage.Margin = new System.Windows.Forms.Padding(5);
             this.pbImage.Name = "pbImage";
-            this.pbImage.Size = new System.Drawing.Size(852, 828);
+            this.pbImage.Size = new System.Drawing.Size(852, 824);
             this.pbImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pbImage.TabIndex = 4;
             this.pbImage.TabStop = false;
@@ -275,7 +275,7 @@ namespace Client
             this.statusStrip.ImageScalingSize = new System.Drawing.Size(32, 32);
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripStatus});
-            this.statusStrip.Location = new System.Drawing.Point(10, 1055);
+            this.statusStrip.Location = new System.Drawing.Point(10, 1051);
             this.statusStrip.Name = "statusStrip";
             this.statusStrip.Padding = new System.Windows.Forms.Padding(5, 0, 5, 0);
             this.statusStrip.Size = new System.Drawing.Size(1436, 55);

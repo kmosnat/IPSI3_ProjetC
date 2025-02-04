@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 
 namespace Utils
 {
+    // Classe pour représenter la position et l'orientation du robot
     public class RobotPose
     {
         public float X { get; set; }
@@ -19,6 +20,7 @@ namespace Utils
         }
     }
 
+    // Machine à états pour le robot
     public enum RobotState
     {
         Wait,
@@ -26,6 +28,7 @@ namespace Utils
         RobotOnMoving
     }
 
+    // Classe pour représenter un objet détecté par le robot
     public class RobotObject
     {
         [JsonProperty("Id")]

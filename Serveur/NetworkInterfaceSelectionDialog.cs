@@ -21,12 +21,14 @@ namespace Serveur
             PopulateNetworkInterfaces();
         }
 
+        // Méthode pour initialiser les composants
         private void PopulateNetworkInterfaces()
         {
             var networkInterfaces = NetworkInterface.GetAllNetworkInterfaces().ToList();
-
+            // Parcourir les interfaces réseau
             foreach (var ni in networkInterfaces)
             {
+                // Ignorer les interfaces désactivées
                 var ipProps = ni.GetIPProperties();
                 var ipInfos = ipProps.UnicastAddresses
                     .Where(ip => ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
@@ -66,6 +68,7 @@ namespace Serveur
 
         private void btnOK_Click(object sender, EventArgs e)
         {
+            // Vérifier si un item est sélectionné
             if (listViewInterfaces.SelectedItems.Count > 0)
             {
                 var selectedItem = listViewInterfaces.SelectedItems[0];

@@ -19,6 +19,7 @@ enum class COULEUR
 	bleu
 };
 
+// Structure pour les bouchons
 struct Bouchon {
 	int label;
 	double centroidX_mm;
@@ -32,6 +33,7 @@ struct Bouchon {
 	float r_right;
 };
 
+// Structure pour les directions
 struct Direction { 
 	int dx; 
 	int dy; 
@@ -160,6 +162,7 @@ extern "C" _declspec(dllexport) ClibIHM* process(ClibIHM* pImg, ClibIHM* pImgGt)
 	return pImgGt;
 }
 
+// Pour traiter une image
 extern "C" _declspec(dllexport) ClibIHM * processCap(ClibIHM * pImg, int threshold, int sizeMin)
 {
 	if (pImg == nullptr)
@@ -178,6 +181,7 @@ extern "C" _declspec(dllexport) double valeurChamp(ClibIHM* pImg, int i)
 	return pImg->lireChamp(i);
 }
 
+// Pour accéder à la valeur d'un champ
 extern "C" _declspec(dllexport) const char* valeurObject(ClibIHM* pImg, int i)
 {
 	if (pImg == nullptr)

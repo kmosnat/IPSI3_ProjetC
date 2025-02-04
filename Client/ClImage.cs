@@ -41,7 +41,7 @@ namespace Client
         [DllImport("libImage.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void destroyClibIHM(IntPtr pImg);
 
-        // Méthodes Wrapper
+
         public IntPtr ObjetLibPtr()
         {
             ClPtr = objetLib();
@@ -95,7 +95,6 @@ namespace Client
             return Marshal.PtrToStringAnsi(strPtr);
         }
 
-        // Implémentation de IDisposable
         public void Dispose()
         {
             Dispose(true);

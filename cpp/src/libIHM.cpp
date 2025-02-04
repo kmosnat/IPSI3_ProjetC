@@ -213,8 +213,7 @@ void ClibIHM::runProcess(ClibIHM* pImgGt)
 	this->persitData(this->imgNdgPt, COULEUR::RVB);
 }
 
-// Exemple de version sécurisée de runProcessCap() et extractBouchons()
-
+// Traitement de l'image pour la détection des bouchons
 void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 	try {
 		if (this->imgNdgPt == nullptr) {
@@ -233,6 +232,7 @@ void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 		}
 
 		int seuilHaut = 255;
+		// Seuillage manuel
 		CImageNdg man;
 		try {
 			man = binaryImg.seuillage("manuel", threshold, seuilHaut);
@@ -242,10 +242,11 @@ void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 			return;
 		}
 
+		// Extraction des bouchons
 		CImageNdg trueRes;
-		
 		try {
 			std::vector<Bouchon> bouchons = extractBouchons(man, trueRes, sizeMin);
+			// Ecriture des objets
 			for (const auto& bouchon : bouchons) {
 				std::ostringstream oss;
 				oss << bouchon.couleur << ", "
@@ -253,7 +254,9 @@ void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 					<< bouchon.centroidX_mm << ", "
 					<< bouchon.centroidY_mm;
 				char* s = _strdup(oss.str().c_str());
+				// Stockage des objets
 				this->ecrireObject(bouchon.label, s);
+				// Libération de la mémoire
 				free(s);
 			}
 		}
@@ -283,24 +286,29 @@ void ClibIHM::runProcessCap(int threshold, int sizeMin) {
 	}
 }
 
+// Extraction des bouchons
 std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& trueRes, int sizeMin)
 {
+	// Définition de la structure pour les directions
 	std::vector<Bouchon> bouchons;
 	try {
+		// CImageClasse pour obtenir les signatures
 		CImageClasse imgClasse(img, "V8");
 		CImageClasse filtre = imgClasse.filtrage("taille", sizeMin, 70000, false);
 		trueRes = filtre.toNdg();
-
+		// Récupération des signatures
 		std::vector<SIGNATURE_Forme> labels = filtre.signatures();
 		if (labels.empty()) {
 			std::cerr << "Aucune signature détectée." << std::endl;
 			return bouchons;
 		}
-
+		// Nombre de bouchons
 		int nbBouchons = static_cast<int>(labels.size()) - 1;
 		this->ecrireChamp(0, nbBouchons);
+		// Modification de la taille du vecteur
 		this->dataObject.resize(nbBouchons);
 
+		// Récupération des dimensions de l'image
 		int largeur = trueRes.lireLargeur();
 		int hauteur = trueRes.lireHauteur();
 
@@ -320,10 +328,12 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 			}
 			};
 
+		// Conversion des pixels en mm
 		float physicalRadiusMm = 175.0f;
 		float imageRadiusPx = static_cast<float>(min(largeur, hauteur)) / 2.0f;
 		float globalFacteurConversion = physicalRadiusMm / imageRadiusPx;
 
+		// Centre de l'image
 		float centerX = static_cast<float>(largeur) / 2.0f;
 		float centerY = static_cast<float>(hauteur) / 2.0f;
 
@@ -333,6 +343,7 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 				Bouchon bouchon;
 				bouchon.label = i - 1;
 
+				// Centre de gravité
 				float objX_px = static_cast<float>(labels[i].centreGravite_j);
 				float objY_px = static_cast<float>(labels[i].centreGravite_i);
 
@@ -341,11 +352,12 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 				std::vector<float> rayons;
 				rayons.reserve(directions.size());
 
+				// Coordonnées du centre
 				int x0 = static_cast<int>(objX_px);
 				int y0 = static_cast<int>(objY_px);
 
 				float r_top = 0.0f, r_bottom = 0.0f, r_left = 0.0f, r_right = 0.0f;
-
+				// Calcul des rayons dans les 4 directions
 				for (size_t k = 0; k < directions.size(); ++k)
 				{
 					int x = x0;
@@ -367,7 +379,7 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 					else if (k == 2) r_left = rayon;
 					else if (k == 3) r_right = rayon;
 				}
-
+				// Calcul du rayon moyen
 				float rayonP_px = 0.0f;
 				if (!rayons.empty()) {
 					float sum = 0.0f;
@@ -378,12 +390,12 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 				else {
 					rayonP_px = 1.0f; // Pour éviter la division par 0
 				}
-
+				// Conversion des coordonnées en mm
 				float facteurConversion = globalFacteurConversion;
 				float realX_mm = (objX_px - centerX) * facteurConversion;
 				float realY_mm = (objY_px - centerY) * facteurConversion;
 				float rayonP_mm = rayonP_px * facteurConversion;
-
+				// Stockage des coordonnées
 				bouchon.centroidX_mm = realX_mm;
 				bouchon.centroidY_mm = realY_mm;
 				bouchon.rayon_mm = rayonP_mm;
@@ -405,6 +417,7 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 				// Détermination de la couleur
 				bouchon.couleur = determineColor(bouchon);
 
+				// Stockage du bouchon
 				bouchons.push_back(bouchon);
 			}
 			catch (const std::exception& ex) {
@@ -427,7 +440,7 @@ std::vector<Bouchon> ClibIHM::extractBouchons(const CImageNdg& img, CImageNdg& t
 	return bouchons;
 }
 
-
+// Détermination de la forme du bouchon
 std::string ClibIHM::determineShape(const Bouchon& bouchon) {
 	// Récupération des rayons individuels (en mm)
 	float r_top = bouchon.r_top;
@@ -467,7 +480,7 @@ std::string ClibIHM::determineShape(const Bouchon& bouchon) {
 	return "";
 }
 
-
+// Détermination de la couleur du bouchon
 std::string ClibIHM::determineColor(const Bouchon& bouchon) {
 
 	return "inconnue";

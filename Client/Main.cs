@@ -18,6 +18,7 @@ namespace Client
 {
     public partial class Client : Form
     {
+        // Variables
         private readonly object imageLock = new object();
         private IPAddress m_ipAdrDistante;
         private int m_numPort;
@@ -42,6 +43,7 @@ namespace Client
             filtreValue = trackBarFiltre.Value;
         }
 
+        // Méthode pour initialiser les composants
         protected override async void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
@@ -58,7 +60,7 @@ namespace Client
         }
 
         #region Calibration Listener
-
+        // Méthode pour démarrer le listener de calibration
         private async Task StartCalibrationListenerAsync()
         {
             try
@@ -72,6 +74,7 @@ namespace Client
 
                 while (!token.IsCancellationRequested)
                 {
+                    // Attendre une connexion
                     TcpClient client = await calibrationListener.AcceptTcpClientAsync();
                     _ = Task.Run(() => HandleCalibrationClientAsync(client, token), token);
                 }
@@ -86,6 +89,7 @@ namespace Client
             }
         }
 
+        // Méthode pour traiter les commandes de calibration
         private async Task HandleCalibrationClientAsync(TcpClient client, CancellationToken token)
         {
             try
@@ -93,13 +97,17 @@ namespace Client
                 using (client)
                 using (var networkStream = client.GetStream())
                 {
+                    // Lire la commande
                     string command = await ReadLineAsync(networkStream, token);
                     tbCom.LogInfo($"Commande reçue du serveur : {command}");
 
+                    // Traiter la commande
                     if (command.Equals("GET_CURRENT_COORDINATES", StringComparison.OrdinalIgnoreCase))
                     {
+                        // Récupérer les coordonnées actuelles
                         var currentCoordinates = GetCurrentCoordinates();
                         string response = $"{currentCoordinates.x.ToString(CultureInfo.InvariantCulture)},{currentCoordinates.y.ToString(CultureInfo.InvariantCulture)}\n";
+                        // Envoyer les coordonnées au serveur
                         byte[] responseBytes = Encoding.UTF8.GetBytes(response);
                         await networkStream.WriteAsync(responseBytes, 0, responseBytes.Length, token);
                         tbCom.LogInfo("Coordonnées actuelles envoyées au serveur.");
@@ -116,6 +124,7 @@ namespace Client
             }
         }
 
+        // Méthode pour lire une ligne depuis le stream
         private async Task<string> ReadLineAsync(NetworkStream stream, CancellationToken token)
         {
             var sb = new StringBuilder();
@@ -133,6 +142,7 @@ namespace Client
             return sb.ToString().Trim();
         }
 
+        // Méthode pour récupérer les coordonnées actuelles
         private (float x, float y) GetCurrentCoordinates()
         {
             if (_lastFrameDetections.Count == 0)
@@ -149,7 +159,7 @@ namespace Client
         #endregion
 
         #region Communication avec le serveur (Images & Objets)
-
+        // Méthode pour convertir un tableau de bytes en entier non signé
         private uint FromBigEndianBytes(byte[] bytes)
         {
             if (BitConverter.IsLittleEndian)
@@ -157,6 +167,7 @@ namespace Client
             return BitConverter.ToUInt32(bytes, 0);
         }
 
+        // Méthode pour initialiser le client TCP
         private async Task InitClientTCPAsync(CancellationToken cancellationToken)
         {
             if (m_ipAdrDistante == null)
@@ -172,6 +183,7 @@ namespace Client
                 try
                 {
                     tbCom.LogInfo("Tentative de connexion au serveur...");
+                    // Connexion au serveur
                     var connectTask = tcpClient.ConnectAsync(m_ipAdrDistante, m_numPort);
                     var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
                     var completedTask = await Task.WhenAny(connectTask, timeoutTask);
@@ -179,17 +191,21 @@ namespace Client
                         throw new TimeoutException("Délai de connexion dépassé.");
                     await connectTask;
                     tbCom.LogInfo("Connexion établie");
+                    // Mettre à jour l'état de la connexion
                     UpdateStatus(true);
 
                     using (NetworkStream networkStream = tcpClient.GetStream())
                     {
+                        // Envoyer la requête d'image
                         string request = "GET_IMAGE\n";
                         byte[] requestBytes = Encoding.ASCII.GetBytes(request);
                         await networkStream.WriteAsync(requestBytes, 0, requestBytes.Length, cancellationToken);
+                        // Attendre que les données soient envoyées
                         await networkStream.FlushAsync(cancellationToken);
                         tbCom.LogInfo("Requête d'image envoyée : " + request);
 
                         const uint maxExpectedSize = 10_000_000;
+                        // Lire les images
                         while (tcpClient.Connected && !cancellationToken.IsCancellationRequested)
                         {
                             byte[] sizeBytes = new byte[4];
@@ -219,14 +235,16 @@ namespace Client
                                     throw new Exception("Connexion fermée avant de recevoir toute l'image.");
                                 totalRead += bytesRead;
                             }
-
+                            // Afficher l'image
                             await Task.Run(() =>
                             {
                                 try
                                 {
                                     using (MemoryStream ms = new MemoryStream(imageBytes))
                                     {
+                                        // Convertir les bytes en image
                                         Image receivedImage = Image.FromStream(ms);
+                                        // Afficher l'image
                                         DisplayImage(receivedImage);
                                     }
                                 }
@@ -241,7 +259,9 @@ namespace Client
                 catch (Exception ex)
                 {
                     tbCom.LogError("Erreur dans InitClientTCPAsync : " + ex.Message);
+                    // Mettre à jour l'état de la connexion
                     UpdateStatus(false);
+                    // Incrémenter le nombre de tentatives
                     attempt++;
                     if (maxReconnectAttempts > 0 && attempt >= maxReconnectAttempts)
                     {
@@ -249,16 +269,19 @@ namespace Client
                         break;
                     }
                     tbCom.LogInfo($"Nouvelle tentative dans {reconnectInterval.TotalSeconds} secondes...");
+                    // Attendre avant de retenter la connexion
                     await Task.Delay(reconnectInterval, cancellationToken);
                 }
                 finally
                 {
+                    // Fermer la connexion
                     tcpClient.Close();
                     tbCom.LogInfo("Connexion fermée.");
                 }
             }
         }
 
+        // Méthode pour mettre à jour l'état de la connexion
         private void UpdateStatus(bool isConnected)
         {
             this.Invoke((MethodInvoker)(() =>
@@ -268,17 +291,21 @@ namespace Client
             }));
         }
 
+        // Méthode pour afficher l'image
         private void DisplayImage(Image receivedImage)
         {
             try
             {
+                // Traiter l'image
                 Image processedImage = ProcessImage(receivedImage);
                 this.Invoke((MethodInvoker)(() =>
                 {
                     if (this.pbImage.Image != null)
                     {
+                        // Libérer les ressources de l'image précédente
                         this.pbImage.Image.Dispose();
                     }
+                    // Afficher l'image
                     this.pbImage.Image = processedImage;
                 }));
             }
@@ -292,9 +319,12 @@ namespace Client
             }
         }
 
+        // Méthode pour traiter l'image
         private Image ProcessImage(Image inputImage)
         {
+            // Convertir l'image en format 24bpp
             Bitmap bitmap = new Bitmap(inputImage.Width, inputImage.Height, PixelFormat.Format24bppRgb);
+            // Copier l'image
             using (Graphics g = Graphics.FromImage(bitmap))
             {
                 g.DrawImage(inputImage, 0, 0);
@@ -302,6 +332,7 @@ namespace Client
             BitmapData bitmapData = null;
             try
             {
+                // Verrouiller les bits de l'image
                 Rectangle rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
                 bitmapData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
                 int width = bitmapData.Width;
@@ -311,6 +342,7 @@ namespace Client
                 int packedStride = width * bytesPerPixel;
                 byte[] imageData = new byte[height * packedStride];
                 IntPtr scan0 = bitmapData.Scan0;
+                // Copier les données de l'image
                 unsafe
                 {
                     for (int y = 0; y < height; y++)
@@ -318,16 +350,22 @@ namespace Client
                         Marshal.Copy(new IntPtr(((byte*)scan0.ToPointer()) + y * stride), imageData, y * packedStride, packedStride);
                     }
                 }
+                // Traiter l'image
                 using (ClImage clImage = new ClImage())
                 {
+                    // Initialiser l'objet ClImage
                     clImage.ObjetLibDataImgPtr(3, Marshal.UnsafeAddrOfPinnedArrayElement(imageData, 0), packedStride, height, width);
+                    // Traiter l'image
                     clImage.ProcessCapPtr(seuilValue, filtreValue);
                     _lastFrameDetections.Clear();
+
+                    // Récupérer les objets détectés
                     int objectCount = (int)clImage.ObjetLibValeurChamp(0);
                     for (int i = 0; i < objectCount; i++)
                     {
                         try
                         {
+                            // Extraire les informations de l'objet
                             string objectInfo = clImage.ObjetLibObjectChamp(i);
                             tbCom.LogInfo($"{clImage.ObjetLibValeurChamp(2)}");
                             var parts = objectInfo.Split(',');
@@ -348,6 +386,7 @@ namespace Client
                                 tbCom.LogError($"Erreur de parsing Y : {parts[3].Trim()}");
                                 continue;
                             }
+                            // Ajouter l'objet à la liste
                             _lastFrameDetections.Add((color, shape, x, y));
                             Task.Run(() => AddRobotObject(color, shape, x, y));
                         }
@@ -364,6 +403,7 @@ namespace Client
                         Marshal.Copy(imageData, y * packedStride, new IntPtr(((byte*)bitmapData.Scan0.ToPointer()) + y * stride), packedStride);
                     }
                 }
+                // Déverrouiller les bits de l'image
                 bitmap.UnlockBits(bitmapData);
                 bitmapData = null;
                 return bitmap;
@@ -387,6 +427,7 @@ namespace Client
             seuilValue = trackBarSeuil.Value;
         }
 
+        // Méthode pour afficher la fenêtre d'ajout d'adresse IP
         private void serveurToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (ServerSelectionDialog dialog = new ServerSelectionDialog())
@@ -413,9 +454,12 @@ namespace Client
             this.Close();
         }
 
+        // Méthode pour ajouter un objet au serveur
         private async void AddRobotObject(string color, string shape, float x, float y)
         {
+            // Créer un objet RobotObject
             var robotObject = new RobotObject(color, shape, x, y);
+            // Vérifier si l'objet existe déjà
             string key = robotObject.Key;
             if (!localObjects.TryAdd(key, robotObject))
             {
@@ -429,16 +473,19 @@ namespace Client
             byte[] commandBytes = Encoding.UTF8.GetBytes(addObjectCommand);
             try
             {
+                // Connexion au serveur
                 using (TcpClient client = new TcpClient())
                 {
                     await client.ConnectAsync(m_ipAdrDistante, m_numPort);
                     using (NetworkStream networkStream = client.GetStream())
                     {
+                        // Envoyer la commande
                         await networkStream.WriteAsync(commandBytes, 0, commandBytes.Length);
                         await networkStream.FlushAsync();
                         byte[] buffer = new byte[1024];
                         int bytesRead = await networkStream.ReadAsync(buffer, 0, buffer.Length);
                         string response = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                        // Traiter la réponse
                         tbCom.LogInfo($"Réponse du serveur : {response}");
                         if (response.StartsWith("OBJET AJOUTÉ", StringComparison.OrdinalIgnoreCase))
                         {
@@ -451,6 +498,7 @@ namespace Client
                         else
                         {
                             tbCom.LogError($"Erreur lors de l'ajout de l'objet '{key}' : {response}");
+                            // Supprimer l'objet de la liste locale
                             localObjects.TryRemove(key, out _);
                         }
                     }

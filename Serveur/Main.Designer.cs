@@ -706,7 +706,7 @@ namespace Serveur
             this.tabLogs.Margin = new System.Windows.Forms.Padding(4);
             this.tabLogs.Name = "tabLogs";
             this.tabLogs.Padding = new System.Windows.Forms.Padding(12, 10, 12, 10);
-            this.tabLogs.Size = new System.Drawing.Size(1191, 630);
+            this.tabLogs.Size = new System.Drawing.Size(1191, 635);
             this.tabLogs.TabIndex = 0;
             this.tabLogs.Text = "Logs";
             this.tabLogs.UseVisualStyleBackColor = true;
@@ -721,7 +721,7 @@ namespace Serveur
             this.tbCom.Multiline = true;
             this.tbCom.Name = "tbCom";
             this.tbCom.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbCom.Size = new System.Drawing.Size(1167, 610);
+            this.tbCom.Size = new System.Drawing.Size(1167, 615);
             this.tbCom.TabIndex = 0;
             // 
             // timAcq
