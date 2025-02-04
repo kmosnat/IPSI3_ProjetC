@@ -329,6 +329,7 @@ namespace Client
                         try
                         {
                             string objectInfo = clImage.ObjetLibObjectChamp(i);
+                            tbCom.LogInfo($"{clImage.ObjetLibValeurChamp(2)}");
                             var parts = objectInfo.Split(',');
                             if (parts.Length != 4)
                             {

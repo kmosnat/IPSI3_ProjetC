@@ -50,7 +50,7 @@ namespace Utils
         // Méthode pour générer la clé unique améliorée
         private string GenerateKey()
         {
-            const float tolerance = 100.0f;
+            const float tolerance = 10.0f;
             // Quantifier les positions X et Y selon la tolérance
             float quantizedX = (float)Math.Round(X / tolerance) * tolerance;
             float quantizedY = (float)Math.Round(Y / tolerance) * tolerance;
