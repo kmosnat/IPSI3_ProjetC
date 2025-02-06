@@ -405,7 +405,6 @@ namespace Serveur
                     {
                         tbCom.LogInfo($"Objet à traiter : {robotObject}", LogSource.Serveur);
                         currentRobotObject = robotObject;
-                        serverState = ServerState.Wait;
                         robotState = RobotState.OnProcess;
                     }
                     break;
